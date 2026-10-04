@@ -250,11 +250,30 @@ def test_outcome_probabilities_without_the_cap():
     assert model.outcome_probabilities(0.6) == pytest.approx((0.475, 0.25, 0.275))
 
 
-def test_draw_probability_is_capped_so_that_no_probability_is_negative():
+def test_draw_probability_is_capped_so_that_each_win_keeps_one_percent():
     model = DrawModel(draw_rates=(0.6,), overall_draw_rate=0.6, matches=100)
 
-    assert model.outcome_probabilities(0.1) == pytest.approx((0.0, 0.2, 0.8))
-    assert model.outcome_probabilities(0.95) == pytest.approx((0.9, 0.1, 0.0))
+    # E = 0.1: the cap is 2 * 0.1 - 0.02 = 0.18, so P(H) = 0.1 - 0.09 = 0.01.
+    assert model.outcome_probabilities(0.1) == pytest.approx((0.01, 0.18, 0.81))
+    # E = 0.95: the cap is 2 * 0.05 - 0.02 = 0.08, so P(A) = 0.05 - 0.04 = 0.01.
+    assert model.outcome_probabilities(0.95) == pytest.approx((0.91, 0.08, 0.01))
+
+
+@pytest.mark.parametrize("expected", [0.01, 0.05, 0.3, 0.5, 0.93, 0.951, 0.99])
+def test_each_win_keeps_at_least_one_percent(expected):
+    model = DrawModel(draw_rates=(0.9,), overall_draw_rate=0.9, matches=100)
+
+    home, draw, away = model.outcome_probabilities(expected)
+
+    assert min(home, away) >= 0.01 - 1e-12
+    assert draw >= 0
+
+
+@pytest.mark.parametrize("expected", [0.05, 0.3, 0.5, 0.93, 0.951])
+def test_no_result_is_called_impossible_inside_the_limits(expected):
+    model = DrawModel(draw_rates=(0.9,), overall_draw_rate=0.9, matches=100)
+
+    assert min(model.outcome_probabilities(expected)) > 0
 
 
 @pytest.mark.parametrize("expected", [0.0, 0.01, 0.2, 0.5, 0.64, 0.93, 0.999, 1.0])

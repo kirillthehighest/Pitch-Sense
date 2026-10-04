@@ -44,9 +44,9 @@ Gazdele câștigă exact câte puncte pierd oaspeții, deci suma ratingurilor di
 - **Ec. 5:** rata egalurilor din coșul $b$ este $d_b = \dfrac{e_b + m\,\bar{d}}{n_b + m}$, unde $n_b$ și $e_b$ sunt numărul de meciuri și de egaluri din coș, $\bar{d}$ este rata generală a egalurilor, iar $m$ este o greutate care trage coșurile cu puține meciuri spre rata generală.
 - **Ec. 6:**
 
-$$P(D) = \min\big(d_{b(E)},\ 2\min(E, 1 - E)\big), \qquad P(H) = E - \frac{P(D)}{2}, \qquad P(A) = 1 - E - \frac{P(D)}{2}$$
+$$P(D) = \min\big(d_{b(E)},\ \max(0,\ 2\min(E, 1 - E) - 2q)\big), \qquad P(H) = E - \frac{P(D)}{2}, \qquad P(A) = 1 - E - \frac{P(D)}{2}$$
 
-Limita $2\min(E, 1-E)$ garantează că nicio probabilitate nu este negativă. Cele trei probabilități au suma 1 și păstrează exact scorul așteptat Elo.
+unde $q = 0{,}01$ este probabilitatea minimă păstrată de fiecare victorie. Limita garantează că nicio probabilitate nu este negativă și că, pentru $q \le E \le 1 - q$, ambele victorii au cel puțin 1%; strict între aceste limite și egalul are o probabilitate pozitivă. Astfel, niciun rezultat posibil nu este declarat imposibil. Cele trei probabilități au suma 1 și păstrează exact scorul așteptat Elo.
 
 ## 4. Intrări
 
@@ -88,7 +88,7 @@ ELO(meciuri, K, H):
     R ← { e : R[e] dacă e era deja în R, altfel r_intrare   pentru e din echipe }
 
 PROBABILITĂȚI(E, d, B):                               ▷ d = ratele egalurilor pe coșuri
-    p_D ← min(d[min(⌊E · B⌋, B − 1)], 2 · min(E, 1 − E))
+    p_D ← min(d[min(⌊E · B⌋, B − 1)], max(0, 2 · min(E, 1 − E) − 2 · q))   ▷ q = 0,01
     returnează (E − p_D / 2, p_D, 1 − E − p_D / 2)
 ```
 
@@ -114,6 +114,7 @@ Toate meciurile unei zile sunt prezise înainte să se aplice vreun rezultat din
 | ratingul inițial | 1500 | convenția uzuală Elo |
 | $B$ (coșuri) | 10 | valoare implicită documentată |
 | $m$ (greutate) | 20 | valoare implicită documentată |
+| $q$ (probabilitatea minimă a unei victorii) | 0,01 | adăugată în Faza 9 (secțiunea 7.5) |
 
 ### 7.3. Calibrarea lui K și H
 
@@ -148,6 +149,12 @@ Modelul potrivit pe cele 1.140 de meciuri de calibrare, cu $K = 15$ și $H = 80$
 | 0,9–1,0 | 3 | 0,202 |
 
 Egalurile sunt mai frecvente între echipe apropiate ca forță ($E_h$ între 0,5 și 0,7) și rare când o echipă este clar favorită. De exemplu, pentru două echipe egale ($E_h = 0{,}6131$) probabilitățile sunt 0,486 / 0,255 / 0,259. În evaluarea cronologică (Faza 8), modelul va fi potrivit de fiecare dată doar pe meciurile anterioare.
+
+### 7.5. Modificare în Faza 9: probabilitatea minimă
+
+Inițial, Ec. 6 limita egalul la $2\min(E, 1 - E)$. Pentru meciuri foarte dezechilibrate, limita era atinsă exact, iar victoria echipei slabe primea probabilitatea 0. Evaluarea (Faza 9) a găsit 6 astfel de predicții din 6.080. Într-una dintre ele, Barcelona – Hércules (0–2, 11 septembrie 2010), echipa slabă a câștigat, iar pierderea logaritmică a modelului a devenit infinită.
+
+Echipa a ales să corecteze modelul: limita a devenit $2\min(E, 1 - E) - 2q$, cu $q = 0{,}01$, deci fiecare victorie păstrează cel puțin 1%. Corecția a schimbat doar 15 din cele 6.080 de predicții de evaluare (0,25%) și nu a modificat $K$, $H$ sau modelul egalurilor. Pentru meciul de mai sus, Elo prezice acum 83,7% / 15,3% / 1,0%. Detalii în `docs/evaluation.md`, secțiunea 5.
 
 ## 8. Complexitate
 
@@ -190,7 +197,7 @@ Testele sunt în `tests/test_elo.py`, `tests/test_elo_predictions.py` și `tests
 - Cu $H = 100$: $E_h = 0{,}6401$; o victorie a gazdelor aduce +7,20, iar un egal costă gazdele 2,80 puncte.
 - După A–B (1–0) și B–C (3–1): B are 1500,29, iar C are 1489,71.
 - Suma ratingurilor rămâne constantă după 200 de meciuri aleatorii și la promovări; o echipă care revine nu își primește înapoi vechiul rating.
-- Modelul egalurilor: ratele pe coșuri 1/2 și 2/3 fără greutate, 4/7 și 5/8 cu $m = 5$; pentru $E = 0{,}1$ și o rată de 0,6, limita dă (0; 0,2; 0,8).
+- Modelul egalurilor: ratele pe coșuri 1/2 și 2/3 fără greutate, 4/7 și 5/8 cu $m = 5$; pentru $E = 0{,}1$ și o rată de 0,6, limita dă (0,01; 0,18; 0,81), iar pentru $E = 0{,}95$ dă (0,91; 0,08; 0,01): fiecare victorie păstrează 1%.
 - Pe 20.000 de meciuri simulate, cu 30% egaluri pentru $E$ între 0,4 și 0,6 și 15% în rest, modelul regăsește aceste rate.
 - Calibrarea: eroarea unui singur meci de calibrare este $(1 - 0{,}52875)^2$; sezoanele din afara încălzirii și calibrării nu influențează rezultatul.
 - Fără scurgere de informații: schimbarea rezultatului unui meci nu modifică nicio predicție din ziua lui sau dinainte, dar modifică predicțiile ulterioare.

@@ -21,10 +21,13 @@ turns it into home/draw/away probabilities, learned from past matches:
     b(E)             bin of an expected score: min(floor(E * B), B - 1)          (Eq. 4)
     d_b              draw rate of bin b, pulled towards the overall draw rate d   (Eq. 5)
                      d_b = (draws_b + m * d) / (matches_b + m)
-    P(D)             min(d_b(E), 2 * min(E, 1 - E))                             (Eq. 6)
+    q                minimum probability kept by each result: 0.01
+    P(D)             min(d_b(E), max(0, 2 * min(E, 1 - E) - 2 * q))               (Eq. 6)
     P(H), P(A)       E - P(D) / 2  and  1 - E - P(D) / 2
 
-so P(H) + P(D) / 2 = E exactly, and the three probabilities are non-negative and sum to 1.
+so P(H) + P(D) / 2 = E exactly and the three probabilities are non-negative and sum to 1.
+Whenever q <= E <= 1 - q both wins keep at least q, and strictly inside these limits the draw
+keeps a positive probability too, so no possible result is called impossible.
 """
 
 import math
@@ -36,6 +39,9 @@ DEFAULT_INITIAL_RATING = 1500.0
 RATING_SCALE = 400.0  # a gap of 400 points means the stronger side's expected score is 10/11
 DEFAULT_DRAW_BINS = 10
 DEFAULT_PRIOR_WEIGHT = 20.0  # m in Eq. 5: imaginary matches at the overall draw rate per bin
+# q in Eq. 6. Without it, very uneven matches gave the underdog's win probability 0, and the
+# evaluation (Phase 9) met such a match that the underdog won: Barcelona 0-2 Hercules, 2010.
+MIN_OUTCOME_PROBABILITY = 0.01
 _SCORES = (0.0, 0.5, 1.0)
 
 
@@ -211,10 +217,8 @@ class DrawModel:
     def draw_probability(self, expected: float) -> float:
         """Return P(D) for a match with home expected score ``expected`` (Eq. 6)."""
         _check_probability(expected)
-        return min(
-            self.draw_rates[_bin_of(expected, len(self.draw_rates))],
-            2 * min(expected, 1 - expected),
-        )
+        cap = max(0.0, 2 * min(expected, 1 - expected) - 2 * MIN_OUTCOME_PROBABILITY)
+        return min(self.draw_rates[_bin_of(expected, len(self.draw_rates))], cap)
 
     def outcome_probabilities(self, expected: float) -> tuple[float, float, float]:
         """Return (P(H), P(D), P(A)) for a match with home expected score ``expected``.
