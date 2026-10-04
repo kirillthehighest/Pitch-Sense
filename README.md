@@ -5,7 +5,7 @@ Aplicație desktop pentru analiza datelor istorice din fotbal și estimarea rezu
 Proiect de an la disciplina *Analiza și Proiectarea Algoritmilor* (APA), Universitatea Tehnică a Moldovei, Departamentul Ingineria Software și Automatică.
 Echipa (grupa TI-251): Goroșevschi Chiril, Cuzmici Nicolae, Păstru Alina.
 
-**Stadiu:** Faza 4, modelul Poisson. Fazele 0 (planificare și arhitectură), 1 (prelucrarea datelor istorice), 2 (statisticile echipelor) și 3 (ratingul Elo) au fost încheiate pe 2026-10-04. Aplicația propriu-zisă nu este încă implementată.
+**Stadiu:** Faza 5, regresia logistică. Fazele 0 (planificare și arhitectură), 1 (prelucrarea datelor istorice), 2 (statisticile echipelor), 3 (ratingul Elo) și 4 (modelul Poisson) au fost încheiate pe 2026-10-04. Aplicația propriu-zisă nu este încă implementată.
 
 ## Cerințe
 
@@ -61,7 +61,7 @@ Comanda verifică toate sezoanele și afișează câte meciuri a salvat din fiec
 ## Documentație
 
 - [`docs/architecture.md`](docs/architecture.md): arhitectura aplicației, fluxul datelor și deciziile tehnice.
-- `docs/algorithms/`: câte un document pentru fiecare algoritm: [`elo.md`](docs/algorithms/elo.md) (ratingul Elo), [`poisson.md`](docs/algorithms/poisson.md) (modelul Poisson); celelalte se adaugă în fazele 5–6.
+- `docs/algorithms/`: câte un document pentru fiecare algoritm: [`elo.md`](docs/algorithms/elo.md) (ratingul Elo), [`poisson.md`](docs/algorithms/poisson.md) (modelul Poisson), [`logistic_regression.md`](docs/algorithms/logistic_regression.md) (regresia logistică); K-Means se adaugă în Faza 6.
 
 ## Etape
 
