@@ -48,6 +48,16 @@ python -m ruff format --check .
 
 Meciurile din La Liga (Spania), sezoanele 2006/07–2025/26, preluate de pe [Football-Data.co.uk](https://www.football-data.co.uk). Fișierele originale se află în `data/raw/SP1/`. Sursa și verificările făcute la descărcare sunt descrise în [`data/raw/README.md`](data/raw/README.md).
 
+## Baza de date
+
+Construiește (sau reconstruiește) baza de date `data/pitchsense.db` din fișierele brute:
+
+```bash
+python -m app.data.build_database
+```
+
+Comanda verifică toate sezoanele și afișează câte meciuri a salvat din fiecare. Baza de date nu este inclusă în git, așa că rulați comanda după clonarea proiectului și după orice modificare a fișierelor din `data/raw/`.
+
 ## Documentație
 
 - [`docs/architecture.md`](docs/architecture.md): arhitectura aplicației, fluxul datelor și deciziile tehnice.

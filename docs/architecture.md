@@ -1,6 +1,6 @@
 # Arhitectura aplicației PitchSense
 
-Acest document descrie structura aplicației, fluxul datelor și deciziile tehnice luate în Faza 0. Se actualizează ori de câte ori structura se schimbă.
+Acest document descrie structura aplicației, fluxul datelor și deciziile tehnice luate până acum (fazele 0 și 1). Se actualizează ori de câte ori structura se schimbă.
 
 ## 1. Principii
 
@@ -51,7 +51,84 @@ app/evaluation                backtesting cronologic, metrici, comparație
 app/visualization → app/ui    grafice și interfața grafică
 ```
 
-## 5. Formatul comun al predicției
+## 5. Stratul de date (Faza 1)
+
+### 5.1. Module
+
+| Modul | Rol |
+|---|---|
+| `models.py` | Înregistrările `Match`, `MatchStatistics` și rezultatul `Outcome` (H, D, A). Un `Match` nu poate fi modificat după creare și refuză datele imposibile. |
+| `preprocessing.py` | Validează rândurile brute și le transformă în înregistrări `Match`; verifică structura unui sezon; definește ordinea cronologică. |
+| `loader.py` | Citește un fișier de sezon sau toate sezoanele unei competiții. |
+| `repository.py` | Stochează și interoghează meciurile în SQLite. |
+| `build_database.py` | Comanda care reconstruiește baza de date din fișierele brute. |
+| `paths.py` | Locul unic în care sunt definite căile către fișierele de date. |
+
+### 5.2. Înregistrarea unui meci (`Match`)
+
+| Câmp | Tip | Descriere |
+|---|---|---|
+| `competition` | text | codul competiției, de exemplu `SP1` pentru La Liga |
+| `season` | text | sezonul, de forma `2006-07`, luat din numele fișierului |
+| `match_date` | dată | ziua meciului |
+| `kickoff_time` | oră sau lipsă | ora de începere; există doar din sezonul 2019-20 |
+| `home_team`, `away_team` | text | echipa gazdă și echipa oaspete |
+| `home_goals`, `away_goals` | întreg ≥ 0 | golurile la finalul meciului |
+| `result` | `H` / `D` / `A` | victoria gazdelor, egal, victoria oaspeților |
+| `statistics` | `MatchStatistics` sau lipsă | cele 12 statistici ale meciului: șuturi, șuturi pe poartă, faulturi, cornere, cartonașe galbene și roșii, pentru fiecare echipă |
+
+Statisticile descriu meciul însuși, deci nu sunt cunoscute înainte de începerea lui. Ele pot fi folosite doar pentru meciurile care urmează.
+
+### 5.3. Reguli de validare
+
+La citirea unui fișier:
+
+- coloanele obligatorii (`Div`, `Date`, `HomeTeam`, `AwayTeam`, `FTHG`, `FTAG`, `FTR`) trebuie să existe; toate coloanele sunt citite după nume, nu după poziție;
+- golurile și statisticile sunt numere întregi nenegative;
+- rezultatul este `H`, `D` sau `A` și corespunde scorului;
+- numele echipelor nu lipsesc, iar o echipă nu poate juca cu ea însăși;
+- data meciului se încadrează în sezon, între 1 iulie și 31 iulie a anului următor (sezonul 2019/20 s-a încheiat abia pe 19 iulie 2020);
+- nu există meciuri duplicate, iar toate rândurile unui fișier aparțin aceleiași competiții;
+- toate problemele dintr-un fișier sunt raportate împreună, fiecare cu numărul liniei.
+
+La construirea bazei de date, fiecare sezon trebuie să fie un campionat complet în sistem tur-retur: 20 de echipe, 380 de meciuri, 38 de meciuri pe echipă, iar fiecare echipă găzduiește fiecare adversar o singură dată.
+
+### 5.4. Particularități ale fișierelor sursă
+
+- Datele sunt scrise `zz/ll/aa` până în sezonul 2017-18 și `zz/ll/aaaa` începând cu 2018-19.
+- Fișierele 2024-25 și 2025-26 încep cu un marcaj BOM; ele sunt citite cu codificarea `utf-8-sig`.
+- Numărul de coloane variază între 61 și 131, deoarece coloanele cu cotele caselor de pariuri se schimbă. De aceea coloanele sunt alese după nume.
+- Ora de începere apare doar din sezonul 2019-20.
+- Rândurile complet goale sunt ignorate.
+
+### 5.5. Structura bazei de date
+
+Baza de date `data/pitchsense.db` are un singur tabel, `matches`:
+
+| Coloană | Tip SQLite | Observații |
+|---|---|---|
+| `id` | INTEGER | cheie primară |
+| `competition`, `season` | TEXT | obligatorii |
+| `match_date` | TEXT | obligatoriu, format ISO 8601 (`AAAA-LL-ZZ`) |
+| `kickoff_time` | TEXT | `HH:MM` sau NULL |
+| `home_team`, `away_team` | TEXT | obligatorii |
+| `home_goals`, `away_goals` | INTEGER | obligatorii, cel puțin 0 |
+| `result` | TEXT | obligatoriu: `H`, `D` sau `A` |
+| `home_shots` … `away_red_cards` | INTEGER | cele 12 statistici; NULL când sursa nu le are |
+
+Constrângeri: un meci este unic după competiție, dată și echipe (`UNIQUE (competition, match_date, home_team, away_team)`). Un index pe `(competition, season)` accelerează interogările pe sezon.
+
+### 5.6. Construirea bazei de date
+
+```bash
+python -m app.data.build_database
+```
+
+Comanda parcurge fiecare folder din `data/raw/` (numele folderului este codul competiției), validează toate sezoanele și verifică dacă sunt complete. Scrie mai întâi într-un fișier temporar și înlocuiește `data/pitchsense.db` doar dacă totul a reușit. Baza de date nu este inclusă în git: se reconstruiește oricând din fișierele brute, care rămân singura sursă de adevăr.
+
+Rezultat la 2026-10-04: 7.600 de meciuri în 20 de sezoane, toate complete. Meciurile citite din baza de date sunt identice cu cele încărcate direct din fișierele CSV.
+
+## 6. Formatul comun al predicției
 
 Fiecare model care estimează rezultatul unui meci întoarce:
 
@@ -61,7 +138,7 @@ Fiecare model care estimează rezultatul unui meci întoarce:
 
 K-Means nu prezice rezultatul meciului. El întoarce grupuri (clustere) de echipe cu profiluri statistice asemănătoare.
 
-## 6. Backtesting cronologic
+## 7. Backtesting cronologic
 
 Meciurile sunt parcurse în ordinea datelor. Pentru fiecare zi de joc D:
 
@@ -71,7 +148,7 @@ Meciurile sunt parcurse în ordinea datelor. Pentru fiecare zi de joc D:
 
 Metricile se calculează din jurnalul predicțiilor salvate, în aceleași condiții pentru toate modelele.
 
-## 7. Setul de date și perioadele
+## 8. Setul de date și perioadele
 
 Sursa datelor este Football-Data.co.uk: La Liga (`SP1`), 20 de sezoane încheiate, 2006/07–2025/26 (7.600 de meciuri).
 
@@ -81,7 +158,7 @@ Sursa datelor este Football-Data.co.uk: La Liga (`SP1`), 20 de sezoane încheiat
 | 2007/08–2009/10 | Calibrare: se aleg hiperparametrii; rezultatele nu sunt raportate. |
 | 2010/11–2025/26 | Evaluarea raportată: 16 sezoane, 6.080 de meciuri. |
 
-## 8. Tehnologii
+## 9. Tehnologii
 
 | Componentă | Versiune | Rol |
 |---|---|---|
@@ -94,7 +171,7 @@ Sursa datelor este Football-Data.co.uk: La Liga (`SP1`), 20 de sezoane încheiat
 | pytest | 9.1.1 | testare |
 | ruff | 0.16.10 | verificarea și formatarea codului |
 
-## 9. Decizii tehnice
+## 10. Decizii tehnice
 
 | Decizie | Motiv |
 |---|---|
@@ -104,3 +181,9 @@ Sursa datelor este Football-Data.co.uk: La Liga (`SP1`), 20 de sezoane încheiat
 | ruff, fără verificator static de tipuri | Un singur instrument rapid pentru stil și erori frecvente. Adnotările de tip rămân obligatorii. |
 | Avertismentele sunt tratate ca erori în teste | Schimbările de API din pandas 3 și NumPy 2 sunt observate imediat, nu ignorate. |
 | Interfața și codul în engleză; documentația și raportul în română | Decizia echipei. |
+| Statisticile unui meci sunt păstrate doar dacă există toate cele 12 valori | Un model care folosește statistici primește mereu setul complet; un meci cu date parțiale este tratat ca un meci fără statistici. |
+| Cotele de pariuri și scorul la pauză nu sunt încărcate | Nu sunt folosite de niciun algoritm, iar pariurile sunt în afara scopului proiectului. |
+| Numele echipelor rămân ca în sursă (`Ath Madrid`, `Sociedad`) | Sunt consecvente în toate cele 20 de sezoane; nume mai prietenoase se pot adăuga ulterior într-un singur loc. |
+| Ordinea cronologică este definită într-un singur loc: data, apoi ora (necunoscută întâi), apoi echipa gazdă | Aceeași ordine în fișiere, în baza de date și, mai târziu, în backtesting. |
+| Baza de date se reconstruiește integral din fișierele brute, printr-un fișier temporar | Baza de date nu poate rămâne scrisă pe jumătate, iar fișierele brute rămân singura sursă de adevăr. |
+| Data și ora sunt stocate ca text ISO 8601 | SQLite nu are un tip pentru dată; textul ISO se compară și se ordonează corect. |
