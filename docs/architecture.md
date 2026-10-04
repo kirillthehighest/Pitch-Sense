@@ -1,6 +1,6 @@
 # Arhitectura aplicației PitchSense
 
-Acest document descrie structura aplicației, fluxul datelor și deciziile tehnice luate până acum (fazele 0 și 1). Se actualizează ori de câte ori structura se schimbă.
+Acest document descrie structura aplicației, fluxul datelor și deciziile tehnice luate până acum (fazele 0–2). Se actualizează ori de câte ori structura se schimbă.
 
 ## 1. Principii
 
@@ -128,7 +128,114 @@ Comanda parcurge fiecare folder din `data/raw/` (numele folderului este codul co
 
 Rezultat la 2026-10-04: 7.600 de meciuri în 20 de sezoane, toate complete. Meciurile citite din baza de date sunt identice cu cele încărcate direct din fișierele CSV.
 
-## 6. Formatul comun al predicției
+## 6. Statisticile echipelor (Faza 2)
+
+Modulul `app/statistics/team_statistics.py` calculează statisticile unei echipe și ale ligii „la o anumită dată”, adică doar din meciurile jucate **strict înaintea** acelei zile. Meciul pentru care se face predicția și toate celelalte meciuri din aceeași zi sunt excluse. Motivul: sezoanele vechi nu au ora de începere, deci nu se poate ști care meciuri din aceeași zi s-au încheiat înainte.
+
+### 6.1. Ce oferă
+
+| Funcție | Rezultat |
+|---|---|
+| `MatchHistory` | meciurile unei singure competiții, indexate cronologic pe echipe; toate interogările trec prin ea |
+| `team_statistics` | meciuri jucate, victorii, egaluri, înfrângeri, goluri marcate și primite, puncte, golaveraj, puncte pe meci, procentul de victorii, goluri pe meci |
+| `team_match_statistics` | media pe meci a șuturilor, șuturilor pe poartă, faulturilor, cornerelor și cartonașelor galbene și roșii, atât ale echipei, cât și ale adversarilor |
+| `recent_form` | ultimele N rezultate ale echipei (implicit 5), de la cel mai vechi la cel mai recent: `W` (victorie), `D` (egal), `L` (înfrângere) |
+| `league_averages` | media golurilor gazdelor și ale oaspeților pe meci și frecvența rezultatelor `H`, `D`, `A` în întreaga ligă |
+
+### 6.2. Selecții
+
+Fiecare interogare poate restrânge meciurile luate în calcul:
+
+- **locul** (doar pentru echipe): toate meciurile, doar cele de acasă sau doar cele din deplasare;
+- **sezonul**: doar meciurile sezonului dat („sezonul până acum”);
+- **ultimele N**: doar cele mai recente N meciuri rămase, chiar dacă unele sunt din sezonul anterior.
+
+Filtrele se aplică în această ordine: locul, sezonul, ultimele N. De exemplu, „ultimele 5 meciuri acasă” înseamnă ultimele 5 dintre meciurile jucate acasă.
+
+Când selecția nu conține niciun meci (de exemplu, pentru o echipă nou promovată, înaintea primului ei meci), valorile medii sunt „fără date” (`None`), nu 0. Fiecare model decide, în faza lui, cum tratează această situație. Mediile statisticilor de meci folosesc doar meciurile care au statistici înregistrate.
+
+### 6.3. Algoritmul de selecție și complexitatea
+
+Pentru fiecare echipă se păstrează lista meciurilor ei în ordine cronologică și lista datelor acestor meciuri; pentru ligă, la fel, lista tuturor meciurilor. O selecție are doi pași:
+
+1. o căutare binară găsește poziția primului meci cu data mai mare sau egală cu ziua D; toate meciurile dinaintea acestei poziții sunt strict anterioare zilei D;
+2. lista este parcursă înapoi de la această poziție, iar meciurile care trec filtrele sunt păstrate; parcurgerea se oprește imediat ce selecția este completă.
+
+```
+SELECTEAZĂ_ÎNAINTE(meciuri, date, D, sezon, ultimele, păstrează):
+    c ← CĂUTARE_BINARĂ_STÂNGA(date, D)        ▷ primul meci cu data ≥ D
+    rezultat ← listă vidă
+    pentru i ← c − 1 descrescător până la 0:
+        m ← meciuri[i]
+        dacă sezon este dat și m.sezon ≠ sezon:
+            dacă m.sezon < sezon: oprește       ▷ meciurile rămase sunt și mai vechi
+            altfel: continuă
+        dacă nu păstrează(m): continuă         ▷ de exemplu, filtrul acasă/deplasare
+        adaugă m la rezultat
+        dacă ultimele este dat și |rezultat| = ultimele: oprește
+    returnează rezultat în ordine inversă      ▷ cel mai vechi meci primul
+```
+
+Notații: n — numărul total de meciuri (7.600); nₑ — numărul de meciuri ale unei echipe (cel mult 760 în 20 de sezoane); k — numărul de meciuri parcurse înapoi.
+
+| Operație | Timp | Memorie suplimentară |
+|---|---|---|
+| Construirea `MatchHistory` | O(n log n) pentru sortare + O(n) pentru indexare | O(n) |
+| O selecție pentru o echipă | O(log nₑ + k) | O(k) |
+| O selecție pentru ligă | O(log n + k) | O(k) |
+| Varianta naivă: filtrarea tuturor meciurilor la fiecare interogare | O(n) | O(k) |
+
+În practică k este mic: cel mult 38 pentru „sezonul până acum” al unei echipe, N pentru „ultimele N” (aproximativ 2N cu filtrul acasă/deplasare) și cel mult 380 pentru sezonul ligii. Doar o selecție fără niciun filtru parcurge tot istoricul echipei (nₑ meciuri).
+
+Pentru backtesting, unde se cer statistici înaintea fiecăruia dintre cele n meciuri, varianta indexată costă în total O(n (log n + k)), față de O(n²) pentru varianta naivă.
+
+### 6.4. Verificare
+
+Testele automate verifică, pentru fiecare echipă, fiecare zi și cinci tipuri de selecție, că schimbarea rezultatului și a statisticilor unui meci nu modifică nimic din ce se calculează în ziua lui sau înainte, dar se vede începând cu ziua următoare. Când regula de tăiere a fost stricată intenționat, într-o copie a codului, toate cele 12 teste care verifică limita zilei au eșuat.
+
+Rulare pe datele reale din 2026-10-04 (La Liga, 2006/07–2025/26; Python 3.14.7, Mac cu procesor Apple Silicon):
+
+- la finalul fiecărui sezon, toate cele 20 de echipe au 38 de meciuri, dintre care 19 acasă; suma punctelor este 3 × meciurile cu învingător + 2 × egalurile; numărul victoriilor este egal cu numărul înfrângerilor, iar golurile marcate sunt egale cu cele primite;
+- clasamentele finale ale tuturor sezoanelor sunt identice cu cele calculate independent, prin parcurgerea directă a meciurilor;
+- pe un eșantion aleator de 400 de meciuri, selecțiile „sezonul până acum” și „ultimele 5 meciuri” sunt identice cu cele obținute prin filtrarea directă a tuturor meciurilor, iar meciul țintă nu apare niciodată în selecție;
+- totalurile coincid cu clasamentele publicate: Real Madrid 2011/12 – 100 de puncte și 121 de goluri; Barcelona 2012/13 – 100 de puncte și 115 goluri; Real Madrid și Barcelona 2006/07 – câte 76 de puncte;
+- viteză: 83.600 de interogări (cinci statistici pentru fiecare echipă înaintea fiecăruia dintre cele 7.600 de meciuri, plus media ligii) au durat 0,72 s, adică aproximativ 9 µs pe interogare. Selecția „sezonul până acum” pentru ambele echipe ale tuturor meciurilor a durat 0,022 s cu index, față de 2,64 s cu varianta naivă, deci de circa 120 de ori mai puțin.
+
+### 6.5. Mediile ligii pe sezoane
+
+Calculate cu `league_averages` la finalul fiecărui sezon (rulare din 2026-10-04).
+
+| Sezon | Victorii gazde | Egaluri | Victorii oaspeți | Goluri gazde / meci | Goluri oaspeți / meci |
+|---|---|---|---|---|---|
+| 2006/07 | 45,3% | 25,8% | 28,9% | 1,36 | 1,12 |
+| 2007/08 | 47,9% | 22,9% | 29,2% | 1,55 | 1,14 |
+| 2008/09 | 48,4% | 21,8% | 29,7% | 1,66 | 1,24 |
+| 2009/10 | 51,1% | 25,0% | 23,9% | 1,60 | 1,11 |
+| 2010/11 | 51,8% | 20,8% | 27,4% | 1,64 | 1,11 |
+| 2011/12 | 49,5% | 24,7% | 25,8% | 1,68 | 1,08 |
+| 2012/13 | 49,7% | 22,1% | 28,2% | 1,69 | 1,18 |
+| 2013/14 | 47,1% | 22,6% | 30,3% | 1,63 | 1,12 |
+| 2014/15 | 45,0% | 23,9% | 31,1% | 1,54 | 1,12 |
+| 2015/16 | 48,2% | 24,2% | 27,6% | 1,62 | 1,13 |
+| 2016/17 | 47,6% | 23,4% | 28,9% | 1,66 | 1,28 |
+| 2017/18 | 47,1% | 22,6% | 30,3% | 1,55 | 1,15 |
+| 2018/19 | 44,2% | 28,9% | 26,8% | 1,45 | 1,13 |
+| 2019/20 | 45,8% | 27,6% | 26,6% | 1,44 | 1,04 |
+| 2020/21 | 41,6% | 28,7% | 29,7% | 1,37 | 1,14 |
+| 2021/22 | 43,4% | 29,2% | 27,4% | 1,42 | 1,08 |
+| 2022/23 | 47,9% | 23,4% | 28,7% | 1,46 | 1,06 |
+| 2023/24 | 43,9% | 28,2% | 27,9% | 1,48 | 1,16 |
+| 2024/25 | 44,5% | 25,5% | 30,0% | 1,45 | 1,17 |
+| 2025/26 | 48,9% | 24,5% | 26,6% | 1,57 | 1,12 |
+| **Total** | **46,9%** | **24,8%** | **28,2%** | **1,54** | **1,13** |
+
+Observații:
+
+- Gazdele câștigă 46,9% dintre meciuri. Un model care prezice mereu victoria gazdelor ar avea, pe întregul set de date, o acuratețe de circa 47%; acesta este pragul minim pe care trebuie să-l depășească algoritmii.
+- Sezonul 2020/21, jucat fără spectatori, are cel mai mic procent de victorii ale gazdelor (41,6%).
+- Egalurile sunt mai frecvente în sezoanele 2018/19–2025/26 (27,0%) decât în 2007/08–2017/18 (23,1%). Acest lucru contează pentru modelele care trebuie să estimeze probabilitatea unui egal.
+
+## 7. Formatul comun al predicției
 
 Fiecare model care estimează rezultatul unui meci întoarce:
 
@@ -138,7 +245,7 @@ Fiecare model care estimează rezultatul unui meci întoarce:
 
 K-Means nu prezice rezultatul meciului. El întoarce grupuri (clustere) de echipe cu profiluri statistice asemănătoare.
 
-## 7. Backtesting cronologic
+## 8. Backtesting cronologic
 
 Meciurile sunt parcurse în ordinea datelor. Pentru fiecare zi de joc D:
 
@@ -148,7 +255,7 @@ Meciurile sunt parcurse în ordinea datelor. Pentru fiecare zi de joc D:
 
 Metricile se calculează din jurnalul predicțiilor salvate, în aceleași condiții pentru toate modelele.
 
-## 8. Setul de date și perioadele
+## 9. Setul de date și perioadele
 
 Sursa datelor este Football-Data.co.uk: La Liga (`SP1`), 20 de sezoane încheiate, 2006/07–2025/26 (7.600 de meciuri).
 
@@ -158,7 +265,7 @@ Sursa datelor este Football-Data.co.uk: La Liga (`SP1`), 20 de sezoane încheiat
 | 2007/08–2009/10 | Calibrare: se aleg hiperparametrii; rezultatele nu sunt raportate. |
 | 2010/11–2025/26 | Evaluarea raportată: 16 sezoane, 6.080 de meciuri. |
 
-## 9. Tehnologii
+## 10. Tehnologii
 
 | Componentă | Versiune | Rol |
 |---|---|---|
@@ -171,7 +278,7 @@ Sursa datelor este Football-Data.co.uk: La Liga (`SP1`), 20 de sezoane încheiat
 | pytest | 9.1.1 | testare |
 | ruff | 0.16.10 | verificarea și formatarea codului |
 
-## 10. Decizii tehnice
+## 11. Decizii tehnice
 
 | Decizie | Motiv |
 |---|---|
@@ -187,3 +294,8 @@ Sursa datelor este Football-Data.co.uk: La Liga (`SP1`), 20 de sezoane încheiat
 | Ordinea cronologică este definită într-un singur loc: data, apoi ora (necunoscută întâi), apoi echipa gazdă | Aceeași ordine în fișiere, în baza de date și, mai târziu, în backtesting. |
 | Baza de date se reconstruiește integral din fișierele brute, printr-un fișier temporar | Baza de date nu poate rămâne scrisă pe jumătate, iar fișierele brute rămân singura sursă de adevăr. |
 | Data și ora sunt stocate ca text ISO 8601 | SQLite nu are un tip pentru dată; textul ISO se compară și se ordonează corect. |
+| Statisticile „la o dată” folosesc doar meciurile strict anterioare zilei | Exclud meciul țintă și toate meciurile din aceeași zi; sezoanele vechi nu au ora de începere. |
+| O singură regulă de tăiere pentru toate statisticile (`_select_before`) | Regula care previne scurgerea de informații există într-un singur loc și este verificată pentru toate statisticile. |
+| Index pe echipe și căutare binară în locul filtrării tuturor meciurilor | O(log n + k) pe interogare în loc de O(n); selecția „sezonul până acum” este de circa 120 de ori mai rapidă. |
+| Lipsa istoricului este raportată ca „fără date” (`None`), nu ca 0 | Un 0 ar descrie o echipă foarte slabă; fiecare model decide explicit cum tratează echipele noi. |
+| Un `MatchHistory` conține o singură competiție | Mediile ligii nu pot amesteca două competiții. |

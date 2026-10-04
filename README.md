@@ -5,7 +5,7 @@ Aplicație desktop pentru analiza datelor istorice din fotbal și estimarea rezu
 Proiect de an la disciplina *Analiza și Proiectarea Algoritmilor* (APA), Universitatea Tehnică a Moldovei, Departamentul Ingineria Software și Automatică.
 Echipa (grupa TI-251): Goroșevschi Chiril, Cuzmici Nicolae, Păstru Alina.
 
-**Stadiu:** Faza 1, prelucrarea datelor istorice. Faza 0 (planificare și arhitectură) a fost încheiată pe 2026-10-04. Aplicația propriu-zisă nu este încă implementată.
+**Stadiu:** Faza 2, statisticile echipelor. Fazele 0 (planificare și arhitectură) și 1 (prelucrarea datelor istorice) au fost încheiate pe 2026-10-04. Aplicația propriu-zisă nu este încă implementată.
 
 ## Cerințe
 

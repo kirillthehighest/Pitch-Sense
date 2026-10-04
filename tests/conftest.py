@@ -5,7 +5,11 @@ from collections.abc import Callable
 from itertools import permutations
 from pathlib import Path
 
+import pandas as pd
 import pytest
+
+from app.data.models import Match
+from app.data.preprocessing import matches_from_frame
 
 STATISTICS_HEADER = ("HS", "AS", "HST", "AST", "HF", "AF", "HC", "AC", "HY", "AY", "HR", "AR")
 TEAMS = ("Alpha", "Bravo", "Charlie", "Delta")
@@ -67,3 +71,9 @@ def raw_data_dir(
     write_season_file(raw_dir / "SP1" / "2006-07.csv", raw_season_rows)
     write_season_file(raw_dir / "SP1" / "2007-08.csv", next_season_rows)
     return raw_dir
+
+
+@pytest.fixture
+def season_matches(raw_season_rows: list[dict[str, str]]) -> list[Match]:
+    """The fixture season as validated Match records, in file order (one match per day)."""
+    return matches_from_frame(pd.DataFrame(raw_season_rows, dtype=str), "2006-07", source="fixture")
