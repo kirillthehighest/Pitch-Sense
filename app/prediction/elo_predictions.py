@@ -1,0 +1,87 @@
+"""Run Elo through historical matches, predicting each day before learning its results."""
+
+from collections.abc import Iterable, Mapping
+from dataclasses import dataclass
+from itertools import groupby
+
+from app.algorithms.elo import EloRatings, GameResult
+from app.data.models import Match
+from app.data.preprocessing import sort_chronologically
+
+# Chosen by `python -m app.evaluation.elo_calibration` on the calibration seasons 2007/08-2009/10
+# (mean squared error 0.16034); see docs/algorithms/elo.md.
+K_FACTOR = 15.0
+HOME_ADVANTAGE = 80.0
+
+
+@dataclass(frozen=True, slots=True)
+class EloPrediction:
+    """The Elo view of one match, computed from the ratings before the match's day."""
+
+    match: Match
+    home_rating: float
+    away_rating: float
+    expected_home_score: float
+
+
+@dataclass(frozen=True, slots=True)
+class EloRun:
+    """Every match's prediction, in chronological order, and the ratings after the last match."""
+
+    predictions: tuple[EloPrediction, ...]
+    final_ratings: Mapping[str, float]
+
+
+def run_elo(
+    matches: Iterable[Match],
+    k_factor: float = K_FACTOR,
+    home_advantage: float = HOME_ADVANTAGE,
+) -> EloRun:
+    """Walk through the matches of one competition day by day.
+
+    When a season starts, the league's teams are set; the clubs taking part in a season are known
+    before it begins. Every match of a day is predicted from the ratings before that day, and
+    only then are the day's results applied, so no prediction uses a result from its own day.
+    """
+    ordered = sort_chronologically(matches)
+    if not ordered:
+        raise ValueError("need at least one match")
+    competitions = sorted({match.competition for match in ordered})
+    if len(competitions) > 1:
+        raise ValueError(f"Elo rates one competition at a time, got {', '.join(competitions)}")
+    teams_by_season: dict[str, set[str]] = {}
+    for match in ordered:
+        teams_by_season.setdefault(match.season, set()).update((match.home_team, match.away_team))
+
+    elo = EloRatings(k_factor=k_factor, home_advantage=home_advantage)
+    predictions: list[EloPrediction] = []
+    current_season = None
+    for match_date, day in groupby(ordered, key=lambda match: match.match_date):
+        day_matches = list(day)
+        seasons = {match.season for match in day_matches}
+        if len(seasons) > 1:
+            raise ValueError(f"matches on {match_date} belong to several seasons")
+        season = seasons.pop()
+        if season != current_season:
+            elo.start_season(teams_by_season[season])
+            current_season = season
+        for match in day_matches:
+            predictions.append(
+                EloPrediction(
+                    match=match,
+                    home_rating=elo.rating(match.home_team),
+                    away_rating=elo.rating(match.away_team),
+                    expected_home_score=elo.expected_home_score(match.home_team, match.away_team),
+                )
+            )
+        for match in day_matches:
+            elo.update(
+                GameResult(
+                    match.match_date,
+                    match.home_team,
+                    match.away_team,
+                    match.home_goals,
+                    match.away_goals,
+                )
+            )
+    return EloRun(predictions=tuple(predictions), final_ratings=elo.ratings)

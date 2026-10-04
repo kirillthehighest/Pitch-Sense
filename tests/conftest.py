@@ -77,3 +77,11 @@ def raw_data_dir(
 def season_matches(raw_season_rows: list[dict[str, str]]) -> list[Match]:
     """The fixture season as validated Match records, in file order (one match per day)."""
     return matches_from_frame(pd.DataFrame(raw_season_rows, dtype=str), "2006-07", source="fixture")
+
+
+@pytest.fixture
+def next_season_matches(next_season_rows: list[dict[str, str]]) -> list[Match]:
+    """The same fixtures one season later (2007-08) as validated Match records."""
+    return matches_from_frame(
+        pd.DataFrame(next_season_rows, dtype=str), "2007-08", source="fixture"
+    )
