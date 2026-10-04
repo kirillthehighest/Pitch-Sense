@@ -4,14 +4,23 @@ from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from itertools import groupby
 
-from app.algorithms.elo import EloRatings, GameResult
+from app.algorithms.elo import (
+    DEFAULT_DRAW_BINS,
+    DEFAULT_PRIOR_WEIGHT,
+    DrawModel,
+    EloRatings,
+    GameResult,
+    actual_score,
+)
 from app.data.models import Match
 from app.data.preprocessing import sort_chronologically
+from app.prediction.schedule import week_start
 
 # Chosen by `python -m app.evaluation.elo_calibration` on the calibration seasons 2007/08-2009/10
 # (mean squared error 0.16034); see docs/algorithms/elo.md.
 K_FACTOR = 15.0
 HOME_ADVANTAGE = 80.0
+MIN_DRAW_MODEL_MATCHES = 100
 
 
 @dataclass(frozen=True, slots=True)
@@ -85,3 +94,49 @@ def run_elo(
                 )
             )
     return EloRun(predictions=tuple(predictions), final_ratings=elo.ratings)
+
+
+@dataclass(frozen=True, slots=True)
+class EloOutcomePrediction:
+    """Elo's home/draw/away probabilities for one match (Eq. 4-6 of the Elo module)."""
+
+    prediction: EloPrediction
+    probabilities: tuple[float, float, float]  # home win, draw, away win
+    draw_model_matches: int
+
+
+def elo_outcome_predictions(
+    run: EloRun,
+    *,
+    min_matches: int = MIN_DRAW_MODEL_MATCHES,
+    bins: int = DEFAULT_DRAW_BINS,
+    prior_weight: float = DEFAULT_PRIOR_WEIGHT,
+) -> list[EloOutcomePrediction]:
+    """Turn the expected scores of a run into home/draw/away probabilities.
+
+    Every Monday the draw model is refitted on the expected and actual scores of all matches
+    played before that Monday; it then converts the expected scores of that week's matches.
+    Weeks starting with fewer than ``min_matches`` earlier matches get no probabilities.
+    """
+    if min_matches < 1:
+        raise ValueError(f"min_matches must be at least 1, got {min_matches}")
+    expected_scores: list[float] = []
+    actual_scores: list[float] = []
+    outcome_predictions = []
+    for _, week in groupby(run.predictions, key=lambda p: week_start(p.match.match_date)):
+        week_predictions = list(week)
+        if len(expected_scores) >= min_matches:
+            draw_model = DrawModel.fit(expected_scores, actual_scores, bins, prior_weight)
+            outcome_predictions.extend(
+                EloOutcomePrediction(
+                    prediction=prediction,
+                    probabilities=draw_model.outcome_probabilities(prediction.expected_home_score),
+                    draw_model_matches=len(expected_scores),
+                )
+                for prediction in week_predictions
+            )
+        for prediction in week_predictions:
+            expected_scores.append(prediction.expected_home_score)
+            match = prediction.match
+            actual_scores.append(actual_score(match.home_goals, match.away_goals))
+    return outcome_predictions

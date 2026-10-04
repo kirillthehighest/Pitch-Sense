@@ -5,7 +5,7 @@ Aplicație desktop pentru analiza datelor istorice din fotbal și estimarea rezu
 Proiect de an la disciplina *Analiza și Proiectarea Algoritmilor* (APA), Universitatea Tehnică a Moldovei, Departamentul Ingineria Software și Automatică.
 Echipa (grupa TI-251): Goroșevschi Chiril, Cuzmici Nicolae, Păstru Alina.
 
-**Stadiu:** Faza 6, K-Means. Fazele 0 (planificare și arhitectură), 1 (prelucrarea datelor istorice), 2 (statisticile echipelor), 3 (ratingul Elo), 4 (modelul Poisson) și 5 (regresia logistică) au fost încheiate pe 2026-10-04. Aplicația propriu-zisă nu este încă implementată.
+**Stadiu:** Faza 8, backtesting cronologic. Fazele 0–7 (planificare și arhitectură, prelucrarea datelor istorice, statisticile echipelor, ratingul Elo, modelul Poisson, regresia logistică, K-Means, motorul de predicție) au fost încheiate pe 2026-10-04. Aplicația propriu-zisă nu este încă implementată.
 
 ## Cerințe
 

@@ -14,6 +14,7 @@ import numpy as np
 from app.algorithms.logistic_regression import fit
 from app.data.models import Match, Outcome
 from app.prediction.logistic_features import build_features
+from app.prediction.schedule import week_start
 
 OUTCOME_ORDER = (Outcome.HOME_WIN, Outcome.DRAW, Outcome.AWAY_WIN)  # class index 0, 1, 2
 MIN_TRAINING_MATCHES = 100
@@ -53,7 +54,7 @@ def run_logistic_regression(
     training_labels: list[int] = []
     weights = None
     predictions = []
-    for _, week in groupby(build_features(matches), key=lambda f: _week(f.match)):
+    for _, week in groupby(build_features(matches), key=lambda f: week_start(f.match.match_date)):
         week_features = list(week)
         if len(training_rows) >= min_training_matches and len(set(training_labels)) == len(
             OUTCOME_ORDER
@@ -82,9 +83,3 @@ def run_logistic_regression(
         training_rows.extend(features.values for features in week_features)
         training_labels.extend(OUTCOME_ORDER.index(f.match.result) for f in week_features)
     return predictions
-
-
-def _week(match: Match) -> tuple[int, int]:
-    """The ISO calendar (year, week) of a match; weeks start on Monday."""
-    year, week, _ = match.match_date.isocalendar()
-    return year, week

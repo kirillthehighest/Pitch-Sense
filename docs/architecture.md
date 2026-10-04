@@ -1,6 +1,6 @@
 # Arhitectura aplicației PitchSense
 
-Acest document descrie structura aplicației, fluxul datelor și deciziile tehnice luate până acum (fazele 0–2). Se actualizează ori de câte ori structura se schimbă.
+Acest document descrie structura aplicației, fluxul datelor și deciziile tehnice luate până acum (fazele 0–7). Se actualizează ori de câte ori structura se schimbă.
 
 ## 1. Principii
 
@@ -235,15 +235,71 @@ Observații:
 - Sezonul 2020/21, jucat fără spectatori, are cel mai mic procent de victorii ale gazdelor (41,6%).
 - Egalurile sunt mai frecvente în sezoanele 2018/19–2025/26 (27,0%) decât în 2007/08–2017/18 (23,1%). Acest lucru contează pentru modelele care trebuie să estimeze probabilitatea unui egal.
 
-## 7. Formatul comun al predicției
+## 7. Motorul de predicție (Faza 7)
 
-Fiecare model care estimează rezultatul unui meci întoarce:
+Modulul `app/prediction/prediction_engine.py` reunește cele trei modele care prezic rezultatul meciurilor: ratingul Elo, modelul Poisson și regresia logistică. K-Means nu prezice meciuri; el descrie tipuri de echipe (vezi `docs/algorithms/kmeans.md`).
 
-- numele modelului;
-- probabilitățile `(p_home, p_draw, p_away)`, mereu în această ordine: victoria gazdelor, egal, victoria oaspeților. Valorile sunt nenegative, iar suma lor este 1 (cu toleranța 1e-9);
-- opțional, doar pentru modelul Poisson: numărul așteptat de goluri și matricea probabilităților pentru fiecare scor.
+### 7.1. Formatul comun al predicțiilor
 
-K-Means nu prezice rezultatul meciului. El întoarce grupuri (clustere) de echipe cu profiluri statistice asemănătoare.
+Formatul este definit în `app/prediction/outputs.py`:
+
+- `OutcomeProbabilities` conține probabilitățile victoriei gazdelor, egalului și victoriei oaspeților, mereu în această ordine. Sunt respinse valorile negative, infinite sau lipsă și sumele care diferă de 1 cu mai mult de $10^{-9}$. Rezultatul cel mai probabil (`most_likely`) se alege, la egalitate, în ordinea gazde, egal, oaspeți.
+- `ModelPrediction` conține numele modelului, probabilitățile și, doar pentru modelul Poisson, golurile așteptate și tabelul scorurilor.
+
+Fiecare predicție este verificată când este convertită în acest format, deci o predicție invalidă nu poate ajunge în evaluare.
+
+### 7.2. Ce oferă fiecare model
+
+| Model | Probabilitățile | Informații în plus | Când lipsește predicția |
+|---|---|---|---|
+| Elo | scorul așteptat $E$, transformat prin modelul egalurilor | – | săptămâna începe cu mai puțin de 100 de meciuri anterioare |
+| Poisson | din tabelul scorurilor | goluri așteptate, tabelul scorurilor, scorurile cele mai probabile | liga nu are încă goluri acasă și în deplasare (prima zi a datelor) |
+| Regresie logistică | softmax | – | săptămâna începe cu mai puțin de 100 de meciuri anterioare sau fără toate cele trei rezultate |
+
+Modelul egalurilor din Elo și regresia logistică sunt reantrenate în fiecare luni, pe toate meciurile dinaintea acelei zile de luni. Regula este definită într-un singur loc, `app/prediction/schedule.py`.
+
+### 7.3. Toate meciurile: `predict_history`
+
+Pentru meciurile unei competiții, `predict_history` rulează cele trei modele și întoarce, pentru fiecare meci, în ordine cronologică, predicțiile disponibile. `has_all_models` arată dacă toate cele trei modele au o predicție. Aceste rezultate sunt intrarea evaluării cronologice (Faza 8).
+
+### 7.4. Un singur meci: `predict_fixture`
+
+`predict_fixture` primește un sezon, echipa gazdă, echipa oaspete și o dată. Ambele echipe trebuie să fi jucat în acel sezon, iar data trebuie să fie în interiorul sezonului.
+
+- Dacă meciul s-a jucat, predicțiile sunt exact cele din `predict_history`, iar rezultatul real este întors și el, pentru comparație.
+- Dacă meciul nu s-a jucat („ce-ar fi dacă”), este adăugat temporar un meci înlocuitor, cu un scor fictiv. Scorul fictiv nu poate influența predicția acestui meci, pentru că niciun model nu folosește rezultatele din ziua pe care o prezice. Testele de scurgere a informațiilor demonstrează acest lucru.
+- Sunt folosite doar sezoanele până la cel cerut, pentru că sezoanele ulterioare nu pot schimba predicția.
+
+Același cod servește evaluarea și interfața, deci cele două nu pot da rezultate diferite. Testele verifică:
+
+- pentru fiecare meci jucat, `predict_fixture` dă exact predicția din `predict_history`;
+- dacă un meci real este scos din date și cerut ca meci ipotetic, predicția este exact cea pe care a avut-o meciul real;
+- sezoanele ulterioare nu schimbă predicția.
+
+### 7.5. Verificare pe datele reale
+
+Rulare din 2026-10-04, pe toate cele 7.600 de meciuri:
+
+| Model | Predicții |
+|---|---|
+| Elo | 7.500 |
+| Poisson | 7.599 |
+| Regresie logistică | 7.490 |
+| toate trei | 7.490 (de la 25 noiembrie 2006) |
+
+Toate cele 1.140 de meciuri de calibrare și toate cele 6.080 de meciuri de evaluare (2010/11–2025/26) au predicții de la toate cele trei modele, deci compararea lor se poate face în condiții identice, fără a elimina niciun meci. `predict_history` rulează pe tot istoricul în aproximativ 7 s.
+
+Exemple de predicții pentru un singur meci (victorie gazde / egal / victorie oaspeți):
+
+| Meci | Elo | Poisson | Regresie logistică | Rezultat |
+|---|---|---|---|---|
+| Real Madrid – Barcelona, 26.10.2025 | 50,2% / 26,8% / 23,0% | 45,1% / 23,2% / 31,7% (goluri așteptate 1,75–1,43) | 44,3% / 26,5% / 29,3% | 2–1 |
+| Barcelona – Real Madrid, 29.11.2010 | 50,8% / 25,5% / 23,6% | 49,4% / 23,2% / 27,4% (1,79–1,28) | 41,5% / 26,0% / 32,6% | 5–0 |
+| Barcelona – Oviedo, 01.03.2026 (ipotetic) | 89,2% / 9,2% / 1,6% | 78,2% / 13,5% / 8,2% (2,78–0,81) | 86,1% / 10,4% / 3,5% | nejucat |
+
+Scoaterea meciului Real Madrid – Barcelona din date și cererea lui ca meci ipotetic dau exact aceleași probabilități.
+
+Limitare: `predict_fixture` recalculează toate modelele. Pentru sezoanele recente durează aproximativ 7 s (pentru 2010/11, aproximativ 1 s). Interfața (Faza 11) va trebui să reutilizeze rezultatele calculate o dată.
 
 ## 8. Backtesting cronologic
 
@@ -299,3 +355,7 @@ Sursa datelor este Football-Data.co.uk: La Liga (`SP1`), 20 de sezoane încheiat
 | Index pe echipe și căutare binară în locul filtrării tuturor meciurilor | O(log n + k) pe interogare în loc de O(n); selecția „sezonul până acum” este de circa 120 de ori mai rapidă. |
 | Lipsa istoricului este raportată ca „fără date” (`None`), nu ca 0 | Un 0 ar descrie o echipă foarte slabă; fiecare model decide explicit cum tratează echipele noi. |
 | Un `MatchHistory` conține o singură competiție | Mediile ligii nu pot amesteca două competiții. |
+| Un singur format pentru predicții, verificat la conversie | Toate modelele pot fi comparate direct, iar o predicție invalidă nu poate ajunge în evaluare. |
+| Modelul egalurilor din Elo este reantrenat în fiecare luni, ca regresia logistică | Aceeași regulă pentru ambele modele antrenate, definită într-un singur loc. |
+| Un model care nu poate prezice un meci lipsește din rezultatul acelui meci | Nu sunt inventate predicții; evaluarea va compara modelele doar pe meciurile prezise de toate. |
+| Meciurile ipotetice sunt prezise cu un meci înlocuitor, prin același cod | Interfața și evaluarea nu pot da rezultate diferite; testele arată că scorul fictiv nu are niciun efect. |
