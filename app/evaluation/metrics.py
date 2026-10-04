@@ -58,26 +58,40 @@ def outcome_indices(codes: Sequence[str]) -> np.ndarray:
         raise ValueError(f"result codes must be H, D or A, got {sorted(set(codes))}") from None
 
 
-def accuracy(probabilities: np.ndarray, actual: Sequence[int]) -> Estimate:
-    """The share of matches whose most likely outcome happened."""
+def correct_per_match(probabilities: np.ndarray, actual: Sequence[int]) -> np.ndarray:
+    """1 for every match whose most likely outcome happened, otherwise 0."""
     probabilities, actual = _checked(probabilities, actual)
-    return _estimate((probabilities.argmax(axis=1) == actual).astype(float))
+    return (probabilities.argmax(axis=1) == actual).astype(float)
 
 
-def brier_score(probabilities: np.ndarray, actual: Sequence[int]) -> Estimate:
-    """The mean squared distance between the forecast and the one-hot outcome (0 is perfect)."""
+def brier_per_match(probabilities: np.ndarray, actual: Sequence[int]) -> np.ndarray:
+    """The squared distance between each forecast and its one-hot outcome."""
     probabilities, actual = _checked(probabilities, actual)
-    targets = np.eye(3)[actual]
-    return _estimate(((probabilities - targets) ** 2).sum(axis=1))
+    return ((probabilities - np.eye(3)[actual]) ** 2).sum(axis=1)
 
 
-def log_loss(probabilities: np.ndarray, actual: Sequence[int]) -> Estimate:
-    """The mean of -ln(probability given to the outcome that happened)."""
+def log_loss_per_match(probabilities: np.ndarray, actual: Sequence[int]) -> np.ndarray:
+    """-ln(probability given to the outcome that happened), for each match."""
     probabilities, actual = _checked(probabilities, actual)
     given = probabilities[np.arange(actual.size), actual]
     if (given <= 0).any():
         raise ValueError("log loss is infinite: an outcome that happened had probability 0")
-    return _estimate(-np.log(given))
+    return -np.log(given)
+
+
+def accuracy(probabilities: np.ndarray, actual: Sequence[int]) -> Estimate:
+    """The share of matches whose most likely outcome happened."""
+    return estimate(correct_per_match(probabilities, actual))
+
+
+def brier_score(probabilities: np.ndarray, actual: Sequence[int]) -> Estimate:
+    """The mean squared distance between the forecast and the one-hot outcome (0 is perfect)."""
+    return estimate(brier_per_match(probabilities, actual))
+
+
+def log_loss(probabilities: np.ndarray, actual: Sequence[int]) -> Estimate:
+    """The mean of -ln(probability given to the outcome that happened)."""
+    return estimate(log_loss_per_match(probabilities, actual))
 
 
 def confusion_matrix(probabilities: np.ndarray, actual: Sequence[int]) -> np.ndarray:
@@ -136,10 +150,11 @@ def mean_absolute_error(expected: Sequence[float], actual: Sequence[float]) -> E
         raise ValueError("need two non-empty sequences of the same length")
     if not (np.isfinite(expected).all() and np.isfinite(actual).all()):
         raise ValueError("values must be finite numbers")
-    return _estimate(np.abs(expected - actual))
+    return estimate(np.abs(expected - actual))
 
 
-def _estimate(values: np.ndarray) -> Estimate:
+def estimate(values: np.ndarray) -> Estimate:
+    """The mean of per-match values with its standard error."""
     count = values.size
     standard_error = float(values.std(ddof=1) / math.sqrt(count)) if count > 1 else None
     return Estimate(value=float(values.mean()), standard_error=standard_error, count=count)

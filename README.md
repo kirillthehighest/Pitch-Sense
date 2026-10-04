@@ -5,7 +5,7 @@ Aplicație desktop pentru analiza datelor istorice din fotbal și estimarea rezu
 Proiect de an la disciplina *Analiza și Proiectarea Algoritmilor* (APA), Universitatea Tehnică a Moldovei, Departamentul Ingineria Software și Automatică.
 Echipa (grupa TI-251): Goroșevschi Chiril, Cuzmici Nicolae, Păstru Alina.
 
-**Stadiu:** Faza 10, compararea algoritmilor. Fazele 0–9 (planificare și arhitectură, prelucrarea datelor istorice, statisticile echipelor, ratingul Elo, modelul Poisson, regresia logistică, K-Means, motorul de predicție, backtesting cronologic, metricile de evaluare) au fost încheiate pe 2026-10-04. Aplicația propriu-zisă nu este încă implementată.
+**Stadiu:** Faza 11, interfața grafică (PySide6). Fazele 0–10 (planificare și arhitectură, prelucrarea datelor istorice, statisticile echipelor, ratingul Elo, modelul Poisson, regresia logistică, K-Means, motorul de predicție, backtesting cronologic, metricile de evaluare, compararea algoritmilor) au fost încheiate pe 2026-10-04. Aplicația propriu-zisă nu este încă implementată.
 
 ## Cerințe
 
@@ -72,10 +72,17 @@ Calculează măsurile de evaluare (acuratețe, scor Brier, pierdere logaritmică
 python -m app.evaluation.evaluator
 ```
 
+Compară modelele meci cu meci, pe sezoane, pe rezultate și pe tipuri de meciuri:
+
+```bash
+python -m app.evaluation.comparison
+```
+
 ## Documentație
 
 - [`docs/architecture.md`](docs/architecture.md): arhitectura aplicației, fluxul datelor și deciziile tehnice.
 - [`docs/evaluation.md`](docs/evaluation.md): măsurile de evaluare și rezultatele modelelor.
+- [`docs/comparison.md`](docs/comparison.md): compararea algoritmilor.
 - `docs/algorithms/`: câte un document pentru fiecare algoritm: [`elo.md`](docs/algorithms/elo.md) (ratingul Elo), [`poisson.md`](docs/algorithms/poisson.md) (modelul Poisson), [`logistic_regression.md`](docs/algorithms/logistic_regression.md) (regresia logistică), [`kmeans.md`](docs/algorithms/kmeans.md) (K-Means).
 
 ## Etape
