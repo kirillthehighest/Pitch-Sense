@@ -11,6 +11,7 @@ LAYERS = (
     "statistics",
     "prediction",
     "evaluation",
+    "services",
     "visualization",
     "ui",
 )

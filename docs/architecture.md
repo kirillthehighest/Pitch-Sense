@@ -1,6 +1,6 @@
 # Arhitectura aplicației PitchSense
 
-Acest document descrie structura aplicației, fluxul datelor și deciziile tehnice luate până acum (fazele 0–8). Se actualizează ori de câte ori structura se schimbă.
+Acest document descrie structura aplicației, fluxul datelor și deciziile tehnice luate până acum (fazele 0–11). Se actualizează ori de câte ori structura se schimbă.
 
 ## 1. Principii
 
@@ -19,6 +19,7 @@ Acest document descrie structura aplicației, fluxul datelor și deciziile tehni
 | `app/prediction` | Rulează modelele pentru un meci și întoarce rezultatele într-un format comun. | `app.algorithms`, `app.statistics`, `app.data` |
 | `app/evaluation` | Backtesting cronologic, metrici de evaluare, compararea modelelor. | straturile de mai sus |
 | `app/visualization` | Construiește graficele din rezultate deja calculate, fără calcule proprii. | matplotlib |
+| `app/services` | Operațiile cerute de interfață, gata de afișat, cu rezultatele lente păstrate în memorie. Fără Qt. | toate straturile de mai sus |
 | `app/ui` | Interfața grafică: preia datele de intrare, apelează serviciile și afișează rezultatele. | PySide6 și celelalte straturi |
 
 ## 3. Reguli verificate automat
@@ -28,7 +29,8 @@ Testul `tests/test_architecture.py` verifică la fiecare rulare că:
 - `app/algorithms` importă doar biblioteca standard și NumPy, nimic din restul aplicației;
 - doar `app/ui` importă PySide6;
 - matplotlib este importat doar în `app/visualization` și `app/ui`;
-- nicio parte a aplicației nu importă scikit-learn, SciPy sau statsmodels.
+- nicio parte a aplicației nu importă scikit-learn, SciPy sau statsmodels;
+- `app/services` nu importă Qt; poate fi testat fără nicio fereastră.
 
 ## 4. Fluxul datelor
 
@@ -46,6 +48,9 @@ app/prediction  ◄──────────── app/algorithms (Elo, Poi
         │
         ▼
 app/evaluation                backtesting cronologic, metrici, comparație
+        │
+        ▼
+app/services                  operațiile interfeței, fără Qt
         │
         ▼
 app/visualization → app/ui    grafice și interfața grafică
@@ -299,7 +304,7 @@ Exemple de predicții pentru un singur meci (victorie gazde / egal / victorie oa
 
 Scoaterea meciului Real Madrid – Barcelona din date și cererea lui ca meci ipotetic dau exact aceleași probabilități.
 
-Limitare: `predict_fixture` recalculează toate modelele. Pentru sezoanele recente durează aproximativ 7 s (pentru 2010/11, aproximativ 1 s). Interfața (Faza 11) va trebui să reutilizeze rezultatele calculate o dată.
+Limitare: `predict_fixture` recalculează toate modelele. Pentru sezoanele recente durează aproximativ 7 s (pentru 2010/11, aproximativ 1 s). De aceea, interfața (Faza 11) calculează o singură dată predicțiile tuturor meciurilor jucate și le reutilizează (secțiunea 9.3).
 
 ## 8. Backtesting cronologic (Faza 8)
 
@@ -360,7 +365,45 @@ Pe sezoanele de test, testele verifică:
 - meciurile fără toate cele trei modele sunt excluse și numărate;
 - două rulări dau același jurnal, iar salvarea și citirea lui nu pierd nimic.
 
-## 9. Setul de date și perioadele
+## 9. Interfața grafică (Faza 11)
+
+Aplicația se pornește cu `python -m app`. Interfața este scrisă cu PySide6 și este în limba engleză.
+
+### 9.1. Ecranele
+
+| Fila | Ce permite |
+|---|---|
+| Dashboard | rezumatul datelor încărcate și rezultatele principale ale modelelor; dacă jurnalul predicțiilor lipsește, un buton „Run backtest” îl construiește |
+| Match Prediction | alegerea unui sezon și a unui meci jucat sau a oricăror două echipe din sezon și a unei date; probabilitățile fiecărui model, golurile așteptate și scorurile cele mai probabile (Poisson) și rezultatul real, dacă meciul s-a jucat |
+| Team Analysis | clasamentul la o anumită dată sau la final de sezon și prezentarea unei echipe: poziție, rezultate, acasă și în deplasare, ultimele 5 rezultate, șuturi pe poartă, grupul K-Means de dinaintea sezonului și grupul sezonului încheiat |
+| Algorithm Comparison | măsurile de evaluare, diferențele reale dintre modele, împărțirea pe sezoane, rezultate și tipuri de meciuri și cât de diferite sunt predicțiile |
+
+Graficele (evoluția ratingului Elo, tabelul probabilităților scorurilor, calibrarea, matricea de confuzie, grupurile de echipe) se adaugă în Faza 12.
+
+### 9.2. Straturile interfeței
+
+- `app/services/` conține operațiile cerute de interfață, fără Qt: lista sezoanelor, echipelor și meciurilor (`catalog.py`), predicțiile cu memorie (`predictions.py`), analiza echipelor și clasamentul (`teams.py`) și rezultatele evaluării (`evaluation.py`). Serviciile sunt testate fără nicio fereastră.
+- `app/ui/` conține doar ecranele: preiau alegerile utilizatorului, apelează serviciile și afișează rezultatele. Nu calculează nimic.
+
+### 9.3. Lucrul în fundal
+
+Operațiile lente rulează pe fire de execuție separate (`app/ui/worker.py`), iar rezultatul se întoarce prin semnale Qt pe firul interfeței; firele de lucru nu ating niciodată elementele ferestrei. Orice eroare apare ca mesaj în fereastră, fără ca aplicația să se oprească.
+
+- La pornire, toate predicțiile istorice sunt calculate o singură dată (aproximativ 7 s). După aceea, orice meci jucat apare imediat, cu exact aceleași valori ca în evaluare.
+- Un meci ipotetic este calculat la cerere (aproximativ 7 s pentru sezoanele recente).
+- Jurnalul predicțiilor se construiește la cerere (aproximativ 8 s).
+
+### 9.4. Clasamentul
+
+Echipele sunt ordonate după puncte, apoi după golaveraj, apoi după golurile marcate. În La Liga, la egalitate de puncte contează mai întâi rezultatele directe; această regulă nu este modelată.
+
+### 9.5. Verificare
+
+- Ecranele sunt testate fără fereastră vizibilă (`QT_QPA_PLATFORM=offscreen`): fiecare filă este construită cu datele de test și acționată prin propriile butoane, iar valorile afișate sunt comparate cu cele calculate de mână. Pentru teste, lucrul în fundal este înlocuit cu o execuție imediată, cu același contract.
+- Un test separat folosește firele de execuție reale și verifică faptul că rezultatul ajunge pe firul interfeței.
+- Toate filele au fost desenate cu datele reale și verificate vizual; aplicația a fost pornită într-o fereastră obișnuită pe macOS și a rulat fără erori.
+
+## 10. Setul de date și perioadele
 
 Sursa datelor este Football-Data.co.uk: La Liga (`SP1`), 20 de sezoane încheiate, 2006/07–2025/26 (7.600 de meciuri).
 
@@ -370,7 +413,7 @@ Sursa datelor este Football-Data.co.uk: La Liga (`SP1`), 20 de sezoane încheiat
 | 2007/08–2009/10 | Calibrare: se aleg hiperparametrii; rezultatele nu sunt raportate. |
 | 2010/11–2025/26 | Evaluarea raportată: 16 sezoane, 6.080 de meciuri. |
 
-## 10. Tehnologii
+## 11. Tehnologii
 
 | Componentă | Versiune | Rol |
 |---|---|---|
@@ -383,7 +426,7 @@ Sursa datelor este Football-Data.co.uk: La Liga (`SP1`), 20 de sezoane încheiat
 | pytest | 9.1.1 | testare |
 | ruff | 0.16.10 | verificarea și formatarea codului |
 
-## 11. Decizii tehnice
+## 12. Decizii tehnice
 
 | Decizie | Motiv |
 |---|---|
@@ -411,3 +454,7 @@ Sursa datelor este Football-Data.co.uk: La Liga (`SP1`), 20 de sezoane încheiat
 | Evaluarea folosește doar meciurile prezise de toate cele trei modele | Modelele sunt comparate pe exact aceleași meciuri; pe datele reale nu este exclus niciun meci. |
 | Două referințe: frecvențele trecute și „mereu victoria gazdelor” | Arată ce se obține fără algoritmi; a doua este folosită doar pentru acuratețe. |
 | Jurnalul predicțiilor este un fișier CSV reconstruit de o comandă și nu este inclus în git | Rezultatele sunt reproductibile, iar fișierele derivate nu se amestecă cu datele brute. |
+| Un strat de servicii fără Qt (`app/services/`) între interfață și restul aplicației | Ecranele nu calculează nimic, iar operațiile lor pot fi testate fără fereastră. |
+| Predicțiile istorice sunt calculate o dată la pornire și păstrate în memorie | Orice meci jucat apare imediat, cu exact aceleași valori ca în evaluare. |
+| Operațiile lente rulează în fundal, iar rezultatul revine prin semnale Qt | Interfața nu se blochează, iar firele de lucru nu ating ferestrele. |
+| Testele interfeței rulează fără fereastră și fără biblioteci noi (fără pytest-qt) | Ecranele sunt verificate automat, fără dependențe suplimentare. |

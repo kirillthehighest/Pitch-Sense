@@ -1,0 +1,160 @@
+"""Algorithm Comparison: metrics, paired differences, breakdowns and agreement."""
+
+from PySide6.QtWidgets import QComboBox, QLabel, QPushButton, QVBoxLayout, QWidget
+
+from app.evaluation.comparison import COMPARED_MODELS, REFERENCE_MODEL, SubsetComparison
+from app.services.evaluation import EvaluationResults
+from app.ui.context import AppContext
+from app.ui.widgets import OUTCOME_NAMES, fill_table, make_table, number, percent
+
+BREAKDOWNS = ("By season", "By actual result", "By matchup type")
+
+
+class AlgorithmComparisonTab(QWidget):
+    """Shows the results of the evaluation log; offers to build the log when it is missing."""
+
+    def __init__(self, context: AppContext) -> None:
+        super().__init__()
+        self._context = context
+        self._results: EvaluationResults | None = None
+
+        self.summary_label = QLabel()
+        self.summary_label.setWordWrap(True)
+        self.backtest_button = QPushButton("Run backtest")
+        self.backtest_button.clicked.connect(self._run_backtest)
+        self.metrics_table = make_table(
+            ["Model", "Accuracy", "Brier score", "Log loss", "Calibration error", "Goals error"],
+            stretch_column=0,
+        )
+        self.differences_table = make_table(
+            ["Comparison", "Measure", "Difference", "95% interval", "Better"], stretch_column=0
+        )
+        self.breakdown_box = QComboBox()
+        self.breakdown_box.addItems(list(BREAKDOWNS))
+        self.breakdown_box.currentTextChanged.connect(self._show_breakdown)
+        self.breakdown_table = make_table(
+            ["Subset", "Matches", *COMPARED_MODELS, REFERENCE_MODEL, "Best", "Real lead"],
+            stretch_column=0,
+        )
+        self.agreement_table = make_table(
+            ["Models", "Same prediction", "Mean distance"], stretch_column=0
+        )
+        self.agreement_label = QLabel()
+
+        layout = QVBoxLayout(self)
+        layout.addWidget(self.summary_label)
+        layout.addWidget(self.backtest_button)
+        for title, widget in (
+            ("Overall metrics (lower Brier score and log loss are better)", self.metrics_table),
+            (
+                "Match-by-match differences (real when the interval excludes 0)",
+                self.differences_table,
+            ),
+            ("Where each model does well: Brier score per subset", self.breakdown_box),
+            (None, self.breakdown_table),
+            ("How different the forecasts are", self.agreement_table),
+            (None, self.agreement_label),
+        ):
+            if title:
+                layout.addWidget(QLabel(f"<b>{title}</b>"))
+            layout.addWidget(widget)
+        self.refresh()
+
+    def refresh(self) -> None:
+        evaluation = self._context.evaluation
+        if not evaluation.has_log:
+            self.summary_label.setText(
+                "There is no prediction log yet. Run the backtest (about 8 seconds) to see "
+                "the comparison."
+            )
+            self.backtest_button.show()
+            return
+        self.backtest_button.hide()
+        self._context.run_task(evaluation.results, self._show, self._context.report_error)
+
+    def _show(self, results: EvaluationResults) -> None:
+        self._results = results
+        self.summary_label.setText(
+            f"{results.matches} matches, seasons {results.first_season} to "
+            f"{results.last_season}, every model predicted in chronological order from the "
+            "matches before each day."
+        )
+        fill_table(
+            self.metrics_table,
+            [
+                [
+                    e.model,
+                    percent(e.accuracy.value),
+                    number(e.brier.value if e.brier else None),
+                    number(e.log_loss.value if e.log_loss else None),
+                    number(e.calibration_error),
+                    number(e.goals_error.value if e.goals_error else None, 3),
+                ]
+                for e in results.evaluations
+            ],
+            fit=True,
+        )
+        fill_table(
+            self.differences_table,
+            [
+                [
+                    f"{d.first} v {d.second}",
+                    str(d.measure),
+                    f"{d.mean:+.4f}",
+                    f"[{d.lower:+.4f}, {d.upper:+.4f}]",
+                    d.better or "no real difference",
+                ]
+                for d in results.differences
+            ],
+        )
+        fill_table(
+            self.agreement_table,
+            [
+                [f"{a.first} v {a.second}", percent(a.same_prediction), number(a.mean_distance)]
+                for a in results.agreements
+            ],
+            fit=True,
+        )
+        self.agreement_label.setText(
+            f"All three models predict the same outcome in {percent(results.all_agree)} of matches."
+        )
+        self._show_breakdown(self.breakdown_box.currentText())
+
+    def _show_breakdown(self, name: str) -> None:
+        if self._results is None:
+            return
+        subsets: tuple[SubsetComparison, ...] = {
+            BREAKDOWNS[0]: self._results.by_season,
+            BREAKDOWNS[1]: self._results.by_outcome,
+            BREAKDOWNS[2]: self._results.by_matchup_type,
+        }[name]
+        fill_table(
+            self.breakdown_table,
+            [
+                [
+                    OUTCOME_NAMES.get(s.label, s.label),
+                    str(s.matches),
+                    *(
+                        number(s.brier[model].value)
+                        for model in (*COMPARED_MODELS, REFERENCE_MODEL)
+                    ),
+                    s.best,
+                    "yes" if s.lead is not None and s.lead.significant else "no",
+                ]
+                for s in subsets
+            ],
+        )
+
+    def _run_backtest(self) -> None:
+        self.backtest_button.setEnabled(False)
+        self.summary_label.setText("Running the backtest...")
+        self._context.run_task(self._context.evaluation.build_log, self._built, self._failed)
+
+    def _built(self, _: object) -> None:
+        self.backtest_button.setEnabled(True)
+        self.refresh()
+
+    def _failed(self, message: str) -> None:
+        self.backtest_button.setEnabled(True)
+        self._context.report_error(message)
+        self.refresh()

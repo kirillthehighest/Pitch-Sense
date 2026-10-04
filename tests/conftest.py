@@ -8,6 +8,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
+from app.data.build_database import build_database
 from app.data.models import Match
 from app.data.preprocessing import matches_from_frame
 
@@ -85,3 +86,11 @@ def next_season_matches(next_season_rows: list[dict[str, str]]) -> list[Match]:
     return matches_from_frame(
         pd.DataFrame(next_season_rows, dtype=str), "2007-08", source="fixture"
     )
+
+
+@pytest.fixture
+def database(raw_data_dir: Path, tmp_path: Path) -> Path:
+    """A database built from the two fixture seasons, with 4 teams per season."""
+    path = tmp_path / "pitchsense.db"
+    build_database(raw_data_dir, path, {"SP1": 4})
+    return path

@@ -5,7 +5,7 @@ Aplicație desktop pentru analiza datelor istorice din fotbal și estimarea rezu
 Proiect de an la disciplina *Analiza și Proiectarea Algoritmilor* (APA), Universitatea Tehnică a Moldovei, Departamentul Ingineria Software și Automatică.
 Echipa (grupa TI-251): Goroșevschi Chiril, Cuzmici Nicolae, Păstru Alina.
 
-**Stadiu:** Faza 11, interfața grafică (PySide6). Fazele 0–10 (planificare și arhitectură, prelucrarea datelor istorice, statisticile echipelor, ratingul Elo, modelul Poisson, regresia logistică, K-Means, motorul de predicție, backtesting cronologic, metricile de evaluare, compararea algoritmilor) au fost încheiate pe 2026-10-04. Aplicația propriu-zisă nu este încă implementată.
+**Stadiu:** Faza 12, vizualizare. Fazele 0–11 (planificare și arhitectură, prelucrarea datelor istorice, statisticile echipelor, ratingul Elo, modelul Poisson, regresia logistică, K-Means, motorul de predicție, backtesting cronologic, metricile de evaluare, compararea algoritmilor, interfața grafică) au fost încheiate pe 2026-10-04. Aplicația se pornește cu `python -m app`; graficele se adaugă în Faza 12.
 
 ## Cerințe
 
@@ -57,6 +57,23 @@ python -m app.data.build_database
 ```
 
 Comanda verifică toate sezoanele și afișează câte meciuri a salvat din fiecare. Baza de date nu este inclusă în git, așa că rulați comanda după clonarea proiectului și după orice modificare a fișierelor din `data/raw/`.
+
+## Pornirea aplicației
+
+Cu mediul virtual activat și baza de date construită:
+
+```bash
+python -m app
+```
+
+La pornire, aplicația calculează o dată toate predicțiile istorice (aproximativ 7 secunde; bara de stare arată „Predictions ready” când au fost calculate). Filele:
+
+- **Dashboard:** datele încărcate și rezultatele principale ale modelelor;
+- **Match Prediction:** predicția unui meci jucat sau a oricăror două echipe dintr-un sezon, la o anumită dată;
+- **Team Analysis:** clasamentul și prezentarea unei echipe, la final de sezon sau la o anumită dată;
+- **Algorithm Comparison:** compararea modelelor.
+
+Dacă jurnalul predicțiilor lipsește, butonul **Run backtest** îl construiește (aproximativ 8 secunde).
 
 ## Evaluare
 
