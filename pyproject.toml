@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools==84.0.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pitchsense"
+version = "0.1.0"
+description = "Desktop application for football match analysis and outcome prediction (UTM, APA course project)."
+readme = "README.md"
+requires-python = ">=3.14,<3.15"
+authors = [
+    { name = "Goroșevschi Chiril" },
+    { name = "Cuzmici Nicolae" },
+    { name = "Păstru Alina" },
+]
+# Exact pins: upgrade deliberately and run the full test suite afterwards.
+dependencies = [
+    "PySide6-Essentials==6.11.2",
+    "numpy==2.5.3",
+    "pandas==3.0.6",
+    "matplotlib==3.11.2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==9.1.1",
+    "ruff==0.16.10",
+]
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = ["--strict-markers", "--strict-config"]
+xfail_strict = true
+filterwarnings = ["error"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py314"
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "B", "UP"]

@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# Virtual environment
+.venv/
+
+# Tool caches
+.pytest_cache/
+.ruff_cache/
+
+# Generated databases (rebuilt from data/raw)
+data/*.db
+data/*.sqlite
+
+# Operating systems
+.DS_Store
+Thumbs.db
