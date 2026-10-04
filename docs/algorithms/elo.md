@@ -205,7 +205,7 @@ Testele sunt în `tests/test_elo.py`, `tests/test_elo_predictions.py` și `tests
 ## 12. Rolul în PitchSense
 
 - Este primul algoritm de predicție: pentru fiecare meci oferă probabilitățile victorie gazde / egal / victorie oaspeți, care vor fi comparate cu cele ale modelului Poisson și ale regresiei logistice (fazele 8–10).
-- Ratingurile în timp vor fi afișate în grafice (Faza 12).
+- Ratingurile în timp sunt afișate în fila Team Analysis, în graficul „Elo rating” (Faza 12): ratingul echipei înaintea fiecărui meci.
 - Diferența de rating, calculată doar din meciurile anterioare, poate deveni o caracteristică pentru regresia logistică (Faza 5).
 
 Verificare pe datele reale (rulare din 2026-10-04, cu $K = 15$ și $H = 80$, pe toate cele 7.600 de meciuri):

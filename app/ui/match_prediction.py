@@ -20,7 +20,10 @@ from app.data.preprocessing import season_date_window
 from app.prediction.prediction_engine import FixturePrediction
 from app.services.predictions import summarize
 from app.ui.context import AppContext
-from app.ui.widgets import OUTCOME_NAMES, fill_table, make_table, number, percent
+from app.ui.widgets import OUTCOME_NAMES, ChartView, fill_table, make_table, number, percent
+from app.visualization.charts import score_heatmap
+
+NO_SCORES = "The Poisson score probabilities appear here after a prediction."
 
 
 def match_label(match: Match) -> str:
@@ -84,15 +87,20 @@ class MatchPredictionTab(QWidget):
         poisson_layout.addWidget(self.goals_label)
         poisson_layout.addWidget(self.scores_table)
 
-        layout = QVBoxLayout(self)
-        layout.addLayout(choice)
-        layout.addWidget(self.predict_button)
-        layout.addWidget(self.status_label)
-        layout.addWidget(self.fixture_label)
-        layout.addWidget(self.result_label)
-        layout.addWidget(self.probability_table)
-        layout.addWidget(poisson_box)
-        layout.addStretch()
+        self.score_chart = ChartView(NO_SCORES)
+
+        left = QVBoxLayout()
+        left.addLayout(choice)
+        left.addWidget(self.predict_button)
+        left.addWidget(self.status_label)
+        left.addWidget(self.fixture_label)
+        left.addWidget(self.result_label)
+        left.addWidget(self.probability_table)
+        left.addWidget(poisson_box)
+        left.addStretch()
+        layout = QHBoxLayout(self)
+        layout.addLayout(left, stretch=1)
+        layout.addWidget(self.score_chart, stretch=1)
 
         self._season_changed(self.season_box.currentText())
         self._mode_changed()
@@ -149,9 +157,10 @@ class MatchPredictionTab(QWidget):
             fit=True,
         )
         poisson = next((s for s in summaries if s.expected_goals is not None), None)
-        if poisson is None:
+        if poisson is None or poisson.score_probabilities is None:
             self.goals_label.setText("No Poisson prediction for this fixture.")
             fill_table(self.scores_table, [])
+            self.score_chart.show_message("No Poisson prediction for this fixture.")
             return
         home_goals, away_goals = poisson.expected_goals
         self.goals_label.setText(
@@ -165,6 +174,9 @@ class MatchPredictionTab(QWidget):
                 for home, away, probability in poisson.top_scores
             ],
             fit=True,
+        )
+        self.score_chart.show_figure(
+            score_heatmap(fixture.home_team, fixture.away_team, poisson.score_probabilities)
         )
 
     def _failed(self, message: str) -> None:

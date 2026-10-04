@@ -1,5 +1,7 @@
 """Team Analysis: the league table and one team's season, as of a chosen date."""
 
+from dataclasses import dataclass
+
 from PySide6.QtCore import QDate
 from PySide6.QtWidgets import (
     QCheckBox,
@@ -10,17 +12,33 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QPushButton,
+    QTabWidget,
     QVBoxLayout,
     QWidget,
 )
 
 from app.data.preprocessing import season_date_window
-from app.services.teams import StandingRow, TeamOverview
+from app.services.teams import RatingSeason, SeasonGroups, StandingRow, TeamOverview
 from app.statistics.team_statistics import TeamStatistics
 from app.ui.context import AppContext
-from app.ui.widgets import fill_table, make_table, number
+from app.ui.widgets import ChartView, fill_table, make_table, number
+from app.visualization.charts import elo_history_chart, team_groups_chart
 
 TABLE_HEADERS = ["Pos", "Team", "P", "W", "D", "L", "GF", "GA", "GD", "Pts"]
+VIEWS = ("League table", "Elo rating", "Team groups")
+GROUPS_NEED_WHOLE_SEASON = (
+    'Team groups describe a finished season. Tick "Whole season" to see them.'
+)
+
+
+@dataclass(frozen=True, eq=False)
+class TeamAnswer:
+    """Everything the tab shows for one team and season."""
+
+    standings: list[StandingRow]
+    overview: TeamOverview
+    elo_history: tuple[RatingSeason, ...]
+    groups: SeasonGroups | None  # only for the whole season
 
 
 def record_text(record: TeamStatistics) -> str:
@@ -62,6 +80,13 @@ class TeamAnalysisTab(QWidget):
         choice.addRow("Matches before", as_of)
 
         self.standings_table = make_table(TABLE_HEADERS, stretch_column=1)
+        self.elo_chart = ChartView("The team's Elo rating appears here.")
+        self.groups_chart = ChartView("The season's team groups appear here.")
+        self.views = QTabWidget()
+        for name, widget in zip(
+            VIEWS, (self.standings_table, self.elo_chart, self.groups_chart), strict=True
+        ):
+            self.views.addTab(widget, name)
         overview_box = QGroupBox("Team overview")
         self.overview_form = QFormLayout(overview_box)
         self.overview_labels = {
@@ -88,12 +113,12 @@ class TeamAnalysisTab(QWidget):
         note.setWordWrap(True)
 
         results = QHBoxLayout()
-        results.addWidget(self.standings_table, stretch=3)
-        right = QVBoxLayout()
-        right.addWidget(overview_box)
-        right.addWidget(note)
-        right.addStretch()
-        results.addLayout(right, stretch=2)
+        left = QVBoxLayout()
+        left.addWidget(overview_box)
+        left.addWidget(note)
+        left.addStretch()
+        results.addLayout(left, stretch=2)
+        results.addWidget(self.views, stretch=3)
 
         layout = QVBoxLayout(self)
         layout.addLayout(choice)
@@ -109,13 +134,18 @@ class TeamAnalysisTab(QWidget):
         teams = self._context.teams
         self.show_button.setEnabled(False)
         self._context.run_task(
-            lambda: (teams.standings(season, before), teams.overview(season, team, before)),
+            lambda: TeamAnswer(
+                standings=teams.standings(season, before),
+                overview=teams.overview(season, team, before),
+                elo_history=teams.elo_history(team),
+                groups=teams.season_groups(season) if before is None else None,
+            ),
             self._show,
             self._failed,
         )
 
-    def _show(self, answer: tuple[list[StandingRow], TeamOverview]) -> None:
-        standings, overview = answer
+    def _show(self, answer: TeamAnswer) -> None:
+        standings, overview = answer.standings, answer.overview
         self.show_button.setEnabled(True)
         fill_table(
             self.standings_table,
@@ -156,6 +186,19 @@ class TeamAnalysisTab(QWidget):
         }
         for name, text in texts.items():
             self.overview_labels[name].setText(text)
+        whole_season = answer.groups is not None
+        self.elo_chart.show_figure(
+            elo_history_chart(
+                overview.team,
+                answer.elo_history,
+                season=overview.season,
+                marked_date=None if whole_season else overview.before,
+            )
+        )
+        if answer.groups is None:
+            self.groups_chart.show_message(GROUPS_NEED_WHOLE_SEASON)
+        else:
+            self.groups_chart.show_figure(team_groups_chart(answer.groups, team=overview.team))
 
     def _failed(self, message: str) -> None:
         self.show_button.setEnabled(True)

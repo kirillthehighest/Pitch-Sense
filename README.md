@@ -5,7 +5,7 @@ Aplicație desktop pentru analiza datelor istorice din fotbal și estimarea rezu
 Proiect de an la disciplina *Analiza și Proiectarea Algoritmilor* (APA), Universitatea Tehnică a Moldovei, Departamentul Ingineria Software și Automatică.
 Echipa (grupa TI-251): Goroșevschi Chiril, Cuzmici Nicolae, Păstru Alina.
 
-**Stadiu:** Faza 12, vizualizare. Fazele 0–11 (planificare și arhitectură, prelucrarea datelor istorice, statisticile echipelor, ratingul Elo, modelul Poisson, regresia logistică, K-Means, motorul de predicție, backtesting cronologic, metricile de evaluare, compararea algoritmilor, interfața grafică) au fost încheiate pe 2026-10-04. Aplicația se pornește cu `python -m app`; graficele se adaugă în Faza 12.
+**Stadiu:** Faza 13, testare de integrare și finisare. Fazele 0–12 (planificare și arhitectură, prelucrarea datelor istorice, statisticile echipelor, ratingul Elo, modelul Poisson, regresia logistică, K-Means, motorul de predicție, backtesting cronologic, metricile de evaluare, compararea algoritmilor, interfața grafică, vizualizarea) au fost încheiate pe 2026-10-04. Aplicația se pornește cu `python -m app`.
 
 ## Cerințe
 
@@ -69,9 +69,9 @@ python -m app
 La pornire, aplicația calculează o dată toate predicțiile istorice (aproximativ 7 secunde; bara de stare arată „Predictions ready” când au fost calculate). Filele:
 
 - **Dashboard:** datele încărcate și rezultatele principale ale modelelor;
-- **Match Prediction:** predicția unui meci jucat sau a oricăror două echipe dintr-un sezon, la o anumită dată;
-- **Team Analysis:** clasamentul și prezentarea unei echipe, la final de sezon sau la o anumită dată;
-- **Algorithm Comparison:** compararea modelelor.
+- **Match Prediction:** predicția unui meci jucat sau a oricăror două echipe dintr-un sezon, la o anumită dată, cu graficul probabilităților scorurilor (Poisson);
+- **Team Analysis:** clasamentul și prezentarea unei echipe, la final de sezon sau la o anumită dată, evoluția ratingului ei Elo și grupurile K-Means ale sezonului;
+- **Algorithm Comparison:** compararea modelelor, în tabele și în grafice (calibrarea și matricea de confuzie).
 
 Dacă jurnalul predicțiilor lipsește, butonul **Run backtest** îl construiește (aproximativ 8 secunde).
 

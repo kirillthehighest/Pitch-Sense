@@ -9,6 +9,8 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import date
 
+import numpy as np
+
 from app.data.models import Match, Outcome
 from app.prediction.logistic_predictions import MIN_TRAINING_MATCHES
 from app.prediction.outputs import ModelName, ModelPrediction
@@ -22,7 +24,7 @@ from app.prediction.prediction_engine import (
 TOP_SCORES = 5
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, eq=False)
 class ModelSummary:
     """One model's prediction, ready to display."""
 
@@ -33,14 +35,16 @@ class ModelSummary:
     most_likely: Outcome
     expected_goals: tuple[float, float] | None
     top_scores: tuple[tuple[int, int, float], ...]  # (home goals, away goals, probability)
+    score_probabilities: np.ndarray | None  # [home goals, away goals], read-only
 
 
 def summarize(prediction: ModelPrediction, top_scores: int = TOP_SCORES) -> ModelSummary:
     """Turn a model prediction into display values; only Poisson has goals and scores."""
     probabilities = prediction.probabilities
     scores: tuple[tuple[int, int, float], ...] = ()
-    if prediction.score_distribution is not None:
-        scores = tuple(prediction.score_distribution.most_likely_scores(top_scores))
+    distribution = prediction.score_distribution
+    if distribution is not None:
+        scores = tuple(distribution.most_likely_scores(top_scores))
     return ModelSummary(
         model=prediction.model,
         home_win=probabilities.home_win,
@@ -49,6 +53,7 @@ def summarize(prediction: ModelPrediction, top_scores: int = TOP_SCORES) -> Mode
         most_likely=probabilities.most_likely,
         expected_goals=prediction.expected_goals,
         top_scores=scores,
+        score_probabilities=None if distribution is None else distribution.probabilities,
     )
 
 

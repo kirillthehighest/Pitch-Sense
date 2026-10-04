@@ -203,7 +203,7 @@ Testele sunt în `tests/test_poisson.py`, `tests/test_poisson_predictions.py` ș
 ## 12. Rolul în PitchSense
 
 - Este al doilea algoritm de predicție. Pentru fiecare meci oferă probabilitățile victorie gazde / egal / victorie oaspeți, comparabile direct cu cele ale ratingului Elo și ale regresiei logistice (fazele 8–10).
-- Este singurul algoritm care prezice scorul: interfața va afișa golurile așteptate și scorurile cele mai probabile.
+- Este singurul algoritm care prezice scorul: fila Match Prediction afișează golurile așteptate, scorurile cele mai probabile și graficul probabilităților scorurilor de la 0-0 la 6-6 (Faza 12).
 - Golurile așteptate permit metrica „eroarea absolută medie a golurilor așteptate” din evaluare.
 
 Exemplu pentru un meci din sezonul 2025/26 (Real Madrid – Barcelona, 26 octombrie 2025), calculat doar din meciurile anterioare: $\lambda_h = 1{,}75$, $\lambda_a = 1{,}43$; probabilități 45,1% / 23,2% / 31,7%; scorurile cele mai probabile 1–1 (10,4%), 2–1 (9,1%) și 1–2 (7,5%). Scorul real a fost 2–1. Exemplul ilustrează forma predicției; evaluarea modelului se face în fazele 8–10.

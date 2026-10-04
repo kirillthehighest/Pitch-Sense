@@ -1,8 +1,12 @@
+from dataclasses import replace
 from datetime import date
 
+import numpy as np
 import pytest
 
+from app.algorithms.elo import DEFAULT_INITIAL_RATING
 from app.data.models import Outcome
+from app.prediction.elo_predictions import run_elo
 from app.prediction.outputs import ModelName
 from app.prediction.prediction_engine import predict_fixture
 from app.services.catalog import DataCatalog
@@ -104,6 +108,9 @@ def test_summaries_are_ready_to_display(two_seasons):
     probabilities = [score[2] for score in poisson.top_scores]
     assert probabilities == sorted(probabilities, reverse=True)
     assert (elo.expected_goals, elo.top_scores) == (None, ())
+    distribution = fixture.predictions[ModelName.POISSON].score_distribution
+    np.testing.assert_array_equal(poisson.score_probabilities, distribution.probabilities)
+    assert elo.score_probabilities is None
     assert elo.home_win + elo.draw + elo.away_win == pytest.approx(1)
     assert isinstance(elo.most_likely, Outcome)
 
@@ -154,6 +161,60 @@ def test_overview_part_way_through_a_season(two_seasons):
 def test_overview_rejects_a_team_outside_the_season(two_seasons):
     with pytest.raises(ValueError, match="did not play"):
         TeamService(two_seasons).overview("2007-08", "Zulu")
+
+
+def test_elo_history_is_the_rating_before_each_match_season_by_season(two_seasons):
+    history = TeamService(two_seasons).elo_history("Alpha")
+
+    assert [season.season for season in history] == ["2006-07", "2007-08"]
+    assert [len(season.dates) for season in history] == [6, 6]
+    assert history[0].ratings[0] == DEFAULT_INITIAL_RATING  # nobody has played yet
+    expected = [
+        p.home_rating if p.match.home_team == "Alpha" else p.away_rating
+        for p in run_elo(two_seasons).predictions
+        if "Alpha" in (p.match.home_team, p.match.away_team)
+    ]
+    assert [rating for season in history for rating in season.ratings] == expected
+    dates = [day for season in history for day in season.dates]
+    assert dates == sorted(dates)
+
+
+def test_elo_history_does_not_use_the_result_of_the_match_itself(two_seasons):
+    match = next(
+        m for m in two_seasons if m.season == "2007-08" and "Alpha" in (m.home_team, m.away_team)
+    )
+    changed = replace(match, home_goals=9, away_goals=0, result=Outcome.HOME_WIN)
+    swapped = [changed if m is match else m for m in two_seasons]
+
+    before = TeamService(two_seasons).elo_history("Alpha")[1]
+    after = TeamService(swapped).elo_history("Alpha")[1]
+
+    index = before.dates.index(match.match_date)
+    assert after.ratings[: index + 1] == before.ratings[: index + 1]
+
+
+def test_elo_history_rejects_an_unknown_team(two_seasons):
+    with pytest.raises(ValueError, match="no matches"):
+        TeamService(two_seasons).elo_history("Zulu")
+
+
+def test_season_groups_match_the_overview(two_seasons):
+    service = TeamService(two_seasons)
+
+    groups = service.season_groups("2006-07")
+
+    assert [point.team for point in groups.teams] == ["Alpha", "Bravo", "Charlie", "Delta"]
+    for point in groups.teams:
+        overview = service.overview("2006-07", point.team)
+        assert GROUP_NAMES[point.group] == overview.season_group
+        assert point.goals_scored == overview.record.goals_for_per_match
+        assert point.goals_conceded == overview.record.goals_against_per_match
+    assert [centre.group for centre in groups.centres] == [0, 1, 2, 3]
+
+
+def test_season_groups_reject_an_unknown_season(two_seasons):
+    with pytest.raises(ValueError, match="no matches"):
+        TeamService(two_seasons).season_groups("1999-00")
 
 
 # --- evaluation ---

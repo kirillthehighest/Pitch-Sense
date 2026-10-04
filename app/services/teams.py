@@ -16,7 +16,13 @@ from app.evaluation.team_clustering import (
     descriptive_clusters,
     point_in_time_groups,
 )
-from app.statistics.team_profiles import TeamSeasonProfile, season_profiles, seasons_in
+from app.prediction.elo_predictions import EloRun, run_elo
+from app.statistics.team_profiles import (
+    PROFILE_FEATURES,
+    TeamSeasonProfile,
+    season_profiles,
+    seasons_in,
+)
 from app.statistics.team_statistics import (
     MatchHistory,
     TeamMatchStatistics,
@@ -36,6 +42,8 @@ GROUP_NAMES = {
     3: "Weak everywhere",
 }
 PROMOTED_NAME = "Promoted (no previous season)"
+_GOALS_SCORED = PROFILE_FEATURES.index("goals_scored_per_match")
+_GOALS_CONCEDED = PROFILE_FEATURES.index("goals_conceded_per_match")
 
 
 @dataclass(frozen=True, slots=True)
@@ -65,6 +73,46 @@ class TeamOverview:
     season_group: str | None  # descriptive group of that whole-season profile
 
 
+@dataclass(frozen=True, slots=True)
+class RatingSeason:
+    """A team's Elo rating going into each of its matches of one season."""
+
+    season: str
+    dates: tuple[date, ...]
+    ratings: tuple[float, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class GroupPoint:
+    """A team's whole-season goals per match and its descriptive K-Means group."""
+
+    team: str
+    goals_scored: float
+    goals_conceded: float
+    group: int
+
+
+@dataclass(frozen=True, slots=True)
+class GroupCentre:
+    """The goals per match of a group's centre, fitted on the profiles of all seasons."""
+
+    group: int
+    goals_scored: float
+    goals_conceded: float
+
+
+@dataclass(frozen=True, slots=True)
+class SeasonGroups:
+    """The descriptive groups of one season's teams, with the group centres.
+
+    The groups come from all six profile values; the goals per match are two of them.
+    """
+
+    season: str
+    teams: tuple[GroupPoint, ...]
+    centres: tuple[GroupCentre, ...]  # ordered by group
+
+
 class TeamService:
     """Team statistics, league tables and profiles for one competition."""
 
@@ -73,6 +121,7 @@ class TeamService:
         self._seasons = seasons_in(self._history)
         self._clusters: ProfileClusters | None = None
         self._groups: dict[str, dict[str, int | None]] = {}
+        self._elo: EloRun | None = None
 
     def season_end(self, season: str) -> date:
         """The day after the season's last match: queries on it see the whole season."""
@@ -118,6 +167,62 @@ class TeamService:
             pre_season_group=self._pre_season_group(season, team),
             season_profile=profile,
             season_group=season_group,
+        )
+
+    def elo_history(self, team: str) -> tuple[RatingSeason, ...]:
+        """The team's rating before each of its matches, season by season, oldest first.
+
+        These are the ratings the Elo predictions used: each comes from earlier days only.
+        """
+        if self._elo is None:
+            self._elo = run_elo(self._history.league_matches_before(date.max))
+        seasons: dict[str, tuple[list[date], list[float]]] = {}
+        for prediction in self._elo.predictions:
+            match = prediction.match
+            if team not in (match.home_team, match.away_team):
+                continue
+            rating = prediction.home_rating if team == match.home_team else prediction.away_rating
+            dates, ratings = seasons.setdefault(match.season, ([], []))
+            dates.append(match.match_date)
+            ratings.append(rating)
+        if not seasons:
+            raise ValueError(f"{team!r} played no matches")
+        return tuple(
+            RatingSeason(season=season, dates=tuple(dates), ratings=tuple(ratings))
+            for season, (dates, ratings) in seasons.items()
+        )
+
+    def season_groups(self, season: str) -> SeasonGroups:
+        """Every team of a season placed in its descriptive group, as in ``overview``."""
+        clusters = self._descriptive()
+        profiles = [profile for profile in clusters.profiles if profile.season == season]
+        if not profiles:
+            raise ValueError(f"no matches in season {season!r}")
+        centres = clusters.result.centroids_in_original_units()
+        return SeasonGroups(
+            season=season,
+            teams=tuple(
+                GroupPoint(
+                    team=profile.team,
+                    goals_scored=profile.values[_GOALS_SCORED],
+                    goals_conceded=profile.values[_GOALS_CONCEDED],
+                    group=clusters.group_of(profile),
+                )
+                for profile in profiles
+            ),
+            centres=tuple(
+                sorted(
+                    (
+                        GroupCentre(
+                            group=group,
+                            goals_scored=float(centre[_GOALS_SCORED]),
+                            goals_conceded=float(centre[_GOALS_CONCEDED]),
+                        )
+                        for centre, group in zip(centres, clusters.group_of_cluster, strict=True)
+                    ),
+                    key=lambda centre: centre.group,
+                )
+            ),
         )
 
     def _pre_season_group(self, season: str, team: str) -> str:

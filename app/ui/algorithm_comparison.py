@@ -1,13 +1,24 @@
-"""Algorithm Comparison: metrics, paired differences, breakdowns and agreement."""
+"""Algorithm Comparison: metrics, paired differences, breakdowns, agreement and charts."""
 
-from PySide6.QtWidgets import QComboBox, QLabel, QPushButton, QVBoxLayout, QWidget
+from PySide6.QtWidgets import (
+    QComboBox,
+    QFormLayout,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QTabWidget,
+    QVBoxLayout,
+    QWidget,
+)
 
 from app.evaluation.comparison import COMPARED_MODELS, REFERENCE_MODEL, SubsetComparison
 from app.services.evaluation import EvaluationResults
 from app.ui.context import AppContext
-from app.ui.widgets import OUTCOME_NAMES, fill_table, make_table, number, percent
+from app.ui.widgets import OUTCOME_NAMES, ChartView, fill_table, make_table, number, percent
+from app.visualization import charts
 
 BREAKDOWNS = ("By season", "By actual result", "By matchup type")
+VIEWS = ("Tables", "Charts")
 
 
 class AlgorithmComparisonTab(QWidget):
@@ -40,10 +51,13 @@ class AlgorithmComparisonTab(QWidget):
             ["Models", "Same prediction", "Mean distance"], stretch_column=0
         )
         self.agreement_label = QLabel()
+        self.calibration_chart = ChartView("The calibration chart appears after the backtest.")
+        self.confusion_box = QComboBox()
+        self.confusion_box.currentTextChanged.connect(self._show_confusion)
+        self.confusion_chart = ChartView("The confusion matrix appears after the backtest.")
 
-        layout = QVBoxLayout(self)
-        layout.addWidget(self.summary_label)
-        layout.addWidget(self.backtest_button)
+        tables = QWidget()
+        tables_layout = QVBoxLayout(tables)
         for title, widget in (
             ("Overall metrics (lower Brier score and log loss are better)", self.metrics_table),
             (
@@ -56,8 +70,26 @@ class AlgorithmComparisonTab(QWidget):
             (None, self.agreement_label),
         ):
             if title:
-                layout.addWidget(QLabel(f"<b>{title}</b>"))
-            layout.addWidget(widget)
+                tables_layout.addWidget(QLabel(f"<b>{title}</b>"))
+            tables_layout.addWidget(widget)
+
+        confusion = QVBoxLayout()
+        model_choice = QFormLayout()
+        model_choice.addRow("Confusion matrix of", self.confusion_box)
+        confusion.addLayout(model_choice)
+        confusion.addWidget(self.confusion_chart)
+        charts_page = QWidget()
+        charts_layout = QHBoxLayout(charts_page)
+        charts_layout.addWidget(self.calibration_chart, stretch=1)
+        charts_layout.addLayout(confusion, stretch=1)
+
+        self.views = QTabWidget()
+        self.views.addTab(tables, VIEWS[0])
+        self.views.addTab(charts_page, VIEWS[1])
+        layout = QVBoxLayout(self)
+        layout.addWidget(self.summary_label)
+        layout.addWidget(self.backtest_button)
+        layout.addWidget(self.views)
         self.refresh()
 
     def refresh(self) -> None:
@@ -119,6 +151,22 @@ class AlgorithmComparisonTab(QWidget):
             f"All three models predict the same outcome in {percent(results.all_agree)} of matches."
         )
         self._show_breakdown(self.breakdown_box.currentText())
+        self.calibration_chart.show_figure(
+            charts.calibration_chart(
+                {e.model: e.calibration for e in results.evaluations if e.calibration is not None}
+            )
+        )
+        chosen = self.confusion_box.currentText()
+        self.confusion_box.clear()
+        self.confusion_box.addItems([e.model for e in results.evaluations])
+        if chosen:
+            self.confusion_box.setCurrentText(chosen)
+
+    def _show_confusion(self, model: str) -> None:
+        if self._results is None or not model:
+            return
+        evaluation = next(e for e in self._results.evaluations if e.model == model)
+        self.confusion_chart.show_figure(charts.confusion_chart(model, evaluation.confusion))
 
     def _show_breakdown(self, name: str) -> None:
         if self._results is None:

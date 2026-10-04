@@ -1,6 +1,6 @@
 # Arhitectura aplicației PitchSense
 
-Acest document descrie structura aplicației, fluxul datelor și deciziile tehnice luate până acum (fazele 0–11). Se actualizează ori de câte ori structura se schimbă.
+Acest document descrie structura aplicației, fluxul datelor și deciziile tehnice luate până acum (fazele 0–12). Se actualizează ori de câte ori structura se schimbă.
 
 ## 1. Principii
 
@@ -18,8 +18,8 @@ Acest document descrie structura aplicației, fluxul datelor și deciziile tehni
 | `app/statistics` | Statisticile echipelor și caracteristicile (features) calculate „la o anumită dată”, doar din meciurile anterioare. | `app.data`, NumPy, pandas |
 | `app/prediction` | Rulează modelele pentru un meci și întoarce rezultatele într-un format comun. | `app.algorithms`, `app.statistics`, `app.data` |
 | `app/evaluation` | Backtesting cronologic, metrici de evaluare, compararea modelelor. | straturile de mai sus |
-| `app/visualization` | Construiește graficele din rezultate deja calculate, fără calcule proprii. | matplotlib |
 | `app/services` | Operațiile cerute de interfață, gata de afișat, cu rezultatele lente păstrate în memorie. Fără Qt. | toate straturile de mai sus |
+| `app/visualization` | Construiește graficele din rezultate deja calculate, fără calcule proprii. | matplotlib, tipurile de rezultate din `app.services` și `app.evaluation` |
 | `app/ui` | Interfața grafică: preia datele de intrare, apelează serviciile și afișează rezultatele. | PySide6 și celelalte straturi |
 
 ## 3. Reguli verificate automat
@@ -374,11 +374,11 @@ Aplicația se pornește cu `python -m app`. Interfața este scrisă cu PySide6 �
 | Fila | Ce permite |
 |---|---|
 | Dashboard | rezumatul datelor încărcate și rezultatele principale ale modelelor; dacă jurnalul predicțiilor lipsește, un buton „Run backtest” îl construiește |
-| Match Prediction | alegerea unui sezon și a unui meci jucat sau a oricăror două echipe din sezon și a unei date; probabilitățile fiecărui model, golurile așteptate și scorurile cele mai probabile (Poisson) și rezultatul real, dacă meciul s-a jucat |
-| Team Analysis | clasamentul la o anumită dată sau la final de sezon și prezentarea unei echipe: poziție, rezultate, acasă și în deplasare, ultimele 5 rezultate, șuturi pe poartă, grupul K-Means de dinaintea sezonului și grupul sezonului încheiat |
-| Algorithm Comparison | măsurile de evaluare, diferențele reale dintre modele, împărțirea pe sezoane, rezultate și tipuri de meciuri și cât de diferite sunt predicțiile |
+| Match Prediction | alegerea unui sezon și a unui meci jucat sau a oricăror două echipe din sezon și a unei date; probabilitățile fiecărui model, golurile așteptate, scorurile cele mai probabile și graficul probabilităților scorurilor (Poisson) și rezultatul real, dacă meciul s-a jucat |
+| Team Analysis | clasamentul la o anumită dată sau la final de sezon și prezentarea unei echipe: poziție, rezultate, acasă și în deplasare, ultimele 5 rezultate, șuturi pe poartă, grupul K-Means de dinaintea sezonului și grupul sezonului încheiat; sub-filele „League table”, „Elo rating” și „Team groups” |
+| Algorithm Comparison | măsurile de evaluare, diferențele reale dintre modele, împărțirea pe sezoane, rezultate și tipuri de meciuri și cât de diferite sunt predicțiile (sub-fila „Tables”); calibrarea și matricea de confuzie (sub-fila „Charts”) |
 
-Graficele (evoluția ratingului Elo, tabelul probabilităților scorurilor, calibrarea, matricea de confuzie, grupurile de echipe) se adaugă în Faza 12.
+Graficele sunt descrise în secțiunea 10.
 
 ### 9.2. Straturile interfeței
 
@@ -403,7 +403,46 @@ Echipele sunt ordonate după puncte, apoi după golaveraj, apoi după golurile m
 - Un test separat folosește firele de execuție reale și verifică faptul că rezultatul ajunge pe firul interfeței.
 - Toate filele au fost desenate cu datele reale și verificate vizual; aplicația a fost pornită într-o fereastră obișnuită pe macOS și a rulat fără erori.
 
-## 10. Setul de date și perioadele
+## 10. Graficele (Faza 12)
+
+### 10.1. Ce arată fiecare grafic
+
+| Grafic | Unde apare | Ce arată | De unde vin datele |
+|---|---|---|---|
+| Evoluția ratingului Elo | Team Analysis, sub-fila „Elo rating” | ratingul echipei înaintea fiecăruia dintre meciurile ei, câte o linie pe sezon; golurile dintre linii sunt vacanțele de vară și sezoanele petrecute în afara La Liga; sezonul ales este evidențiat, iar data aleasă (dacă nu este ales sezonul întreg) este marcată cu o linie punctată | `TeamService.elo_history`: exact ratingurile folosite de predicțiile Elo, calculate doar din meciurile zilelor anterioare |
+| Probabilitățile scorurilor | Match Prediction | probabilitatea Poisson a fiecărui scor de la 0-0 la 6-6 | tabelul scorurilor din predicția Poisson (calculat până la 20 de goluri pe echipă; scorurile mai mari nu sunt afișate) |
+| Calibrarea | Algorithm Comparison, sub-fila „Charts” | pentru fiecare model, frecvența observată în funcție de probabilitatea prezisă, pe 10 intervale, cu toate rezultatele la un loc; diagonala înseamnă calibrare perfectă; intervalele goale sunt omise | tabelele de calibrare ale evaluării (Faza 9) |
+| Matricea de confuzie | Algorithm Comparison, sub-fila „Charts” | numărul de meciuri după rezultatul real (rânduri) și cel prezis (coloane), pentru modelul ales din listă | evaluarea (Faza 9) |
+| Grupurile echipelor | Team Analysis, sub-fila „Team groups” | echipele sezonului după golurile marcate și primite pe meci, colorate după grupul K-Means, cu centrele grupurilor (✕) și echipa aleasă încercuită | `TeamService.season_groups`: grupurile descriptive din Faza 6, aceleași ca „Season group” din prezentarea echipei |
+
+### 10.2. Axele graficului grupurilor
+
+Echipa a ales două mărimi ușor de citit: golurile marcate și golurile primite pe meci. K-Means folosește însă șase mărimi (secțiunea 5 din `docs/algorithms/kmeans.md`), deci pe aceste două axe o echipă poate apărea mai aproape de centrul altui grup. Pe datele reale, 134 din cele 400 de profiluri (33,5%) sunt mai aproape, pe grafic, de centrul altui grup decât al propriului grup (de exemplu, în 2015/16: Sociedad și Valencia, din grupul „Weak everywhere”, apar lângă centrul grupului „Lower half, strong at home”). Graficul și nota din filă precizează că grupurile folosesc toate cele șase mărimi.
+
+Varianta respinsă, PCA (proiecția celor șase mărimi pe două axe), ar fi arătat mai bine structura, dar axele nu ar fi avut un înțeles direct și ar fi adăugat o metodă nouă, care trebuia implementată și documentată.
+
+Grupurile sunt arătate doar pentru un sezon întreg, pentru că profilurile descriu sezonul încheiat; pentru o dată din timpul sezonului, sub-fila afișează un mesaj.
+
+### 10.3. Construcție
+
+- `app/visualization/charts.py` conține cinci funcții care primesc rezultate deja calculate și întorc o figură matplotlib (`Figure`). Ele doar desenează: nu calculează nimic și nu folosesc `pyplot`, deci nu există stare globală, iar aceeași figură poate fi afișată în aplicație sau salvată într-un fișier.
+- Datele vin din servicii: `TeamService` are două metode noi (`elo_history`, `season_groups`), iar rezumatul predicției Poisson include tabelul complet al scorurilor (`ModelSummary.score_probabilities`). Rularea Elo este făcută o singură dată și păstrată în memorie (aproximativ 0,02 s pe toate datele).
+- Interfața afișează figurile prin `ChartView` (`app/ui/widgets.py`), care folosește pânza Qt a matplotlib (`FigureCanvasQTAgg`) și arată un mesaj cât timp nu există un grafic. Nu a fost necesară nicio bibliotecă nouă.
+
+### 10.4. Verificare
+
+- `tests/test_charts.py`: fiecare grafic desenează exact valorile primite (datele liniilor, celulele, textele, etichetele și legenda) și se salvează ca imagine PNG fără avertismente; datele invalide sunt refuzate.
+- `tests/test_services.py`: istoricul Elo coincide cu ratingurile folosite de predicții și nu se schimbă dacă se schimbă scorul meciului însuși; grupurile coincid cu cele din prezentarea echipei.
+- `tests/test_ui.py`: fiecare filă arată un mesaj înainte de rezultate și graficele după ele; o componentă `ChartView` conține mereu exact un grafic sau un mesaj.
+- Graficele au fost desenate cu datele reale și verificate vizual, atât fără fereastră, cât și într-o fereastră macOS obișnuită (ecran Retina, mod întunecat), cu lucrul în fundal real.
+
+### 10.5. Limitări
+
+- Pe graficul grupurilor, numele echipelor apropiate se pot suprapune.
+- Graficele păstrează fundalul alb și când sistemul folosește modul întunecat.
+- Graficul scorurilor arată doar scorurile de până la 6 goluri pe echipă.
+
+## 11. Setul de date și perioadele
 
 Sursa datelor este Football-Data.co.uk: La Liga (`SP1`), 20 de sezoane încheiate, 2006/07–2025/26 (7.600 de meciuri).
 
@@ -413,7 +452,7 @@ Sursa datelor este Football-Data.co.uk: La Liga (`SP1`), 20 de sezoane încheiat
 | 2007/08–2009/10 | Calibrare: se aleg hiperparametrii; rezultatele nu sunt raportate. |
 | 2010/11–2025/26 | Evaluarea raportată: 16 sezoane, 6.080 de meciuri. |
 
-## 11. Tehnologii
+## 12. Tehnologii
 
 | Componentă | Versiune | Rol |
 |---|---|---|
@@ -426,7 +465,7 @@ Sursa datelor este Football-Data.co.uk: La Liga (`SP1`), 20 de sezoane încheiat
 | pytest | 9.1.1 | testare |
 | ruff | 0.16.10 | verificarea și formatarea codului |
 
-## 12. Decizii tehnice
+## 13. Decizii tehnice
 
 | Decizie | Motiv |
 |---|---|
@@ -458,3 +497,6 @@ Sursa datelor este Football-Data.co.uk: La Liga (`SP1`), 20 de sezoane încheiat
 | Predicțiile istorice sunt calculate o dată la pornire și păstrate în memorie | Orice meci jucat apare imediat, cu exact aceleași valori ca în evaluare. |
 | Operațiile lente rulează în fundal, iar rezultatul revine prin semnale Qt | Interfața nu se blochează, iar firele de lucru nu ating ferestrele. |
 | Testele interfeței rulează fără fereastră și fără biblioteci noi (fără pytest-qt) | Ecranele sunt verificate automat, fără dependențe suplimentare. |
+| Graficul grupurilor folosește golurile marcate și primite pe meci (varianta A), nu PCA | Axele au un înțeles direct și nu se adaugă o metodă nouă; limitarea (o treime dintre echipe apar mai aproape de alt centru) este documentată. |
+| Figurile sunt construite cu `matplotlib.figure.Figure`, fără `pyplot` | Nu există stare globală; aceeași figură poate fi afișată în aplicație sau salvată. |
+| Graficul Elo arată ratingul dinaintea fiecărui meci | Sunt exact valorile folosite de predicții, calculate doar din meciurile anterioare. |

@@ -7,6 +7,8 @@ from datetime import date
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 import pytest  # noqa: E402
+from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg  # noqa: E402
+from matplotlib.figure import Figure  # noqa: E402
 from PySide6.QtCore import QCoreApplication, QDate, QThread  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
@@ -16,6 +18,8 @@ from app.services.predictions import PredictionService  # noqa: E402
 from app.services.teams import TeamService  # noqa: E402
 from app.ui.context import AppContext  # noqa: E402
 from app.ui.main_window import MainWindow  # noqa: E402
+from app.ui.team_analysis import GROUPS_NEED_WHOLE_SEASON  # noqa: E402
+from app.ui.widgets import ChartView  # noqa: E402
 from app.ui.worker import run_in_background, run_now  # noqa: E402
 
 
@@ -52,6 +56,27 @@ def window(application, database, tmp_path, errors):
 
 def cells(table, column):
     return [table.item(row, column).text() for row in range(table.rowCount())]
+
+
+def chart_title(chart_view):
+    return chart_view.figure.axes[0].get_title()
+
+
+def chart_legend(chart_view):
+    return [text.get_text() for text in chart_view.figure.axes[0].get_legend().get_texts()]
+
+
+def test_charts_wait_for_results(window):
+    charts = (
+        window.match_prediction.score_chart,
+        window.team_analysis.elo_chart,
+        window.team_analysis.groups_chart,
+        window.algorithm_comparison.calibration_chart,
+        window.algorithm_comparison.confusion_chart,
+    )
+
+    assert all(chart.figure is None for chart in charts)
+    assert all(chart.message_label.text() for chart in charts)
 
 
 def test_the_window_has_four_tabs_and_prepares_predictions(window):
@@ -93,6 +118,8 @@ def test_predicting_a_played_match(window):
     assert tab.scores_table.rowCount() == 5
     assert tab.goals_label.text().startswith("Expected goals:")
     assert tab.predict_button.isEnabled()
+    assert chart_title(tab.score_chart).startswith("Poisson: probability of each score")
+    assert tab.score_chart.message_label.isHidden()
 
 
 def test_predicting_a_hypothetical_fixture(window):
@@ -132,6 +159,14 @@ def test_team_analysis_for_a_whole_season(window):
     assert tab.overview_labels["Position"].text() == "1 of 4"
     assert tab.overview_labels["Last 5 results"].text() == "W W D W D"
     assert tab.overview_labels["Season group"].text() != "Season not finished at this date"
+    assert [tab.views.tabText(i) for i in range(tab.views.count())] == [
+        "League table",
+        "Elo rating",
+        "Team groups",
+    ]
+    assert chart_title(tab.elo_chart) == "Alpha: Elo rating before each match"
+    assert chart_legend(tab.elo_chart) == ["2006-07"]
+    assert chart_title(tab.groups_chart).startswith("Team groups in 2006-07")
 
 
 def test_team_analysis_as_of_a_date(window):
@@ -146,6 +181,9 @@ def test_team_analysis_as_of_a_date(window):
     assert cells(tab.standings_table, 1) == ["Alpha", "Bravo", "Delta", "Charlie"]
     assert tab.overview_labels["Position"].text() == "4 of 4"
     assert tab.overview_labels["Season group"].text() == "Season not finished at this date"
+    assert chart_legend(tab.elo_chart) == ["2006-07", "Matches before 2006-09-04"]
+    assert tab.groups_chart.figure is None
+    assert tab.groups_chart.message_label.text() == GROUPS_NEED_WHOLE_SEASON
 
 
 def test_algorithm_comparison_after_the_backtest(window):
@@ -161,6 +199,14 @@ def test_algorithm_comparison_after_the_backtest(window):
     assert cells(tab.breakdown_table, 0) == ["2007-08"]
     tab.breakdown_box.setCurrentText("By actual result")
     assert set(cells(tab.breakdown_table, 0)) <= {"Home win", "Draw", "Away win"}
+    assert chart_legend(tab.calibration_chart)[:2] == ["Perfect calibration", "Elo"]
+    models = [tab.confusion_box.itemText(i) for i in range(tab.confusion_box.count())]
+    assert models == cells(tab.metrics_table, 0)
+    assert chart_title(tab.confusion_chart) == "Elo: confusion matrix"
+    tab.confusion_box.setCurrentText("Poisson")
+    assert chart_title(tab.confusion_chart) == "Poisson: confusion matrix"
+    tab.refresh()  # showing the results again keeps the chosen model
+    assert chart_title(tab.confusion_chart) == "Poisson: confusion matrix"
 
 
 def wait_for(condition, seconds=10.0):
@@ -194,6 +240,23 @@ def test_run_now_uses_the_same_contract():
 
     assert results == [date(2007, 9, 5)]
     assert len(failures) == 1
+
+
+def test_a_chart_view_shows_one_figure_or_a_message(application):
+    view = ChartView("Nothing yet")
+    first, second = Figure(), Figure()
+
+    view.show_figure(first)
+    view.show_figure(second)
+
+    assert view.figure is second
+    assert len(view.findChildren(FigureCanvasQTAgg)) == 1
+    assert view.message_label.isHidden()
+    view.show_message("Not available")
+    assert view.figure is None
+    assert view.findChildren(FigureCanvasQTAgg) == []
+    assert not view.message_label.isHidden()
+    assert view.message_label.text() == "Not available"
 
 
 def test_numbers_are_right_aligned_and_labels_are_not(application):
