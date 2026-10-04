@@ -1,6 +1,6 @@
 # Arhitectura aplicației PitchSense
 
-Acest document descrie structura aplicației, fluxul datelor și deciziile tehnice luate până acum (fazele 0–7). Se actualizează ori de câte ori structura se schimbă.
+Acest document descrie structura aplicației, fluxul datelor și deciziile tehnice luate până acum (fazele 0–8). Se actualizează ori de câte ori structura se schimbă.
 
 ## 1. Principii
 
@@ -301,15 +301,64 @@ Scoaterea meciului Real Madrid – Barcelona din date și cererea lui ca meci ip
 
 Limitare: `predict_fixture` recalculează toate modelele. Pentru sezoanele recente durează aproximativ 7 s (pentru 2010/11, aproximativ 1 s). Interfața (Faza 11) va trebui să reutilizeze rezultatele calculate o dată.
 
-## 8. Backtesting cronologic
+## 8. Backtesting cronologic (Faza 8)
+
+Comanda `python -m app.evaluation.backtesting` (modulul `app/evaluation/backtesting.py`) produce jurnalul predicțiilor pentru sezoanele de evaluare.
+
+### 8.1. Principiul
 
 Meciurile sunt parcurse în ordinea datelor. Pentru fiecare zi de joc D:
 
-1. modelele care se antrenează (regresia logistică, parametrii modelului Poisson) sunt reantrenate, după un program documentat, doar pe meciurile dinaintea zilei D;
-2. fiecare model prezice toate meciurile din ziua D, iar predicțiile sunt salvate;
-3. abia apoi se dezvăluie rezultatele din ziua D și se actualizează modelele cu stare (ratingurile Elo).
+1. modelele antrenate (modelul egalurilor din Elo și regresia logistică) sunt reantrenate în fiecare luni, doar pe meciurile dinaintea acelei zile de luni;
+2. fiecare model prezice toate meciurile din ziua D, folosind doar meciurile dinaintea zilei D;
+3. abia apoi rezultatele din ziua D devin disponibile: ratingurile Elo se actualizează, iar meciurile intră în istoric.
 
-Metricile se calculează din jurnalul predicțiilor salvate, în aceleași condiții pentru toate modelele.
+Aceste reguli sunt aplicate de motorul de predicție (secțiunea 7), iar testele de scurgere a informațiilor le verifică pentru fiecare model.
+
+### 8.2. Ce intră în evaluare
+
+- Doar sezoanele de evaluare, 2010/11–2025/26. Sezonul de încălzire și sezoanele de calibrare sunt excluse.
+- Doar meciurile prezise de toate cele trei modele, pentru ca modelele să fie comparate în condiții identice. Meciurile cărora le lipsește un model sunt numărate și raportate.
+
+### 8.3. Referințele (baseline)
+
+Pe lângă cele trei modele, jurnalul conține două referințe, care nu sunt algoritmi ai proiectului, ci arată ce rezultat se obține fără ei:
+
+- **Frecvențele trecute:** frecvențele victoriilor gazdelor, egalurilor și victoriilor oaspeților în ultimele 380 de meciuri ale ligii dinaintea zilei. Este o predicție probabilistică completă, fără nicio informație despre echipe.
+- **Mereu victoria gazdelor:** probabilitatea 1 pentru victoria gazdelor. Servește doar ca referință pentru acuratețe, pentru că probabilitățile 0 nu pot fi evaluate cu măsuri precum pierderea logaritmică (ar da infinit).
+
+### 8.4. Jurnalul predicțiilor
+
+Jurnalul este fișierul CSV `data/results/backtest_SP1.csv`, cu câte un rând pentru fiecare meci și fiecare model:
+
+| Coloană | Conținut |
+|---|---|
+| `match_date`, `season`, `home_team`, `away_team` | meciul |
+| `home_goals`, `away_goals`, `actual` | scorul și rezultatul real (`H`, `D` sau `A`) |
+| `model` | Elo, Poisson, Logistic regression, Past frequencies sau Always home win |
+| `p_home`, `p_draw`, `p_away` | probabilitățile prezise |
+| `predicted` | rezultatul cel mai probabil (la egalitate: gazde, apoi egal) |
+| `expected_home_goals`, `expected_away_goals` | golurile așteptate, doar pentru modelul Poisson |
+| `home_group`, `away_group` | grupurile K-Means momentane ale echipelor (0 = cel mai puternic, `promoted` = promovată) |
+
+Probabilitățile sunt scrise cu precizie completă, iar citirea fișierului dă exact aceleași valori. Fișierul nu este inclus în git, pentru că se reconstruiește oricând cu comanda de mai sus.
+
+### 8.5. Rezultatul rulării
+
+Rulare din 2026-10-04: 6.080 de meciuri (2010/11–2025/26) și niciun meci exclus, deci toate meciurile de evaluare au predicții de la toate cele trei modele. Jurnalul are 5 predicții pentru fiecare meci, adică 30.400 de rânduri, și se calculează în aproximativ 8 s. Două rulări consecutive au produs fișiere identice octet cu octet.
+
+Măsurile de evaluare (acuratețea, scorul Brier, pierderea logaritmică, matricea de confuzie, calibrarea și eroarea golurilor așteptate) se calculează din acest jurnal în Faza 9.
+
+### 8.6. Teste
+
+Pe sezoanele de test, testele verifică:
+
+- câte un rând pentru fiecare meci de evaluare și fiecare model, cu probabilități valide și rezultatul real corect;
+- rezultatul prezis este cel mai probabil, iar doar rândurile modelului Poisson au goluri așteptate;
+- frecvențele trecute calculate de mână: înaintea primului meci de evaluare, liga are 6 victorii ale gazdelor, 4 egaluri și 2 victorii ale oaspeților din 12 meciuri;
+- grupurile K-Means din jurnal sunt cele momentane;
+- meciurile fără toate cele trei modele sunt excluse și numărate;
+- două rulări dau același jurnal, iar salvarea și citirea lui nu pierd nimic.
 
 ## 9. Setul de date și perioadele
 
@@ -359,3 +408,6 @@ Sursa datelor este Football-Data.co.uk: La Liga (`SP1`), 20 de sezoane încheiat
 | Modelul egalurilor din Elo este reantrenat în fiecare luni, ca regresia logistică | Aceeași regulă pentru ambele modele antrenate, definită într-un singur loc. |
 | Un model care nu poate prezice un meci lipsește din rezultatul acelui meci | Nu sunt inventate predicții; evaluarea va compara modelele doar pe meciurile prezise de toate. |
 | Meciurile ipotetice sunt prezise cu un meci înlocuitor, prin același cod | Interfața și evaluarea nu pot da rezultate diferite; testele arată că scorul fictiv nu are niciun efect. |
+| Evaluarea folosește doar meciurile prezise de toate cele trei modele | Modelele sunt comparate pe exact aceleași meciuri; pe datele reale nu este exclus niciun meci. |
+| Două referințe: frecvențele trecute și „mereu victoria gazdelor” | Arată ce se obține fără algoritmi; a doua este folosită doar pentru acuratețe. |
+| Jurnalul predicțiilor este un fișier CSV reconstruit de o comandă și nu este inclus în git | Rezultatele sunt reproductibile, iar fișierele derivate nu se amestecă cu datele brute. |

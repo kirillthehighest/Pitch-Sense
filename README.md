@@ -5,7 +5,7 @@ Aplicație desktop pentru analiza datelor istorice din fotbal și estimarea rezu
 Proiect de an la disciplina *Analiza și Proiectarea Algoritmilor* (APA), Universitatea Tehnică a Moldovei, Departamentul Ingineria Software și Automatică.
 Echipa (grupa TI-251): Goroșevschi Chiril, Cuzmici Nicolae, Păstru Alina.
 
-**Stadiu:** Faza 8, backtesting cronologic. Fazele 0–7 (planificare și arhitectură, prelucrarea datelor istorice, statisticile echipelor, ratingul Elo, modelul Poisson, regresia logistică, K-Means, motorul de predicție) au fost încheiate pe 2026-10-04. Aplicația propriu-zisă nu este încă implementată.
+**Stadiu:** Faza 9, metricile de evaluare. Fazele 0–8 (planificare și arhitectură, prelucrarea datelor istorice, statisticile echipelor, ratingul Elo, modelul Poisson, regresia logistică, K-Means, motorul de predicție, backtesting cronologic) au fost încheiate pe 2026-10-04. Aplicația propriu-zisă nu este încă implementată.
 
 ## Cerințe
 
@@ -57,6 +57,14 @@ python -m app.data.build_database
 ```
 
 Comanda verifică toate sezoanele și afișează câte meciuri a salvat din fiecare. Baza de date nu este inclusă în git, așa că rulați comanda după clonarea proiectului și după orice modificare a fișierelor din `data/raw/`.
+
+## Evaluare
+
+Rulează toate modelele cronologic pe sezoanele de evaluare și salvează jurnalul predicțiilor în `data/results/backtest_SP1.csv`:
+
+```bash
+python -m app.evaluation.backtesting
+```
 
 ## Documentație
 

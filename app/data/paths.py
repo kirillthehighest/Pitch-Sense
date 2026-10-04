@@ -10,3 +10,4 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = PROJECT_ROOT / "data"
 RAW_DATA_DIR = DATA_DIR / "raw"
 DATABASE_PATH = DATA_DIR / "pitchsense.db"
+RESULTS_DIR = DATA_DIR / "results"  # generated evaluation outputs, rebuilt by commands

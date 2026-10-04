@@ -12,9 +12,10 @@ dist/
 .pytest_cache/
 .ruff_cache/
 
-# Generated databases (rebuilt from data/raw)
+# Generated databases and evaluation outputs (rebuilt by commands)
 data/*.db
 data/*.sqlite
+data/results/
 
 # Operating systems
 .DS_Store
