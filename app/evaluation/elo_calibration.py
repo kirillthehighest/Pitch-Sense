@@ -1,6 +1,7 @@
 """Choose the Elo parameters K and H on the calibration seasons.
 
-Run from the project folder with ``python -m app.evaluation.elo_calibration``.
+Run from the project folder with ``python -m app.evaluation.elo_calibration [CODE]`` (default
+SP1); ``python -m app.evaluation.league_calibration`` calibrates every model of every league.
 
 Elo runs over the warm-up and calibration seasons only; the evaluation seasons are never read.
 Every (K, H) pair of the grid is scored by the mean squared error between the actual score S_home
@@ -21,6 +22,7 @@ from app.data.paths import DATABASE_PATH
 from app.data.repository import MatchRepository
 from app.evaluation.periods import CALIBRATION_SEASONS, WARM_UP_SEASONS
 from app.prediction.elo_predictions import run_elo
+from app.prediction.settings import EloSettings
 
 COMPETITION = "SP1"
 K_FACTORS = (10, 15, 20, 25, 30, 35, 40)
@@ -51,7 +53,7 @@ def calibrate(
         raise ValueError("there are no matches from the calibration seasons")
     results = []
     for k_factor, home_advantage in product(k_factors, home_advantages):
-        run = run_elo(selected, k_factor=k_factor, home_advantage=home_advantage)
+        run = run_elo(selected, EloSettings(k_factor, home_advantage))
         squared_errors = [
             (actual_score(p.match.home_goals, p.match.away_goals) - p.expected_home_score) ** 2
             for p in run.predictions
@@ -114,4 +116,4 @@ def main(database_path: Path = DATABASE_PATH, competition: str = COMPETITION) ->
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(main(competition=sys.argv[1] if len(sys.argv) > 1 else COMPETITION))

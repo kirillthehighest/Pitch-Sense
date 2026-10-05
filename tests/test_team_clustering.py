@@ -102,3 +102,14 @@ def test_groups_are_ranked_by_points_per_match(season_matches):
 def test_cluster_profiles_needs_profiles():
     with pytest.raises(ValueError):
         cluster_profiles([], k=2)
+
+
+def test_no_groups_when_the_season_before_has_no_shot_statistics(
+    season_matches, next_season_matches
+):
+    no_statistics = [replace(m, statistics=None) for m in season_matches]
+    history = MatchHistory([*no_statistics, *next_season_matches])
+
+    groups = point_in_time_groups(history, "2007-08")
+
+    assert groups == dict.fromkeys(["Alpha", "Bravo", "Charlie", "Delta"])

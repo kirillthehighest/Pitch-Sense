@@ -26,6 +26,7 @@ from app.prediction.outputs import (
     from_poisson,
 )
 from app.prediction.poisson_predictions import run_poisson
+from app.prediction.settings import ModelSettings, settings_of
 
 
 @dataclass(frozen=True, eq=False)
@@ -44,18 +45,28 @@ class MatchPredictions:
 
 
 def predict_history(
-    matches: Iterable[Match], *, min_training_matches: int = MIN_TRAINING_MATCHES
+    matches: Iterable[Match],
+    *,
+    settings: ModelSettings | None = None,
+    min_training_matches: int = MIN_TRAINING_MATCHES,
 ) -> list[MatchPredictions]:
-    """Predict every match of one competition with every model, in chronological order."""
+    """Predict every match of one competition with every model, in chronological order.
+
+    Without ``settings`` the competition's calibrated settings are used.
+    """
     ordered = sort_chronologically(matches)
+    settings = settings or settings_of(ordered)
     collected: dict[Match, dict[ModelName, ModelPrediction]] = {match: {} for match in ordered}
 
-    elo_run = run_elo(ordered)
+    elo_run = run_elo(ordered, settings.elo)
     for prediction in elo_outcome_predictions(elo_run, min_matches=min_training_matches):
         collected[prediction.prediction.match][ModelName.ELO] = from_elo(prediction)
-    for prediction in run_poisson(ordered):
+    for prediction in run_poisson(ordered, settings.poisson):
         collected[prediction.match][ModelName.POISSON] = from_poisson(prediction)
-    for prediction in run_logistic_regression(ordered, min_training_matches=min_training_matches):
+    logistic = run_logistic_regression(
+        ordered, settings.logistic, min_training_matches=min_training_matches
+    )
+    for prediction in logistic:
         collected[prediction.match][ModelName.LOGISTIC_REGRESSION] = from_logistic(prediction)
 
     return [
@@ -91,6 +102,7 @@ def predict_fixture(
     away_team: str,
     match_date: date,
     *,
+    settings: ModelSettings | None = None,
     min_training_matches: int = MIN_TRAINING_MATCHES,
 ) -> FixturePrediction:
     """Predict one fixture of a season from the data before its date.
@@ -135,7 +147,9 @@ def predict_fixture(
             result=Outcome.DRAW,  # placeholder: never used for this fixture's own prediction
         )
         relevant.append(target)
-    results = predict_history(relevant, min_training_matches=min_training_matches)
+    results = predict_history(
+        relevant, settings=settings, min_training_matches=min_training_matches
+    )
     predictions = next(result for result in results if result.match is target).predictions
     return FixturePrediction(
         season=season,

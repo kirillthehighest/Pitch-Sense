@@ -12,13 +12,8 @@ from app.algorithms.poisson import (
 )
 from app.data.models import Match
 from app.data.preprocessing import sort_chronologically
+from app.prediction.settings import PoissonSettings, settings_of
 from app.statistics.team_statistics import MatchHistory, Venue, league_averages, team_statistics
-
-LEAGUE_WINDOW = 380  # league averages over the last 380 matches: one season of a 20-team league
-# Chosen by `python -m app.evaluation.poisson_calibration` on the calibration seasons
-# 2007/08-2009/10 (mean -ln P(actual score) 2.95326); see docs/algorithms/poisson.md.
-TEAM_WINDOW = 38
-PRIOR_MATCHES = 20.0
 
 
 @dataclass(frozen=True, eq=False)
@@ -38,10 +33,8 @@ class PoissonPrediction:
 def predict_match(
     history: MatchHistory,
     match: Match,
+    settings: PoissonSettings,
     *,
-    team_window: int = TEAM_WINDOW,
-    prior_matches: float = PRIOR_MATCHES,
-    league_window: int = LEAGUE_WINDOW,
     max_goals: int = DEFAULT_MAX_GOALS,
 ) -> PoissonPrediction | None:
     """Predict one match from the matches before its day (Eq. 4 and 5 of the Poisson model).
@@ -51,6 +44,11 @@ def predict_match(
     ``league_window`` matches. Returns None while the league history has no home or no away
     goals yet (the competition's first days).
     """
+    team_window, prior_matches, league_window = (
+        settings.team_window,
+        settings.prior_matches,
+        settings.league_window,
+    )
     _check_settings(team_window, prior_matches, league_window)
     before = match.match_date
     league = league_averages(history, before, last=league_window)
@@ -83,29 +81,24 @@ def predict_match(
 
 def run_poisson(
     matches: Iterable[Match],
+    settings: PoissonSettings | None = None,
     *,
-    team_window: int = TEAM_WINDOW,
-    prior_matches: float = PRIOR_MATCHES,
-    league_window: int = LEAGUE_WINDOW,
     max_goals: int = DEFAULT_MAX_GOALS,
 ) -> list[PoissonPrediction]:
     """Predict every match of one competition, in chronological order.
 
-    Matches without enough league history (see ``predict_match``) get no prediction.
+    Matches without enough league history (see ``predict_match``) get no prediction. Without
+    ``settings`` the competition's calibrated N, m and league window are used.
     """
-    _check_settings(team_window, prior_matches, league_window)
     ordered = sort_chronologically(matches)
+    if not ordered:
+        return []
+    settings = settings or settings_of(ordered).poisson
+    _check_settings(settings.team_window, settings.prior_matches, settings.league_window)
     history = MatchHistory(ordered)
     predictions = []
     for match in ordered:
-        prediction = predict_match(
-            history,
-            match,
-            team_window=team_window,
-            prior_matches=prior_matches,
-            league_window=league_window,
-            max_goals=max_goals,
-        )
+        prediction = predict_match(history, match, settings, max_goals=max_goals)
         if prediction is not None:
             predictions.append(prediction)
     return predictions

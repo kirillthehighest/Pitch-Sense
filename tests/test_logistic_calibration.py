@@ -83,9 +83,9 @@ def test_calibration_needs_predicted_calibration_matches(season_matches, next_se
         calibrate(season_matches, **SEASONS)
 
 
-def test_main_prints_the_best_value(raw_data_dir, tmp_path, capsys):
+def test_main_prints_the_best_value(raw_data_dir, tmp_path, capsys, four_team_league):
     database_path = tmp_path / "pitchsense.db"
-    build_database(raw_data_dir, database_path, {"SP1": 4})
+    build_database(raw_data_dir, database_path, four_team_league)
 
     exit_code = main(database_path, min_training_matches=2)
 

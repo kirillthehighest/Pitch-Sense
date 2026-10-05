@@ -1,13 +1,15 @@
 """Chronological (walk-forward) backtesting: the prediction log of the evaluation seasons.
 
-Run from the project folder with ``python -m app.evaluation.backtesting``.
+Run from the project folder with ``python -m app.evaluation.backtesting`` (every competition in
+the database) or ``python -m app.evaluation.backtesting E0 SP1`` (the competitions named). Each
+competition gets its own log, predicted with its own calibrated settings.
 
 Every model predicts every match from data before the match's day (see the prediction engine).
 The log keeps only the evaluation seasons and only matches that all three models predicted, so
 they are compared under identical conditions. Two reference baselines are added:
 
-- "Past frequencies": the league's home win, draw and away win frequencies over the last 380
-  matches before the day; a full probability forecast.
+- "Past frequencies": the league's home win, draw and away win frequencies over the last season
+  of league matches before the day (380 in a 20-team league); a full probability forecast.
 - "Always home win": probability 1 for a home win. It serves as a reference for accuracy only,
   because its zero probabilities cannot be scored by probability measures such as log loss.
 
@@ -32,8 +34,8 @@ from app.evaluation.periods import FIRST_EVALUATION_SEASON
 from app.evaluation.team_clustering import point_in_time_groups
 from app.prediction.logistic_predictions import MIN_TRAINING_MATCHES
 from app.prediction.outputs import ModelName, OutcomeProbabilities
-from app.prediction.poisson_predictions import LEAGUE_WINDOW
 from app.prediction.prediction_engine import predict_history
+from app.prediction.settings import ModelSettings, settings_of
 from app.statistics.team_statistics import MatchHistory, league_averages
 
 COMPETITION = "SP1"
@@ -76,16 +78,24 @@ class Backtest:
 def run_backtest(
     matches: Iterable[Match],
     *,
+    settings: ModelSettings | None = None,
     first_evaluation_season: str = FIRST_EVALUATION_SEASON,
     min_training_matches: int = MIN_TRAINING_MATCHES,
 ) -> Backtest:
-    """Predict all matches walk-forward and log those of the evaluation seasons."""
+    """Predict all matches walk-forward and log those of the evaluation seasons.
+
+    Without ``settings`` the competition's calibrated settings are used.
+    """
     ordered = sort_chronologically(matches)
+    settings = settings or settings_of(ordered)
     history = MatchHistory(ordered)
     groups_by_season: dict[str, dict[str, int | None]] = {}
     rows: list[PredictionLogRow] = []
     excluded = 0
-    for result in predict_history(ordered, min_training_matches=min_training_matches):
+    predictions = predict_history(
+        ordered, settings=settings, min_training_matches=min_training_matches
+    )
+    for result in predictions:
         match = result.match
         if match.season < first_evaluation_season:
             continue
@@ -99,7 +109,9 @@ def run_backtest(
             (str(model), prediction.probabilities, prediction.expected_goals)
             for model, prediction in result.predictions.items()
         ]
-        forecasts.append((PAST_FREQUENCIES, _past_frequencies(history, match.match_date), None))
+        league_window = settings.poisson.league_window
+        frequencies = _past_frequencies(history, match.match_date, league_window)
+        forecasts.append((PAST_FREQUENCIES, frequencies, None))
         forecasts.append((ALWAYS_HOME_WIN, OutcomeProbabilities(1.0, 0.0, 0.0), None))
         for model, probabilities, expected_goals in forecasts:
             rows.append(
@@ -167,42 +179,54 @@ def main(
     database_path: Path = DATABASE_PATH,
     output: Path | None = None,
     *,
+    competitions: Sequence[str] | None = None,
     first_evaluation_season: str = FIRST_EVALUATION_SEASON,
     min_training_matches: int = MIN_TRAINING_MATCHES,
 ) -> int:
-    """Run the backtest, save the log and print a summary. Returns the process exit code."""
+    """Run the backtest of each competition (default: all in the database), save each log and
+    print a summary. ``output`` may only be given for a single competition. Returns the exit
+    code."""
     if not database_path.is_file():
         print(
             f"Database not found: {database_path}\nRun: python -m app.data.build_database",
             file=sys.stderr,
         )
         return 1
-    output = output or log_path()
-    started = time.perf_counter()
     with MatchRepository.open(database_path) as repository:
-        backtest = run_backtest(
-            repository.matches(COMPETITION),
-            first_evaluation_season=first_evaluation_season,
-            min_training_matches=min_training_matches,
-        )
-    if not backtest.rows:
-        print(f"No evaluation matches from {first_evaluation_season} on", file=sys.stderr)
-        return 1
-    write_log(backtest.rows, output)
-    seconds = time.perf_counter() - started
-    per_model = Counter(row.model for row in backtest.rows)
-    seasons = sorted({row.season for row in backtest.rows})
-    matches = per_model[MODEL_ORDER[0]]
-    print(f"Backtest on {COMPETITION}: {matches} matches, seasons {seasons[0]} to {seasons[-1]}")
-    print(f"Matches left out because a model had no prediction: {backtest.excluded_matches}")
-    for model in MODEL_ORDER:
-        print(f"  {model}: {per_model[model]} predictions")
-    print(f"Log written to {output} ({len(backtest.rows)} rows) in {seconds:.1f} s")
+        codes = list(competitions or repository.competitions())
+        if output is not None and len(codes) != 1:
+            print("An output file needs exactly one competition", file=sys.stderr)
+            return 1
+        for code in codes:
+            started = time.perf_counter()
+            backtest = run_backtest(
+                repository.matches(code),
+                first_evaluation_season=first_evaluation_season,
+                min_training_matches=min_training_matches,
+            )
+            if not backtest.rows:
+                print(f"{code}: no evaluation matches from {first_evaluation_season} on",
+                      file=sys.stderr)  # fmt: skip
+                return 1
+            path = output or log_path(code)
+            write_log(backtest.rows, path)
+            _print_summary(code, backtest, path, time.perf_counter() - started)
     return 0
 
 
-def _past_frequencies(history: MatchHistory, before: date) -> OutcomeProbabilities:
-    league = league_averages(history, before, last=LEAGUE_WINDOW)
+def _print_summary(code: str, backtest: Backtest, path: Path, seconds: float) -> None:
+    per_model = Counter(row.model for row in backtest.rows)
+    seasons = sorted({row.season for row in backtest.rows})
+    matches = per_model[MODEL_ORDER[0]]
+    print(f"Backtest on {code}: {matches} matches, seasons {seasons[0]} to {seasons[-1]}")
+    print(f"Matches left out because a model had no prediction: {backtest.excluded_matches}")
+    for model in MODEL_ORDER:
+        print(f"  {model}: {per_model[model]} predictions")
+    print(f"Log written to {path} ({len(backtest.rows)} rows) in {seconds:.1f} s")
+
+
+def _past_frequencies(history: MatchHistory, before: date, window: int) -> OutcomeProbabilities:
+    league = league_averages(history, before, last=window)
     if not league.matches:
         raise ValueError(f"no league matches before {before} for the frequency baseline")
     return OutcomeProbabilities(league.home_win_rate, league.draw_rate, league.away_win_rate)
@@ -245,4 +269,4 @@ def _row_from_text(record: dict[str, str]) -> PredictionLogRow:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(main(competitions=sys.argv[1:] or None))

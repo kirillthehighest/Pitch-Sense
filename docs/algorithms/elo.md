@@ -116,6 +116,8 @@ Toate meciurile unei zile sunt prezise înainte să se aplice vreun rezultat din
 | $m$ (greutate) | 20 | valoare implicită documentată |
 | $q$ (probabilitatea minimă a unei victorii) | 0,01 | adăugată în Faza 9 (secțiunea 7.5) |
 
+Valorile lui $K$ și $H$ sunt cele ale La Liga. Fiecare ligă are valorile ei, alese cu aceeași grilă pe propriile sezoane de calibrare: de la $K = 15$ (La Liga, Bundesliga, Ligue 1) la $K = 25$ (Premier League) și de la $H = 60$ (Bundesliga, Ligue 1) la $H = 100$ (Serie A) (`docs/leagues.md`, secțiunea 2).
+
 ### 7.3. Calibrarea lui K și H
 
 Elo a fost rulat doar pe sezonul de încălzire 2006/07 și pe sezoanele de calibrare 2007/08–2009/10; sezoanele de evaluare nu sunt citite. Pentru fiecare dintre cele 63 de perechi ale grilei ($K \in \{10, 15, \ldots, 40\}$, $H \in \{0, 20, \ldots, 160\}$) s-a calculat eroarea pătratică medie dintre $S_h$ și $E_h$ pe cele 1.140 de meciuri de calibrare. Rulare din 2026-10-04:

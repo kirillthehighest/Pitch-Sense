@@ -21,6 +21,7 @@ from app.algorithms.kmeans import KMeansResult, fit
 from app.statistics.team_profiles import (
     PROFILE_FEATURES,
     TeamSeasonProfile,
+    has_shot_statistics,
     season_profiles,
     seasons_in,
 )
@@ -88,9 +89,10 @@ def point_in_time_groups(
 ) -> dict[str, int | None]:
     """Return the group of every team of ``season``, using only seasons before it.
 
-    The clusters are fitted on all seasons before ``season``; each team is placed by its
-    profile in the season just before, and reported as its group (0 = strongest). Teams without
-    such a profile get None (promoted).
+    The clusters are fitted on all seasons before ``season`` that have shot statistics; each
+    team is placed by its profile in the season just before, and reported as its group
+    (0 = strongest). Teams without such a profile get None: promoted teams, or every team when
+    the season before has no statistics (Ligue 1 2006/07).
     """
     all_seasons = seasons_in(history)
     if season not in all_seasons:
@@ -98,9 +100,12 @@ def point_in_time_groups(
     earlier = [label for label in all_seasons if label < season]
     if not earlier:
         raise ValueError(f"there is no completed season before {season}")
-    clusters = descriptive_clusters(history, earlier, k, seed)
-    previous = {profile.team: profile for profile in season_profiles(history, earlier[-1])}
     season_matches = history.league_matches_before(date.max, season=season)
     # The clubs taking part in a season are known before it starts.
     teams = sorted({team for m in season_matches for team in (m.home_team, m.away_team)})
+    profiled = [label for label in earlier if has_shot_statistics(history, label)]
+    if earlier[-1] not in profiled:
+        return dict.fromkeys(teams)
+    clusters = descriptive_clusters(history, profiled, k, seed)
+    previous = {profile.team: profile for profile in season_profiles(history, earlier[-1])}
     return {team: clusters.group_of(previous[team]) if team in previous else None for team in teams}

@@ -5,7 +5,7 @@ Aplicație desktop pentru analiza datelor istorice din fotbal și estimarea rezu
 Proiect de an la disciplina *Analiza și Proiectarea Algoritmilor* (APA), Universitatea Tehnică a Moldovei, Departamentul Ingineria Software și Automatică.
 Echipa (grupa TI-251): Goroșevschi Chiril, Cuzmici Nicolae, Păstru Alina.
 
-**Stadiu:** toate etapele (0–14) sunt încheiate. Fazele 0–12 (planificare și arhitectură, prelucrarea datelor istorice, statisticile echipelor, ratingul Elo, modelul Poisson, regresia logistică, K-Means, motorul de predicție, backtesting cronologic, metricile de evaluare, compararea algoritmilor, interfața grafică, vizualizarea) au fost încheiate pe 2026-10-04, iar fazele 13 (testare de integrare și finisare) și 14 (pachete de instalare pentru macOS și Windows) pe 2026-10-05. Aplicația se pornește cu `python -m app` sau din pachetele de instalare.
+**Stadiu:** Faza 16, identitate vizuală și interfață nouă, în limba română. Fazele 0–12 (planificare și arhitectură, prelucrarea datelor istorice, statisticile echipelor, ratingul Elo, modelul Poisson, regresia logistică, K-Means, motorul de predicție, backtesting cronologic, metricile de evaluare, compararea algoritmilor, interfața grafică, vizualizarea) au fost încheiate pe 2026-10-04, iar fazele 13 (testare de integrare și finisare), 14 (pachete de instalare pentru macOS și Windows) și 15 (cinci ligi) pe 2026-10-05. Aplicația se pornește cu `python -m app` sau din pachetele de instalare.
 
 ## Aplicația gata de instalat
 
@@ -63,7 +63,7 @@ Testele folosesc doar date sintetice. `tests/test_integration.py` rulează tot l
 
 ## Date
 
-Meciurile din La Liga (Spania), sezoanele 2006/07–2025/26, preluate de pe [Football-Data.co.uk](https://www.football-data.co.uk). Fișierele originale se află în `data/raw/SP1/`. Sursa și verificările făcute la descărcare sunt descrise în [`data/raw/README.md`](data/raw/README.md).
+Meciurile din cinci ligi, sezoanele 2006/07–2025/26 (36.197 de meciuri), preluate de pe [Football-Data.co.uk](https://www.football-data.co.uk): Premier League (`E0`), La Liga (`SP1`), Serie A (`I1`), Bundesliga (`D1`) și Ligue 1 (`F1`). Fișierele originale se află în `data/raw/<cod>/`. Sursa și verificările făcute la descărcare sunt descrise în [`data/raw/README.md`](data/raw/README.md).
 
 ## Baza de date
 
@@ -114,29 +114,42 @@ Din codul sursă, aceeași verificare este `python -m app --self-test`.
 
 ## Evaluare
 
-Rulează toate modelele cronologic pe sezoanele de evaluare și salvează jurnalul predicțiilor în `data/results/backtest_SP1.csv`:
+Alege hiperparametrii fiecărui model, pentru fiecare ligă, pe sezoanele de calibrare ale ligii (valorile sunt deja în `app/prediction/settings.py`; comanda le reproduce):
+
+```bash
+python -m app.evaluation.league_calibration
+```
+
+Rulează toate modelele cronologic pe sezoanele de evaluare și salvează jurnalul predicțiilor fiecărei ligi în `data/results/backtest_<cod>.csv`:
 
 ```bash
 python -m app.evaluation.backtesting
 ```
 
-Calculează măsurile de evaluare (acuratețe, scor Brier, pierdere logaritmică, calibrare) pentru fiecare model:
+Calculează măsurile de evaluare (acuratețe, scor Brier, pierdere logaritmică, calibrare) pentru fiecare model al unei ligi (aici La Liga):
 
 ```bash
-python -m app.evaluation.evaluator
+python -m app.evaluation.evaluator SP1
 ```
 
-Compară modelele meci cu meci, pe sezoane, pe rezultate și pe tipuri de meciuri:
+Compară modelele unei ligi meci cu meci, pe sezoane, pe rezultate și pe tipuri de meciuri:
 
 ```bash
-python -m app.evaluation.comparison
+python -m app.evaluation.comparison SP1
+```
+
+Compară ligile între ele:
+
+```bash
+python -m app.evaluation.leagues
 ```
 
 ## Documentație
 
 - [`docs/architecture.md`](docs/architecture.md): arhitectura aplicației, fluxul datelor și deciziile tehnice.
-- [`docs/evaluation.md`](docs/evaluation.md): măsurile de evaluare și rezultatele modelelor.
-- [`docs/comparison.md`](docs/comparison.md): compararea algoritmilor.
+- [`docs/evaluation.md`](docs/evaluation.md): măsurile de evaluare și rezultatele modelelor în La Liga.
+- [`docs/comparison.md`](docs/comparison.md): compararea algoritmilor în La Liga.
+- [`docs/leagues.md`](docs/leagues.md): comparația celor cinci ligi.
 - `docs/algorithms/`: câte un document pentru fiecare algoritm: [`elo.md`](docs/algorithms/elo.md) (ratingul Elo), [`poisson.md`](docs/algorithms/poisson.md) (modelul Poisson), [`logistic_regression.md`](docs/algorithms/logistic_regression.md) (regresia logistică), [`kmeans.md`](docs/algorithms/kmeans.md) (K-Means).
 
 ## Etape
@@ -156,3 +169,6 @@ python -m app.evaluation.comparison
 12. Vizualizare
 13. Testare de integrare și finisare
 14. Pachete de instalare pentru macOS și Windows
+15. Cinci ligi: date, calibrare, evaluare și comparația ligilor
+16. Identitate vizuală și interfață nouă, în limba română
+17. Pachete și versiunea 0.2.0

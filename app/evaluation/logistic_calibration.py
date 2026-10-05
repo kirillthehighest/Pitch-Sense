@@ -1,6 +1,8 @@
 """Choose the L2 strength of logistic regression on the calibration seasons.
 
-Run from the project folder with ``python -m app.evaluation.logistic_calibration``.
+Run from the project folder with ``python -m app.evaluation.logistic_calibration [CODE]``
+(default SP1). The Elo-difference feature uses the league's own best Elo (K, H) from
+``elo_calibration`` on the same seasons, and the feature windows are one season of the league.
 
 The model runs over the warm-up and calibration seasons only; the evaluation seasons are never
 read. Every L2 value of the grid is scored by the log loss, the mean of -ln P(actual result) over
@@ -15,15 +17,18 @@ from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
+from app.data.competitions import competition as league_of
 from app.data.models import Match
 from app.data.paths import DATABASE_PATH
 from app.data.repository import MatchRepository
+from app.evaluation import elo_calibration
 from app.evaluation.periods import CALIBRATION_SEASONS, WARM_UP_SEASONS
 from app.prediction.logistic_predictions import (
     MIN_TRAINING_MATCHES,
     OUTCOME_ORDER,
     run_logistic_regression,
 )
+from app.prediction.settings import EloSettings, LogisticSettings
 
 COMPETITION = "SP1"
 L2_VALUES = (0.0, 0.001, 0.01, 0.1, 1.0)
@@ -44,13 +49,25 @@ def calibrate(
     warm_up_seasons: Sequence[str] = WARM_UP_SEASONS,
     calibration_seasons: Sequence[str] = CALIBRATION_SEASONS,
     min_training_matches: int = MIN_TRAINING_MATCHES,
+    elo: EloSettings | None = None,
 ) -> list[CalibrationResult]:
-    """Score every L2 value on the calibration seasons and return the results, best first."""
+    """Score every L2 value on the calibration seasons and return the results, best first.
+
+    ``elo`` drives the Elo-difference feature; without it, the best (K, H) of the Elo
+    calibration on the same seasons is used.
+    """
     selected = _warm_up_and_calibration(matches, warm_up_seasons, calibration_seasons)
+    if elo is None:
+        best = elo_calibration.calibrate(
+            selected, warm_up_seasons=warm_up_seasons, calibration_seasons=calibration_seasons
+        )[0]
+        elo = EloSettings(best.k_factor, best.home_advantage)
+    league = league_of(selected[0].competition)
     results = []
     for l2 in l2_values:
+        settings = LogisticSettings(l2, elo, league.venue_season_length, league.season_length)
         predictions = run_logistic_regression(
-            selected, l2=l2, min_training_matches=min_training_matches
+            selected, settings, min_training_matches=min_training_matches
         )
         losses = [
             -math.log(p.probabilities[OUTCOME_ORDER.index(p.match.result)])
@@ -121,4 +138,4 @@ def _warm_up_and_calibration(
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(main(competition=sys.argv[1] if len(sys.argv) > 1 else COMPETITION))

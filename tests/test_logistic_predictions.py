@@ -7,7 +7,7 @@ from app.data.models import Outcome
 from app.prediction.logistic_features import build_features
 from app.prediction.logistic_predictions import run_logistic_regression
 
-SETTINGS = {"l2": 0.1, "min_training_matches": 2}
+SETTINGS = {"min_training_matches": 2}  # with the SP1 settings: L2 = 0.1
 
 
 def test_weekly_refit_on_the_fixture_season(season_matches):
@@ -68,4 +68,4 @@ def test_changing_a_result_never_changes_predictions_on_or_before_its_day(
 
 def test_minimum_training_size_must_be_positive(season_matches):
     with pytest.raises(ValueError, match="min_training_matches"):
-        run_logistic_regression(season_matches, l2=0.1, min_training_matches=0)
+        run_logistic_regression(season_matches, min_training_matches=0)

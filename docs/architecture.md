@@ -1,6 +1,6 @@
 # Arhitectura aplicației PitchSense
 
-Acest document descrie structura aplicației, fluxul datelor și deciziile tehnice luate până acum (fazele 0–14). Se actualizează ori de câte ori structura se schimbă.
+Acest document descrie structura aplicației, fluxul datelor și deciziile tehnice luate până acum (fazele 0–15). Se actualizează ori de câte ori structura se schimbă.
 
 ## 1. Principii
 
@@ -35,7 +35,7 @@ Testul `tests/test_architecture.py` verifică la fiecare rulare că:
 ## 4. Fluxul datelor
 
 ```
-data/raw/SP1/*.csv            fișierele originale, nemodificate
+data/raw/<cod>/*.csv          fișierele originale, nemodificate (cinci ligi)
         │
         ▼
 app/data                      validare, normalizare → baza de date SQLite
@@ -66,6 +66,7 @@ app/visualization → app/ui    grafice și interfața grafică
 | `preprocessing.py` | Validează rândurile brute și le transformă în înregistrări `Match`; verifică structura unui sezon; definește ordinea cronologică. |
 | `loader.py` | Citește un fișier de sezon sau toate sezoanele unei competiții. |
 | `repository.py` | Stochează și interoghează meciurile în SQLite. |
+| `competitions.py` | Ligile cunoscute: numele, numărul de echipe pe sezon și sezoanele oprite mai devreme (secțiunea 13.1). |
 | `build_database.py` | Comanda care reconstruiește baza de date din fișierele brute. |
 | `paths.py` | Locul unic în care sunt definite căile către fișierele de date, din codul sursă și dintr-un pachet de instalare (secțiunea 12.2). |
 
@@ -92,17 +93,17 @@ La citirea unui fișier:
 - golurile și statisticile sunt numere întregi nenegative;
 - rezultatul este `H`, `D` sau `A` și corespunde scorului;
 - numele echipelor nu lipsesc, iar o echipă nu poate juca cu ea însăși;
-- data meciului se încadrează în sezon, între 1 iulie și 31 iulie a anului următor (sezonul 2019/20 s-a încheiat abia pe 19 iulie 2020);
+- data meciului se încadrează în sezon, între 1 iulie și 31 august a anului următor (din cauza pandemiei, sezonul 2019/20 s-a încheiat în La Liga pe 19 iulie 2020, iar în Serie A pe 2 august 2020);
 - nu există meciuri duplicate, iar toate rândurile unui fișier aparțin aceleiași competiții;
 - toate problemele dintr-un fișier sunt raportate împreună, fiecare cu numărul liniei.
 
-La construirea bazei de date, fiecare sezon trebuie să fie un campionat complet în sistem tur-retur: 20 de echipe, 380 de meciuri, 38 de meciuri pe echipă, iar fiecare echipă găzduiește fiecare adversar o singură dată.
+La construirea bazei de date, fiecare sezon trebuie să fie un campionat complet în sistem tur-retur, cu numărul de echipe al ligii în acel sezon: la 20 de echipe, 380 de meciuri și 38 pe echipă; la 18, 306 și 34. Fiecare echipă găzduiește fiecare adversar o singură dată. Un sezon oprit oficial mai devreme (Ligue 1 2019/20) trebuie să aibă exact meciurile jucate.
 
 ### 5.4. Particularități ale fișierelor sursă
 
 - Datele sunt scrise `zz/ll/aa` până în sezonul 2017-18 și `zz/ll/aaaa` începând cu 2018-19.
-- Fișierele 2024-25 și 2025-26 încep cu un marcaj BOM; ele sunt citite cu codificarea `utf-8-sig`.
-- Numărul de coloane variază între 61 și 131, deoarece coloanele cu cotele caselor de pariuri se schimbă. De aceea coloanele sunt alese după nume.
+- Unele fișiere încep cu un marcaj BOM (în La Liga 2024-25 și 2025-26, în Premier League și 2021-22); toate sunt citite cu codificarea `utf-8-sig`.
+- Numărul de coloane variază între 61 și 132, deoarece coloanele cu cotele caselor de pariuri se schimbă. De aceea coloanele sunt alese după nume.
 - Ora de începere apare doar din sezonul 2019-20.
 - Rândurile complet goale sunt ignorate.
 
@@ -131,7 +132,7 @@ python -m app.data.build_database
 
 Comanda parcurge fiecare folder din `data/raw/` (numele folderului este codul competiției), validează toate sezoanele și verifică dacă sunt complete. Scrie mai întâi într-un fișier temporar și înlocuiește `data/pitchsense.db` doar dacă totul a reușit. Baza de date nu este inclusă în git: se reconstruiește oricând din fișierele brute, care rămân singura sursă de adevăr.
 
-Rezultat la 2026-10-04: 7.600 de meciuri în 20 de sezoane, toate complete. Meciurile citite din baza de date sunt identice cu cele încărcate direct din fișierele CSV.
+Rezultat la 2026-10-05: 36.197 de meciuri în cinci ligi și 20 de sezoane fiecare (Premier League, La Liga și Serie A câte 7.600, Bundesliga 6.120, Ligue 1 7.277), toate complete, cu excepția documentată a sezonului Ligue 1 2019/20. Meciurile citite din baza de date sunt identice cu cele încărcate direct din fișierele CSV.
 
 ## 6. Statisticile echipelor (Faza 2)
 
@@ -294,13 +295,13 @@ Rulare din 2026-10-04, pe toate cele 7.600 de meciuri:
 
 Toate cele 1.140 de meciuri de calibrare și toate cele 6.080 de meciuri de evaluare (2010/11–2025/26) au predicții de la toate cele trei modele, deci compararea lor se poate face în condiții identice, fără a elimina niciun meci. `predict_history` rulează pe tot istoricul în aproximativ 7 s.
 
-Exemple de predicții pentru un singur meci (victorie gazde / egal / victorie oaspeți):
+Exemple de predicții pentru un singur meci (victorie gazde / egal / victorie oaspeți; rulare din 2026-10-05, cu $N = 76$ pentru modelul Poisson):
 
 | Meci | Elo | Poisson | Regresie logistică | Rezultat |
 |---|---|---|---|---|
-| Real Madrid – Barcelona, 26.10.2025 | 50,2% / 26,8% / 23,0% | 45,1% / 23,2% / 31,7% (goluri așteptate 1,75–1,43) | 44,3% / 26,5% / 29,3% | 2–1 |
-| Barcelona – Real Madrid, 29.11.2010 | 50,8% / 25,5% / 23,6% | 49,4% / 23,2% / 27,4% (1,79–1,28) | 41,5% / 26,0% / 32,6% | 5–0 |
-| Barcelona – Oviedo, 01.03.2026 (ipotetic) | 89,2% / 9,2% / 1,6% | 78,2% / 13,5% / 8,2% (2,78–0,81) | 86,1% / 10,4% / 3,5% | nejucat |
+| Real Madrid – Barcelona, 26.10.2025 | 50,2% / 26,8% / 23,0% | 45,6% / 24,0% / 30,4% (goluri așteptate 1,66–1,31) | 44,3% / 26,5% / 29,3% | 2–1 |
+| Barcelona – Real Madrid, 29.11.2010 | 50,8% / 25,5% / 23,6% | 50,7% / 23,7% / 25,6% (1,74–1,17) | 41,5% / 26,0% / 32,6% | 5–0 |
+| Barcelona – Oviedo, 01.03.2026 (ipotetic) | 89,2% / 9,2% / 1,6% | 75,8% / 15,1% / 9,1% (2,54–0,77) | 86,1% / 10,4% / 3,5% | nejucat |
 
 Scoaterea meciului Real Madrid – Barcelona din date și cererea lui ca meci ipotetic dau exact aceleași probabilități.
 
@@ -329,12 +330,12 @@ Aceste reguli sunt aplicate de motorul de predicție (secțiunea 7), iar testele
 
 Pe lângă cele trei modele, jurnalul conține două referințe, care nu sunt algoritmi ai proiectului, ci arată ce rezultat se obține fără ei:
 
-- **Frecvențele trecute:** frecvențele victoriilor gazdelor, egalurilor și victoriilor oaspeților în ultimele 380 de meciuri ale ligii dinaintea zilei. Este o predicție probabilistică completă, fără nicio informație despre echipe.
+- **Frecvențele trecute:** frecvențele victoriilor gazdelor, egalurilor și victoriilor oaspeților în ultimul sezon de meciuri ale ligii dinaintea zilei (380 de meciuri la 20 de echipe, 306 la 18). Este o predicție probabilistică completă, fără nicio informație despre echipe.
 - **Mereu victoria gazdelor:** probabilitatea 1 pentru victoria gazdelor. Servește doar ca referință pentru acuratețe, pentru că probabilitățile 0 nu pot fi evaluate cu măsuri precum pierderea logaritmică (ar da infinit).
 
 ### 8.4. Jurnalul predicțiilor
 
-Jurnalul este fișierul CSV `data/results/backtest_SP1.csv`, cu câte un rând pentru fiecare meci și fiecare model:
+Fiecare ligă are jurnalul ei, fișierul CSV `data/results/backtest_<cod>.csv` (de exemplu `backtest_SP1.csv`), cu câte un rând pentru fiecare meci și fiecare model:
 
 | Coloană | Conținut |
 |---|---|
@@ -395,7 +396,7 @@ Operațiile lente rulează pe fire de execuție separate (`app/ui/worker.py`), i
 
 ### 9.4. Clasamentul
 
-Echipele sunt ordonate după puncte, apoi după golaveraj, apoi după golurile marcate. În La Liga, la egalitate de puncte contează mai întâi rezultatele directe; această regulă nu este modelată.
+Echipele sunt ordonate după puncte, apoi după golaveraj, apoi după golurile marcate. Regulile oficiale de departajare diferă de la o ligă la alta (în La Liga, de exemplu, contează mai întâi rezultatele directe) și nu sunt modelate. Nici deducerile oficiale de puncte (de exemplu, în Serie A 2006/07, după scandalul aranjării meciurilor) nu sunt modelate: clasamentul se calculează doar din rezultatele meciurilor.
 
 ### 9.5. Verificare
 
@@ -524,17 +525,45 @@ Rulări din 2026-10-05:
 - Prima pornire durează aproximativ 30 s.
 - În macOS 27, comanda `hdiutil` folosită pentru imaginea `.dmg` afișează un avertisment că este învechită, dar funcționează; comanda care o înlocuiește (`diskutil image`) nu există pe versiunile mai vechi de macOS.
 
-## 13. Setul de date și perioadele
+## 13. Cinci ligi (Faza 15)
 
-Sursa datelor este Football-Data.co.uk: La Liga (`SP1`), 20 de sezoane încheiate, 2006/07–2025/26 (7.600 de meciuri).
+### 13.1. Datele
+
+Pe lângă La Liga (`SP1`) sunt incluse Premier League (`E0`), Serie A (`I1`), Bundesliga (`D1`) și Ligue 1 (`F1`), fiecare cu sezoanele 2006/07–2025/26, din aceeași sursă: în total 36.197 de meciuri (`data/raw/README.md`). `app/data/competitions.py` descrie fiecare ligă: numele, numărul obișnuit de echipe și abaterile de la el, verificate pe fișiere:
+
+- Bundesliga are 18 echipe (306 meciuri pe sezon).
+- Ligue 1 are 20 de echipe până în 2022/23 și 18 din 2023/24. Sezonul 2019/20 a fost oprit după 279 de meciuri din cauza pandemiei de COVID-19 (clasamentul a fost stabilit după punctele pe meci); pentru acest sezon, verificarea cere exact meciurile jucate și nicio echipă peste un sezon complet.
+- Serie A 2019/20 s-a încheiat pe 2 august 2020, așa că fereastra de date a unui sezon merge acum până la 31 august.
+- Ligue 1 2006/07 nu are deloc statistici de șuturi, iar în cinci alte sezoane lipsesc la 1–2 meciuri. Statisticile sunt opționale: unde lipsesc, regresia logistică folosește media ligii, iar K-Means nu poate face profilul sezonului respectiv (îl sare; vezi secțiunea 13.3).
+
+### 13.2. Setările modelelor pentru fiecare ligă
+
+`app/prediction/settings.py` păstrează setările fiecărei ligi, grupate pe model: `EloSettings` (K, H), `PoissonSettings` (N, m și fereastra ligii) și `LogisticSettings` (L2, Elo-ul folosit pentru caracteristica diferenței Elo și ferestrele caracteristicilor). Ferestrele de „un sezon” urmează mărimea obișnuită a ligii: 380 de meciuri și 19 meciuri acasă pe echipă la 20 de echipe, 306 și 17 la 18 echipe. Apelat fără setări, fiecare model le folosește pe cele ale ligii meciurilor sale; o ligă fără setări calibrate produce o eroare, nu o valoare ghicită.
+
+Valorile sunt alese de `python -m app.evaluation.league_calibration`, pe sezonul de încălzire și pe sezoanele de calibrare ale fiecărei ligi, cu aceleași grile și reguli pentru toate (`docs/leagues.md`). Grila lui $N$ a fost extinsă la cinci sezoane, pentru că Premier League și Bundesliga își alegeau valoarea maximă; cu aceeași regulă, La Liga a primit $N = 76$ în loc de 38 (`docs/algorithms/poisson.md`, secțiunea 7.3).
+
+### 13.3. Evaluarea și comparația ligilor
+
+`python -m app.evaluation.backtesting` scrie câte un jurnal pentru fiecare ligă (`data/results/backtest_<cod>.csv`), cu setările ei; `python -m app.evaluation.evaluator <cod>` și `python -m app.evaluation.comparison <cod>` analizează o ligă, iar `python -m app.evaluation.leagues` compară ligile între ele (`app/evaluation/leagues.py`). Rezultatele sunt în `docs/leagues.md`.
+
+Grupurile K-Means folosesc doar sezoanele cu statistici de șuturi. Dacă sezonul dinaintea unui sezon nu are statistici (Ligue 1 2007/08), echipele nu primesc grup înainte de sezon, iar ecranul echipei spune că informația nu este disponibilă.
+
+### 13.4. Verificare
+
+- Teste noi: `tests/test_competitions.py`, `tests/test_settings.py`, `tests/test_league_calibration.py` și `tests/test_leagues.py` (caracterul unei ligi calculat de mână, scorul de abilitate, comparația pe toate ligile la un loc ca medie ponderată a ligilor), plus teste pentru un sezon oprit mai devreme, pentru schimbarea numărului de echipe, pentru un sezon încheiat în august, pentru sezoanele fără statistici, pentru setările implicite ale fiecărei ligi și pentru grila lui $N$.
+- Pe datele reale (2026-10-05): toate cele 100 de sezoane trec verificările la construirea bazei de date; după trecerea la setări pe ligă, dar înainte de schimbarea lui $N$, jurnalul La Liga a rămas identic byte cu byte; niciun meci de evaluare al vreunei ligi nu a fost exclus; autoverificarea aplicației trece.
+
+## 14. Setul de date și perioadele
+
+Sursa datelor este Football-Data.co.uk: cinci ligi (Premier League, La Liga, Serie A, Bundesliga, Ligue 1), fiecare cu 20 de sezoane încheiate, 2006/07–2025/26 (36.197 de meciuri). Perioadele sunt aceleași pentru toate ligile.
 
 | Perioadă | Rol |
 |---|---|
 | 2006/07 | Încălzire: construiește ratingurile și istoricul; nu este evaluată. |
 | 2007/08–2009/10 | Calibrare: se aleg hiperparametrii; rezultatele nu sunt raportate. |
-| 2010/11–2025/26 | Evaluarea raportată: 16 sezoane, 6.080 de meciuri. |
+| 2010/11–2025/26 | Evaluarea raportată: 16 sezoane; 6.080 de meciuri în fiecare ligă cu 20 de echipe, 4.896 în Bundesliga, 5.757 în Ligue 1; 28.893 în total. |
 
-## 14. Tehnologii
+## 15. Tehnologii
 
 | Componentă | Versiune | Rol |
 |---|---|---|
@@ -548,7 +577,7 @@ Sursa datelor este Football-Data.co.uk: La Liga (`SP1`), 20 de sezoane încheiat
 | ruff | 0.16.10 | verificarea și formatarea codului |
 | PyInstaller | 6.22.3 | construirea pachetelor de instalare |
 
-## 15. Decizii tehnice
+## 16. Decizii tehnice
 
 | Decizie | Motiv |
 |---|---|
@@ -592,3 +621,9 @@ Sursa datelor este Football-Data.co.uk: La Liga (`SP1`), 20 de sezoane încheiat
 | Pachetul pentru Windows se construiește cu GitHub Actions | Nu este nevoie de un calculator cu Windows, iar testele rulează și pe Windows. |
 | Pachete nesemnate: `.dmg` pentru macOS și `.zip` pentru Windows | Semnarea costă; avertismentele de la prima deschidere sunt explicate în `README.md`. |
 | Opțiunea `--self-test` | Singura verificare automată a unui pachet; o folosește și fluxul pentru Windows. |
+| Cinci ligi, aceleași 20 de sezoane și aceeași sursă | Comparația dintre ligi folosește date de același fel și aceleași perioade. |
+| Fiecare ligă este calibrată pe propriile sezoane de calibrare, cu aceleași grile | Avantajul terenului propriu, golurile și egalurile diferă între ligi; aceeași regulă pentru toate evită alegerea după rezultate. |
+| Ferestrele de „un sezon” urmează mărimea obișnuită a ligii | O fereastră de 380 de meciuri ar acoperi mai mult de un sezon într-o ligă cu 18 echipe. |
+| Grila lui $N$ merge până la cinci sezoane pentru toate ligile | Două ligi își alegeau marginea grilei; aceeași grilă pentru toate a schimbat și valoarea La Liga (38 → 76). |
+| Sezonul Ligue 1 2019/20, oprit oficial, este păstrat ca excepție documentată | Meciurile jucate sunt reale; eliminarea lor ar rupe istoricul echipelor. |
+| K-Means sare peste sezoanele fără statistici de șuturi | Profilul unei echipe are nevoie de șuturi; restul modelelor folosesc media ligii unde lipsesc. |

@@ -126,6 +126,8 @@ PREDICȚII_SĂPTĂMÂNALE(meciuri, λ):
 | reantrenare | o dată pe săptămână (luni), cu fereastră care crește | decizia echipei |
 | ferestrele caracteristicilor | 19 meciuri acasă/deplasare, 5 pentru formă, 380 pentru liga | un sezon de meciuri acasă (sau în deplasare); forma din Faza 2; un sezon al ligii |
 
+Valorile sunt cele ale La Liga. Fiecare ligă își alege $\lambda$ pe propriile sezoane de calibrare (Premier League: 0,01; celelalte: 0,1), folosește diferența Elo calculată cu propriile $K$ și $H$, iar ferestrele urmează mărimea ligii: 17 meciuri acasă/deplasare și 306 pentru liga la 18 echipe (`docs/leagues.md`, secțiunea 2).
+
 ### 7.3. Calibrarea lui λ
 
 Modelul a fost rulat doar pe sezonul de încălzire 2006/07 și pe sezoanele de calibrare 2007/08–2009/10; sezoanele de evaluare nu sunt citite. Pentru fiecare valoare $\lambda \in \{0; 0{,}001; 0{,}01; 0{,}1; 1\}$ s-a calculat pierderea logaritmică (media lui $-\ln P(\text{rezultatul real})$) pe cele 1.140 de meciuri de calibrare. Este chiar mărimea pe care modelul o minimizează la antrenare. Rulare din 2026-10-04:

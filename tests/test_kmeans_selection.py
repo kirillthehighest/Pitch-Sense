@@ -54,9 +54,11 @@ def test_summaries_describe_every_group_strongest_first(season_matches):
         assert 1 <= len(summary.examples) <= 2
 
 
-def test_main_prints_the_comparisons_and_the_groups(raw_data_dir, tmp_path, capsys):
+def test_main_prints_the_comparisons_and_the_groups(
+    raw_data_dir, tmp_path, capsys, four_team_league
+):
     database_path = tmp_path / "pitchsense.db"
-    build_database(raw_data_dir, database_path, {"SP1": 4})
+    build_database(raw_data_dir, database_path, four_team_league)
 
     exit_code = main(database_path)
 

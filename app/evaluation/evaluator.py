@@ -1,7 +1,7 @@
 """Score every model of the prediction log with the evaluation metrics.
 
-Run from the project folder with ``python -m app.evaluation.evaluator`` after
-``python -m app.evaluation.backtesting`` has written the log.
+Run from the project folder with ``python -m app.evaluation.evaluator [CODE]`` (default SP1) after
+``python -m app.evaluation.backtesting`` has written the log of that competition.
 
 All models must cover exactly the same matches, so that they are compared under identical
 conditions. "Always home win" gives probability 0 to draws and away wins, so it is scored on
@@ -166,4 +166,4 @@ def _plain(value: float | None) -> str:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(main(log_path(sys.argv[1]) if len(sys.argv) > 1 else None))

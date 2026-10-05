@@ -137,6 +137,8 @@ Algoritmul refuză un $k$ mai mare decât numărul de puncte distincte, pentru c
 | sămânța generatorului | 0 | valoare implicită documentată |
 | număr maxim de iterații | 300 | valoare implicită; rularea aleasă se oprește după 37 |
 
+Celelalte patru ligi (Faza 15) folosesc aceleași valori, inclusiv $k = 4$, pentru ca grupurile și împărțirea evaluării pe tipuri de meciuri să fie comparabile între ligi; $k$ nu a fost ales separat pentru fiecare ligă. Profilurile au nevoie de statistici de șuturi, așa că sezoanele fără ele sunt sărite (Ligue 1 2006/07; `docs/architecture.md`, secțiunea 13.3).
+
 ### 8.3. Alegerea lui k
 
 $k$ a fost ales doar pe profilurile sezoanelor de încălzire și calibrare (2006/07–2009/10, 80 de profiluri), pentru că hiperparametrii nu se aleg pe perioada raportată. Rulare din 2026-10-04:

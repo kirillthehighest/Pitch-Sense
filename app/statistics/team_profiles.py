@@ -40,6 +40,27 @@ def seasons_in(history: MatchHistory) -> list[str]:
     return sorted({match.season for match in history.league_matches_before(date.max)})
 
 
+def has_shot_statistics(history: MatchHistory, season: str) -> bool:
+    """True when every team of the season has shot statistics in at least one match.
+
+    Only such seasons can be profiled; Ligue 1 2006/07, for example, has no statistics at all.
+    """
+    season_matches = history.league_matches_before(date.max, season=season)
+    teams = {team for m in season_matches for team in (m.home_team, m.away_team)}
+    with_statistics = {
+        team
+        for m in season_matches
+        if m.statistics is not None
+        for team in (m.home_team, m.away_team)
+    }
+    return bool(season_matches) and with_statistics == teams
+
+
+def profiled_seasons(history: MatchHistory) -> list[str]:
+    """The seasons of a history that can be profiled, in chronological order."""
+    return [season for season in seasons_in(history) if has_shot_statistics(history, season)]
+
+
 def season_profiles(history: MatchHistory, season: str) -> list[TeamSeasonProfile]:
     """Return the profile of every team over all matches of ``season``, sorted by team.
 

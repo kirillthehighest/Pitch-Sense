@@ -1,7 +1,7 @@
 """Comparison of the algorithms on the same matches.
 
-Run from the project folder with ``python -m app.evaluation.comparison`` after
-``python -m app.evaluation.backtesting`` has written the log.
+Run from the project folder with ``python -m app.evaluation.comparison [CODE]`` (default SP1) after
+``python -m app.evaluation.backtesting`` has written the log of that competition.
 
 Paired differences: for two models A and B and one measure, d_i = score_A(i) - score_B(i) on every
 match i. The mean of d has the standard error sd(d) / sqrt(n) and the 95% interval
@@ -449,4 +449,4 @@ def _rows_by_model(rows: Sequence[PredictionLogRow]) -> dict[str, dict[tuple, Pr
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(main(log_path(sys.argv[1]) if len(sys.argv) > 1 else None))

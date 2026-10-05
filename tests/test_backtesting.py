@@ -140,9 +140,9 @@ def test_the_first_season_cannot_be_evaluated(two_seasons):
         run_backtest(two_seasons, first_evaluation_season="2006-07", min_training_matches=3)
 
 
-def test_main_writes_the_log(raw_data_dir, tmp_path, capsys):
+def test_main_writes_the_log(raw_data_dir, tmp_path, capsys, four_team_league):
     database_path = tmp_path / "pitchsense.db"
-    build_database(raw_data_dir, database_path, {"SP1": 4})
+    build_database(raw_data_dir, database_path, four_team_league)
     output = tmp_path / "log.csv"
 
     exit_code = main(database_path, output, **SETTINGS)
@@ -155,3 +155,13 @@ def test_main_writes_the_log(raw_data_dir, tmp_path, capsys):
 def test_main_explains_problems(tmp_path, capsys):
     assert main(tmp_path / "missing.db") == 1
     assert "python -m app.data.build_database" in capsys.readouterr().err
+
+
+def test_main_writes_one_log_per_competition(raw_data_dir, tmp_path, capsys, four_team_league):
+    database_path = tmp_path / "pitchsense.db"
+    build_database(raw_data_dir, database_path, four_team_league)
+
+    assert main(database_path, tmp_path / "log.csv", competitions=["SP1", "E0"], **SETTINGS) == 1
+    assert "exactly one competition" in capsys.readouterr().err
+    assert main(database_path, tmp_path / "sp1.csv", competitions=["SP1"], **SETTINGS) == 0
+    assert "Backtest on SP1" in capsys.readouterr().out

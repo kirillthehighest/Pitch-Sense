@@ -59,8 +59,9 @@ def test_parse_season_label_rejects_malformed_labels(label):
         parse_season_label(label)
 
 
-def test_season_window_covers_a_season_that_finished_in_july():
-    assert season_date_window("2019-20") == (date(2019, 7, 1), date(2020, 7, 31))
+def test_season_window_covers_seasons_that_finished_in_july_or_august():
+    # La Liga 2019/20 ended in July 2020, Serie A 2019/20 on 2 August 2020 (COVID-19).
+    assert season_date_window("2019-20") == (date(2019, 7, 1), date(2020, 8, 31))
 
 
 # --- converting rows ---
@@ -206,6 +207,25 @@ def test_repeated_fixture_is_detected(raw_season_rows):
     raw_season_rows[-1].update(HomeTeam="Alpha", AwayTeam="Bravo", FTHG="1", FTAG="0", FTR="H")
 
     problems = season_structure_problems(parse(raw_season_rows), team_count=4)
+
+    assert "Alpha hosted Bravo 2 times" in problems
+
+
+def test_a_season_stopped_early_needs_exactly_the_matches_played(raw_season_rows):
+    played = parse(raw_season_rows)[:-2]
+
+    assert season_structure_problems(played, team_count=4, stopped_after=10) == []
+    assert season_structure_problems(played[:-1], team_count=4, stopped_after=10) == [
+        "expected 10 matches, found 9"
+    ]
+
+
+def test_a_season_stopped_early_still_rejects_repeated_fixtures(raw_season_rows):
+    raw_season_rows[-3].update(HomeTeam="Alpha", AwayTeam="Bravo", FTHG="1", FTAG="0", FTR="H")
+
+    problems = season_structure_problems(
+        parse(raw_season_rows)[:-2], team_count=4, stopped_after=10
+    )
 
     assert "Alpha hosted Bravo 2 times" in problems
 

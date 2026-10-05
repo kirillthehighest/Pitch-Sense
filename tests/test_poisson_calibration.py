@@ -4,7 +4,12 @@ import pytest
 
 from app.data.build_database import build_database
 from app.data.models import Match, Outcome
-from app.evaluation.poisson_calibration import calibrate, league_average_log_loss, main
+from app.evaluation.poisson_calibration import (
+    calibrate,
+    league_average_log_loss,
+    main,
+    team_windows,
+)
 
 
 def make(day: date, home_goals: int, away_goals: int, season: str) -> Match:
@@ -26,7 +31,7 @@ SEASONS = {"warm_up_seasons": ("2006-07",), "calibration_seasons": ("2007-08",)}
 
 
 def test_hand_computed_log_loss_of_one_calibration_match():
-    (result,) = calibrate([WARM_UP, CALIBRATION], team_windows=(19,), prior_matches=(1,), **SEASONS)
+    (result,) = calibrate([WARM_UP, CALIBRATION], windows=(19,), prior_matches=(1,), **SEASONS)
 
     # After a 1-1 the league averages are 1 and 1 and every strength is (1 + 1) / 2 / 1 = 1,
     # so both lambdas are 1 and P(1-0) = e^-1 * e^-1: the loss is -ln(e^-2) = 2.
@@ -52,7 +57,7 @@ def test_seasons_outside_warm_up_and_calibration_are_never_read():
 def test_results_are_sorted_best_first(season_matches, next_season_matches):
     results = calibrate(
         [*season_matches, *next_season_matches],
-        team_windows=(1, 6),
+        windows=(1, 6),
         prior_matches=(1, 10),
         **SEASONS,
     )
@@ -68,9 +73,9 @@ def test_calibration_needs_calibration_matches():
         calibrate([WARM_UP], **SEASONS)
 
 
-def test_main_prints_the_best_pair(raw_data_dir, tmp_path, capsys):
+def test_main_prints_the_best_pair(raw_data_dir, tmp_path, capsys, four_team_league):
     database_path = tmp_path / "pitchsense.db"
-    build_database(raw_data_dir, database_path, {"SP1": 4})
+    build_database(raw_data_dir, database_path, four_team_league)
 
     exit_code = main(database_path)
 
@@ -83,3 +88,8 @@ def test_main_prints_the_best_pair(raw_data_dir, tmp_path, capsys):
 def test_main_explains_a_missing_database(tmp_path, capsys):
     assert main(tmp_path / "missing.db") == 1
     assert "python -m app.data.build_database" in capsys.readouterr().err
+
+
+def test_the_team_window_grid_follows_the_league_size():
+    assert team_windows(19) == (5, 10, 19, 38, 57, 76, 95)
+    assert team_windows(17) == (5, 10, 17, 34, 51, 68, 85)

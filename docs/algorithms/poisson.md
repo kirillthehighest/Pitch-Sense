@@ -105,9 +105,11 @@ Tabelul scorurilor nu poate fi modificat după ce este construit. Dacă tăierea
 
 | Parametru | Valoare | Cum a fost ales |
 |---|---|---|
-| $N$ | 38 | calibrare (secțiunea 7.3) |
+| $N$ | 76 | calibrare (secțiunea 7.3) |
 | $m$ | 20 | calibrare (secțiunea 7.3) |
 | fereastra ligii | 380 de meciuri | un sezon al unei ligi cu 20 de echipe |
+
+Valorile sunt cele ale La Liga. Fiecare ligă are valorile ei, alese pe propriile sezoane de calibrare; în ligile cu 18 echipe, fereastra ligii are 306 meciuri (`docs/leagues.md`).
 | $G$ | 20 de goluri | vezi mai jos |
 
 **Alegerea lui $G$.** Inițial am ales $G = 10$, cel mai mare număr de goluri din date. Rularea pe datele reale a arătat că alegerea era greșită: ce contează este distribuția modelului, nu scorurile observate. Pentru $\lambda = 4{,}89$ (cea mai mare valoare obținută cu setări de probă, Barcelona – Getafe, martie 2016), tăierea la 10 goluri ar fi pierdut 1,2% din probabilitate:
@@ -118,44 +120,46 @@ Tabelul scorurilor nu poate fi modificat după ce este construit. Dacă tăierea
 | 4,89 | 1,2 · 10⁻² | 1,7 · 10⁻³ | 5,3 · 10⁻⁵ | 5,6 · 10⁻⁸ |
 | 6,00 | 4,3 · 10⁻² | 8,8 · 10⁻³ | 5,1 · 10⁻⁴ | 1,5 · 10⁻⁶ |
 
-Cu $G = 20$, tabelul are 441 de celule, iar probabilitatea pierdută este neglijabilă. Cu parametrii aleși, cea mai mare valoare $\lambda$ pe toate cele 20 de sezoane este 3,65, iar cea mai mare probabilitate pierdută este $3{,}9 \cdot 10^{-10}$.
+Cu $G = 20$, tabelul are 441 de celule, iar probabilitatea pierdută este neglijabilă. Cu parametrii aleși, cea mai mare valoare $\lambda$ pe toate cele 20 de sezoane ale La Liga este 4,15 (Real Madrid – Rayo Vallecano, 20 decembrie 2015), iar cea mai mare probabilitate pierdută este $3{,}7 \cdot 10^{-9}$ (rulare din 2026-10-05).
 
 ### 7.3. Calibrarea lui N și m
 
-Modelul a fost rulat doar pe sezonul de încălzire 2006/07 și pe sezoanele de calibrare 2007/08–2009/10; sezoanele de evaluare nu sunt citite. Pentru fiecare pereche din grilă ($N \in \{5, 10, 19, 38, 57\}$, $m \in \{1, 2, 5, 10, 20, 30, 50, 80\}$) s-a calculat media lui $-\ln P(\text{scorul real})$ pe cele 1.140 de meciuri de calibrare. Măsura a fost aleasă pentru că modelul Poisson prezice întregul tabel al scorurilor, iar probabilitatea dată scorului care s-a produs îl evaluează direct. Rulare din 2026-10-04:
+Modelul a fost rulat doar pe sezonul de încălzire 2006/07 și pe sezoanele de calibrare 2007/08–2009/10; sezoanele de evaluare nu sunt citite. Pentru fiecare pereche din grilă ($N \in \{5, 10, 19, 38, 57, 76, 95\}$, adică 5, 10 și unul până la cinci sezoane de meciuri acasă; $m \in \{1, 2, 5, 10, 20, 30, 50, 80\}$) s-a calculat media lui $-\ln P(\text{scorul real})$ pe cele 1.140 de meciuri de calibrare ale La Liga. Măsura a fost aleasă pentru că modelul Poisson prezice întregul tabel al scorurilor, iar probabilitatea dată scorului care s-a produs îl evaluează direct. Rulare din 2026-10-05:
 
 | N | m | Media lui $-\ln P(\text{scorul real})$ |
 |---|---|---|
-| **38** | **20** | **2,95326** |
+| **76** | **20** | **2,95296** |
+| 95 | 20 | 2,95296 |
+| 38 | 20 | 2,95326 |
 | 57 | 20 | 2,95390 |
-| 38 | 10 | 2,95551 |
-| 57 | 30 | 2,95587 |
-| 38 | 30 | 2,95623 |
+| 76 | 30 | 2,95481 |
 
 Ca referință, același model fără forțele echipelor ($\lambda_h = \mu_h$ și $\lambda_a = \mu_a$ pentru toate meciurile) are 3,02654. Altfel spus, media geometrică a probabilității date scorului real crește de la 4,85% la 5,22%.
 
-Prima grilă se oprea la $m = 20$, iar cea mai bună valoare era chiar la margine. Grila a fost extinsă cu 30, 50 și 80; $m = 20$ a rămas cel mai bun, de data aceasta în interiorul grilei, la fel ca $N = 38$.
+Prima grilă se oprea la $m = 20$, iar cea mai bună valoare era chiar la margine. Grila a fost extinsă cu 30, 50 și 80; $m = 20$ a rămas cel mai bun, de data aceasta în interiorul grilei.
+
+Până în Faza 15, grila lui $N$ se oprea la trei sezoane (57), iar valoarea aleasă pentru La Liga era $N = 38$. Când au fost adăugate celelalte ligi, Premier League și Bundesliga și-au ales valoarea maximă a grilei, așa că grila a fost extinsă la cinci sezoane pentru toate ligile. Aceeași regulă dă acum La Liga $N = 76$, cu o îmbunătățire foarte mică (2,95296 față de 2,95326). $N = 76$ și $N = 95$ dau exact același rezultat: în sezoanele de calibrare nicio echipă nu avea mai mult de 75 de meciuri acasă anterioare, deci ambele ferestre folosesc tot istoricul disponibil. Calibrarea nu poate deosebi ferestrele mai lungi de patru sezoane; la egalitate este aleasă valoarea mai mică.
 
 ### 7.4. Diagnostic pe sezoanele de calibrare
 
-Cu $N = 38$ și $m = 20$, pe cele 1.140 de meciuri din 2007/08–2009/10:
+Cu $N = 76$ și $m = 20$, pe cele 1.140 de meciuri ale La Liga din 2007/08–2009/10 (rulare din 2026-10-05):
 
 | Mărime | Prezis | Real |
 |---|---|---|
-| Goluri gazde pe meci (media lui $\lambda_h$) | 1,522 | 1,604 |
-| Goluri oaspeți pe meci (media lui $\lambda_a$) | 1,157 | 1,162 |
-| Victorii gazde | 45,5% | 49,1% |
-| Egaluri | 25,0% | 23,2% |
-| Victorii oaspeți | 29,5% | 27,6% |
-| Scor 0–0 | 7,3% | 6,7% |
-| Scor 1–1 | 11,7% | 11,8% |
-| Scor 1–0 | 10,5% | 10,9% |
-| Scor 2–1 | 8,7% | 8,5% |
+| Goluri gazde pe meci (media lui $\lambda_h$) | 1,477 | 1,604 |
+| Goluri oaspeți pe meci (media lui $\lambda_a$) | 1,133 | 1,162 |
+| Victorii gazde | 44,9% | 49,1% |
+| Egaluri | 25,4% | 23,2% |
+| Victorii oaspeți | 29,7% | 27,6% |
+| Scor 0–0 | 7,7% | 6,7% |
+| Scor 1–1 | 11,9% | 11,8% |
+| Scor 1–0 | 10,8% | 10,9% |
+| Scor 2–1 | 8,6% | 8,5% |
 
-- Eroarea absolută medie a golurilor așteptate este 0,9314 goluri, față de 0,9823 când se folosesc doar mediile ligii.
-- Scorul cel mai probabil a fost scorul real în 11,1% dintre meciuri.
-- Literatura de specialitate arată că modelul Poisson cu goluri independente subestimează de obicei egalurile. Pe sezoanele noastre de calibrare nu s-a întâmplat acest lucru: modelul a prezis puțin mai multe egaluri decât au fost (25,0% față de 23,2%).
-- Modelul a subestimat golurile gazdelor (1,522 față de 1,604) și, de aceea, victoriile gazdelor. Media ligii este calculată din ultimele 380 de meciuri, deci reacționează cu întârziere. Golurile gazdelor au crescut de la 1,36 pe meci în 2006/07 la 1,55–1,66 în sezoanele de calibrare.
+- Eroarea absolută medie a golurilor așteptate este 0,9264 goluri, față de 0,9823 când se folosesc doar mediile ligii.
+- Scorul cel mai probabil a fost scorul real în 12,0% dintre meciuri.
+- Literatura de specialitate arată că modelul Poisson cu goluri independente subestimează de obicei egalurile. Pe sezoanele noastre de calibrare nu s-a întâmplat acest lucru: modelul a prezis puțin mai multe egaluri decât au fost (25,4% față de 23,2%).
+- Modelul a subestimat golurile gazdelor (1,477 față de 1,604) și, de aceea, victoriile gazdelor. Media ligii este calculată din ultimele 380 de meciuri, deci reacționează cu întârziere. Golurile gazdelor au crescut de la 1,36 pe meci în 2006/07 la 1,55–1,66 în sezoanele de calibrare.
 
 ## 8. Complexitate
 
@@ -170,7 +174,7 @@ Notații: $G$ — numărul maxim de goluri; $n$ — numărul de meciuri; $N$ —
 | Rularea pe tot istoricul (`run_poisson`) | O(n (log n + N + L + G²)) | O(n G²) pentru predicțiile salvate |
 | Calibrarea | O(g · n_c (log n_c + N + L + G²)) | O(n_c G²) |
 
-Selecția meciurilor anterioare folosește căutarea binară din `MatchHistory` (secțiunea 6 din `docs/architecture.md`). Pe datele reale, toate cele 7.599 de predicții se calculează în aproximativ 0,6 s, iar calibrarea pe 40 de perechi (cu pornirea programului și citirea bazei de date) în aproximativ 4,5 s.
+Selecția meciurilor anterioare folosește căutarea binară din `MatchHistory` (secțiunea 6 din `docs/architecture.md`). Pe datele reale ale La Liga, toate cele 7.599 de predicții se calculează în aproximativ 0,8 s, iar calibrarea pe cele 56 de perechi (cu pornirea programului și citirea bazei de date) în aproximativ 6,3 s (rulare din 2026-10-05).
 
 ## 9. Ipoteze
 
@@ -185,7 +189,7 @@ Selecția meciurilor anterioare folosește căutarea binară din `MatchHistory` 
 - O echipă nou promovată pornește ca o echipă medie (forța 1), deși de obicei este mai slabă. O echipă care revine după câțiva ani poate fi descrisă de meciuri vechi, pentru că fereastra de $N$ meciuri nu ține cont de timp.
 - Media ligii reacționează cu întârziere la schimbări (vezi secțiunea 7.4).
 - Nu ține cont de forma recentă, de accidentări, de transferuri sau de puterea adversarilor întâlniți anterior: 3 goluri marcate unei echipe slabe contează la fel ca 3 goluri marcate unei echipe puternice.
-- Calibrarea folosește doar trei sezoane (1.140 de meciuri).
+- Calibrarea folosește doar trei sezoane (1.140 de meciuri) și nu poate deosebi ferestrele $N$ mai lungi decât istoricul disponibil atunci (secțiunea 7.3).
 
 ## 11. Exemple din teste
 
@@ -206,7 +210,7 @@ Testele sunt în `tests/test_poisson.py`, `tests/test_poisson_predictions.py` ș
 - Este singurul algoritm care prezice scorul: fila Match Prediction afișează golurile așteptate, scorurile cele mai probabile și graficul probabilităților scorurilor de la 0-0 la 6-6 (Faza 12).
 - Golurile așteptate permit metrica „eroarea absolută medie a golurilor așteptate” din evaluare.
 
-Exemplu pentru un meci din sezonul 2025/26 (Real Madrid – Barcelona, 26 octombrie 2025), calculat doar din meciurile anterioare: $\lambda_h = 1{,}75$, $\lambda_a = 1{,}43$; probabilități 45,1% / 23,2% / 31,7%; scorurile cele mai probabile 1–1 (10,4%), 2–1 (9,1%) și 1–2 (7,5%). Scorul real a fost 2–1. Exemplul ilustrează forma predicției; evaluarea modelului se face în fazele 8–10.
+Exemplu pentru un meci din sezonul 2025/26 (Real Madrid – Barcelona, 26 octombrie 2025), calculat doar din meciurile anterioare: $\lambda_h = 1{,}66$, $\lambda_a = 1{,}31$; probabilități 45,6% / 24,0% / 30,4%; scorurile cele mai probabile 1–1 (11,1%), 2–1 (9,3%) și 1–0 (8,5%). Scorul real a fost 2–1. Exemplul ilustrează forma predicției; evaluarea modelului se face în fazele 8–10.
 
 ## 13. Surse
 
@@ -219,5 +223,6 @@ Maher a propus descrierea golurilor fiecărei echipe prin distribuții Poisson c
 
 ```bash
 python -m app.data.build_database
-python -m app.evaluation.poisson_calibration
+python -m app.evaluation.poisson_calibration SP1
+python -m app.evaluation.league_calibration
 ```

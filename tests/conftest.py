@@ -11,6 +11,7 @@ import pandas as pd
 import pytest
 
 from app.data.build_database import build_database
+from app.data.competitions import Competition
 from app.data.models import Match
 from app.data.preprocessing import matches_from_frame
 
@@ -92,11 +93,20 @@ def next_season_matches(next_season_rows: list[dict[str, str]]) -> list[Match]:
     )
 
 
+FOUR_TEAM_LEAGUE = {"SP1": Competition("SP1", "La Liga", teams=4)}
+
+
 @pytest.fixture
-def database(raw_data_dir: Path, tmp_path: Path) -> Path:
+def four_team_league() -> dict[str, Competition]:
+    """The competition registry of the fixture seasons: SP1 with 4 teams."""
+    return dict(FOUR_TEAM_LEAGUE)
+
+
+@pytest.fixture
+def database(raw_data_dir: Path, tmp_path: Path, four_team_league) -> Path:
     """A database built from the two fixture seasons, with 4 teams per season."""
     path = tmp_path / "pitchsense.db"
-    build_database(raw_data_dir, path, {"SP1": 4})
+    build_database(raw_data_dir, path, four_team_league)
     return path
 
 

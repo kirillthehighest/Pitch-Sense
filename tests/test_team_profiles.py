@@ -3,7 +3,13 @@ from dataclasses import replace
 import pytest
 
 from app.data.models import Outcome
-from app.statistics.team_profiles import PROFILE_FEATURES, season_profiles, seasons_in
+from app.statistics.team_profiles import (
+    PROFILE_FEATURES,
+    has_shot_statistics,
+    profiled_seasons,
+    season_profiles,
+    seasons_in,
+)
 from app.statistics.team_statistics import MatchHistory
 
 
@@ -58,3 +64,12 @@ def test_a_profile_needs_shot_statistics(season_matches):
 def test_an_unknown_season_is_rejected(season_matches):
     with pytest.raises(ValueError, match="no matches"):
         season_profiles(MatchHistory(season_matches), "1999-00")
+
+
+def test_a_season_without_shot_statistics_cannot_be_profiled(season_matches, next_season_matches):
+    no_statistics = [replace(m, statistics=None) for m in season_matches]
+    history = MatchHistory([*no_statistics, *next_season_matches])
+
+    assert not has_shot_statistics(history, "2006-07")
+    assert has_shot_statistics(history, "2007-08")
+    assert profiled_seasons(history) == ["2007-08"]

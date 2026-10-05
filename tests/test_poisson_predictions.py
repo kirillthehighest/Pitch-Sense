@@ -5,9 +5,10 @@ import pytest
 
 from app.data.models import Match, Outcome
 from app.prediction.poisson_predictions import predict_match, run_poisson
+from app.prediction.settings import PoissonSettings
 from app.statistics.team_statistics import MatchHistory
 
-SETTINGS = {"team_window": 19, "prior_matches": 1}
+SETTINGS = PoissonSettings(team_window=19, prior_matches=1, league_window=380)
 
 
 def make(day: int, home_team: str, away_team: str, home_goals: int, away_goals: int) -> Match:
@@ -46,7 +47,7 @@ def numbers(prediction) -> tuple[float, ...]:
 def test_hand_computed_prediction():
     target = make(5, "A", "C", 1, 1)
 
-    prediction = predict_match(MatchHistory([*EARLIER, target]), target, **SETTINGS)
+    prediction = predict_match(MatchHistory([*EARLIER, target]), target, SETTINGS)
 
     assert (prediction.league_home_goals, prediction.league_away_goals) == (1.5, 1.0)
     # A at home: scored 2 and conceded 1 in one match. C away: scored 2 and conceded 0.
@@ -61,7 +62,7 @@ def test_hand_computed_prediction():
 def test_a_team_without_history_is_treated_as_average():
     target = make(5, "E", "A", 0, 0)  # E has never played
 
-    prediction = predict_match(MatchHistory([*EARLIER, target]), target, **SETTINGS)
+    prediction = predict_match(MatchHistory([*EARLIER, target]), target, SETTINGS)
 
     assert (prediction.home_attack, prediction.home_defence_weakness) == (1.0, 1.0)
     # A away: scored 0 and conceded 3 in one match.
@@ -74,7 +75,7 @@ def test_only_the_last_team_window_matches_count():
     target = make(6, "A", "C", 1, 1)
     history = MatchHistory([*EARLIER, later_home_match, target])
 
-    prediction = predict_match(history, target, team_window=1, prior_matches=1)
+    prediction = predict_match(history, target, PoissonSettings(1, 1, 380))
 
     # Only A's 0-0 on 5 September counts; the 2-1 on 1 September is outside the window.
     assert prediction.home_attack == pytest.approx((0 + 1 * 1.2) / 2 / 1.2)
@@ -84,13 +85,13 @@ def test_no_prediction_without_league_goals():
     target = make(2, "C", "D", 1, 1)
     goalless_first_day = make(1, "A", "B", 0, 0)
 
-    assert predict_match(MatchHistory([target]), target, **SETTINGS) is None
-    assert predict_match(MatchHistory([goalless_first_day, target]), target, **SETTINGS) is None
+    assert predict_match(MatchHistory([target]), target, SETTINGS) is None
+    assert predict_match(MatchHistory([goalless_first_day, target]), target, SETTINGS) is None
 
 
 def test_the_fixture_season_is_predicted_from_its_third_day(season_matches):
     # Day 1 has no history; after it the league has no home goal yet (Alpha 0-1 Bravo).
-    predictions = run_poisson(reversed(season_matches), **SETTINGS)
+    predictions = run_poisson(reversed(season_matches), SETTINGS)
 
     assert len(predictions) == 10
     assert predictions[0].match.match_date == date(2006, 9, 3)
@@ -98,7 +99,7 @@ def test_the_fixture_season_is_predicted_from_its_third_day(season_matches):
 
 
 def test_every_prediction_has_valid_probabilities(season_matches, next_season_matches):
-    for prediction in run_poisson([*season_matches, *next_season_matches], **SETTINGS):
+    for prediction in run_poisson([*season_matches, *next_season_matches], SETTINGS):
         probabilities = prediction.distribution.outcome_probabilities()
         assert min(probabilities) >= 0
         assert sum(probabilities) == pytest.approx(1, abs=1e-12)
@@ -108,8 +109,8 @@ def test_changing_a_result_never_changes_predictions_on_or_before_its_day(season
     target = season_matches[6]  # 7 September 2006
     changed = replace(target, home_goals=target.away_goals + 2, result=Outcome.HOME_WIN)
 
-    original = run_poisson(season_matches, **SETTINGS)
-    after_change = run_poisson([*season_matches[:6], changed, *season_matches[7:]], **SETTINGS)
+    original = run_poisson(season_matches, SETTINGS)
+    after_change = run_poisson([*season_matches[:6], changed, *season_matches[7:]], SETTINGS)
 
     by_date = {p.match.match_date: numbers(p) for p in original}
     changed_by_date = {p.match.match_date: numbers(p) for p in after_change}
@@ -123,11 +124,11 @@ def test_changing_a_result_never_changes_predictions_on_or_before_its_day(season
 @pytest.mark.parametrize(
     "settings",
     [
-        {"team_window": 0, "prior_matches": 1},
-        {"team_window": 19, "prior_matches": 0},
-        {"team_window": 19, "prior_matches": 1, "league_window": 0},
+        PoissonSettings(team_window=0, prior_matches=1, league_window=380),
+        PoissonSettings(team_window=19, prior_matches=0, league_window=380),
+        PoissonSettings(team_window=19, prior_matches=1, league_window=0),
     ],
 )
 def test_invalid_settings_are_rejected(season_matches, settings):
     with pytest.raises(ValueError):
-        run_poisson(season_matches, **settings)
+        run_poisson(season_matches, settings)

@@ -15,11 +15,8 @@ from app.algorithms.elo import (
 from app.data.models import Match
 from app.data.preprocessing import sort_chronologically
 from app.prediction.schedule import week_start
+from app.prediction.settings import EloSettings, settings_for
 
-# Chosen by `python -m app.evaluation.elo_calibration` on the calibration seasons 2007/08-2009/10
-# (mean squared error 0.16034); see docs/algorithms/elo.md.
-K_FACTOR = 15.0
-HOME_ADVANTAGE = 80.0
 MIN_DRAW_MODEL_MATCHES = 100
 
 
@@ -41,16 +38,13 @@ class EloRun:
     final_ratings: Mapping[str, float]
 
 
-def run_elo(
-    matches: Iterable[Match],
-    k_factor: float = K_FACTOR,
-    home_advantage: float = HOME_ADVANTAGE,
-) -> EloRun:
+def run_elo(matches: Iterable[Match], settings: EloSettings | None = None) -> EloRun:
     """Walk through the matches of one competition day by day.
 
     When a season starts, the league's teams are set; the clubs taking part in a season are known
     before it begins. Every match of a day is predicted from the ratings before that day, and
     only then are the day's results applied, so no prediction uses a result from its own day.
+    Without ``settings`` the competition's calibrated K and H are used.
     """
     ordered = sort_chronologically(matches)
     if not ordered:
@@ -58,11 +52,12 @@ def run_elo(
     competitions = sorted({match.competition for match in ordered})
     if len(competitions) > 1:
         raise ValueError(f"Elo rates one competition at a time, got {', '.join(competitions)}")
+    settings = settings or settings_for(competitions[0]).elo
     teams_by_season: dict[str, set[str]] = {}
     for match in ordered:
         teams_by_season.setdefault(match.season, set()).update((match.home_team, match.away_team))
 
-    elo = EloRatings(k_factor=k_factor, home_advantage=home_advantage)
+    elo = EloRatings(k_factor=settings.k_factor, home_advantage=settings.home_advantage)
     predictions: list[EloPrediction] = []
     current_season = None
     for match_date, day in groupby(ordered, key=lambda match: match.match_date):

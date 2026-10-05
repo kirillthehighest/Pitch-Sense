@@ -49,11 +49,12 @@ def parse_season_label(label: str) -> tuple[int, int]:
 def season_date_window(label: str) -> tuple[date, date]:
     """Return the earliest and latest dates a match of the season may have.
 
-    The window runs from 1 July of the first year to 31 July of the second, which also covers
-    seasons that finished late, such as 2019/20 (completed in July 2020).
+    The window runs from 1 July of the first year to 31 August of the second, which also covers
+    seasons that finished late because of COVID-19: La Liga 2019/20 ended in July 2020 and Serie A
+    2019/20 on 2 August 2020.
     """
     start_year, end_year = parse_season_label(label)
-    return date(start_year, 7, 1), date(end_year, 7, 31)
+    return date(start_year, 7, 1), date(end_year, 8, 31)
 
 
 def parse_match_date(text: str) -> date:
@@ -118,11 +119,15 @@ def matches_from_frame(frame: pd.DataFrame, season: str, source: str) -> list[Ma
     return matches
 
 
-def season_structure_problems(matches: Iterable[Match], team_count: int) -> list[str]:
+def season_structure_problems(
+    matches: Iterable[Match], team_count: int, stopped_after: int | None = None
+) -> list[str]:
     """List the ways a season departs from a double round-robin between ``team_count`` teams.
 
     In a double round-robin every team hosts every other team exactly once, so a 20-team season
-    has 380 matches and 38 per team. An empty list means the season is complete.
+    has 380 matches and 38 per team. A season officially stopped early (``stopped_after``
+    matches) must have exactly that many matches and no team may exceed a full season. An empty
+    list means the season is as expected.
     """
     if team_count < 2:
         raise ValueError(f"team_count must be at least 2, got {team_count}")
@@ -135,12 +140,12 @@ def season_structure_problems(matches: Iterable[Match], team_count: int) -> list
     appearances = Counter(team for match in matches for team in (match.home_team, match.away_team))
     if len(appearances) != team_count:
         problems.append(f"expected {team_count} teams, found {len(appearances)}")
-    expected_matches = team_count * (team_count - 1)
+    expected_matches = stopped_after or team_count * (team_count - 1)
     if len(matches) != expected_matches:
         problems.append(f"expected {expected_matches} matches, found {len(matches)}")
     expected_per_team = 2 * (team_count - 1)
     for team, played in sorted(appearances.items()):
-        if played != expected_per_team:
+        if played > expected_per_team or (stopped_after is None and played < expected_per_team):
             problems.append(f"{team} played {played} matches, expected {expected_per_team}")
     fixtures = Counter((match.home_team, match.away_team) for match in matches)
     for (home_team, away_team), hosted in sorted(fixtures.items()):

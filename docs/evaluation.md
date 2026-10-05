@@ -1,6 +1,6 @@
 # Evaluarea modelelor
 
-Acest document descrie cum sunt evaluate predicțiile din PitchSense și prezintă rezultatele. Măsurile sunt implementate de noi în `app/evaluation/metrics.py`, iar evaluarea este făcută de `app/evaluation/evaluator.py`.
+Acest document descrie cum sunt evaluate predicțiile din PitchSense și prezintă rezultatele pentru La Liga. Rezultatele celorlalte patru ligi și comparația dintre ligi sunt în `docs/leagues.md`. Măsurile sunt implementate de noi în `app/evaluation/metrics.py`, iar evaluarea este făcută de `app/evaluation/evaluator.py`.
 
 ## 1. Condițiile evaluării
 
@@ -29,12 +29,12 @@ Fiecare medie este însoțită de eroarea ei standard: abaterea standard a valor
 
 ## 3. Rezultate
 
-Rulare din 2026-10-04 (`python -m app.evaluation.backtesting`, apoi `python -m app.evaluation.evaluator`). Valorile sunt de forma medie ± eroare standard; la scorul Brier și la pierderea logaritmică, mai mic înseamnă mai bine.
+Rulare din 2026-10-05 (`python -m app.evaluation.backtesting`, apoi `python -m app.evaluation.evaluator SP1`). Rezultatele modelului Poisson s-au schimbat față de rularea din 2026-10-04, pentru că fereastra $N$ a La Liga a devenit 76 în Faza 15 (`docs/algorithms/poisson.md`, secțiunea 7.3); celelalte modele nu s-au schimbat. Valorile sunt de forma medie ± eroare standard; la scorul Brier și la pierderea logaritmică, mai mic înseamnă mai bine.
 
 | Model | Acuratețe | Scor Brier | Pierdere logaritmică | Eroare de calibrare | Eroarea golurilor |
 |---|---|---|---|---|---|
 | Elo | 53,4% ± 0,6% | 0,5776 ± 0,0047 | 0,9735 ± 0,0069 | 0,0168 | – |
-| Poisson | 52,8% ± 0,6% | 0,5849 ± 0,0037 | 0,9826 ± 0,0052 | 0,0132 | 0,8920 ± 0,0065 |
+| Poisson | 52,6% ± 0,6% | 0,5827 ± 0,0040 | 0,9794 ± 0,0056 | 0,0108 | 0,8906 ± 0,0064 |
 | Regresie logistică | 53,6% ± 0,6% | 0,5777 ± 0,0042 | 0,9721 ± 0,0059 | 0,0158 | – |
 | Frecvențele trecute | 46,6% ± 0,6% | 0,6405 ± 0,0026 | 1,0613 ± 0,0038 | 0,0103 | – |
 | Mereu victoria gazdelor | 46,6% ± 0,6% | – | – | – | – |
@@ -46,7 +46,7 @@ Rândurile sunt rezultatele reale, coloanele cele prezise. Din cele 6.080 de mec
 | Model | Real H → prezis H / D / A | Real D → prezis H / D / A | Real A → prezis H / D / A |
 |---|---|---|---|
 | Elo | 2.455 / 0 / 381 | 1.100 / 0 / 422 | 931 / 0 / 791 |
-| Poisson | 2.542 / 0 / 294 | 1.196 / 0 / 326 | 1.052 / 0 / 670 |
+| Poisson | 2.513 / 0 / 323 | 1.174 / 0 / 348 | 1.037 / 0 / 685 |
 | Regresie logistică | 2.486 / 0 / 350 | 1.138 / 0 / 384 | 950 / 0 / 772 |
 | Frecvențele trecute | 2.836 / 0 / 0 | 1.522 / 0 / 0 | 1.722 / 0 / 0 |
 | Mereu victoria gazdelor | 2.836 / 0 / 0 | 1.522 / 0 / 0 | 1.722 / 0 / 0 |
@@ -57,27 +57,27 @@ Pentru fiecare interval: media probabilităților prezise / frecvența reală (n
 
 | Interval | Elo | Poisson | Regresie logistică |
 |---|---|---|---|
-| 0–10% | 6,2% / 8,0% (1.136) | 7,9% / 4,9% (266) | 7,1% / 5,5% (582) |
-| 10–20% | 16,1% / 17,1% (2.979) | 16,2% / 13,1% (1.972) | 15,8% / 13,7% (2.409) |
-| 20–30% | 25,5% / 27,0% (6.912) | 25,3% / 25,0% (8.020) | 25,1% / 26,3% (7.589) |
-| 30–40% | 35,0% / 34,1% (1.851) | 34,7% / 33,7% (2.820) | 34,9% / 32,2% (2.381) |
-| 40–50% | 44,7% / 42,0% (1.714) | 44,9% / 44,9% (2.427) | 44,9% / 44,2% (2.076) |
-| 50–60% | 53,8% / 51,6% (1.409) | 54,5% / 57,8% (1.619) | 54,6% / 54,1% (1.618) |
-| 60–70% | 64,5% / 60,4% (1.252) | 64,1% / 67,9% (729) | 64,3% / 66,2% (944) |
-| 70–80% | 75,4% / 74,4% (566) | 74,6% / 85,6% (299) | 74,4% / 78,6% (402) |
-| 80–90% | 84,9% / 85,3% (402) | 82,9% / 89,8% (88) | 83,6% / 90,8% (238) |
-| 90–100% | 90,5% / 84,2% (19) | – | 90,2% / 100% (1) |
+| 0–10% | 6,2% / 8,0% (1.136) | 7,4% / 5,6% (468) | 7,1% / 5,5% (582) |
+| 10–20% | 16,1% / 17,1% (2.979) | 16,1% / 13,9% (2.181) | 15,8% / 13,7% (2.409) |
+| 20–30% | 25,5% / 27,0% (6.912) | 25,2% / 25,6% (7.661) | 25,1% / 26,3% (7.589) |
+| 30–40% | 35,0% / 34,1% (1.851) | 34,7% / 33,8% (2.779) | 34,9% / 32,2% (2.381) |
+| 40–50% | 44,7% / 42,0% (1.714) | 44,8% / 44,3% (2.226) | 44,9% / 44,2% (2.076) |
+| 50–60% | 53,8% / 51,6% (1.409) | 54,5% / 54,2% (1.599) | 54,6% / 54,1% (1.618) |
+| 60–70% | 64,5% / 60,4% (1.252) | 64,5% / 70,6% (786) | 64,3% / 66,2% (944) |
+| 70–80% | 75,4% / 74,4% (566) | 74,6% / 78,5% (349) | 74,4% / 78,6% (402) |
+| 80–90% | 84,9% / 85,3% (402) | 83,7% / 88,8% (188) | 83,6% / 90,8% (238) |
+| 90–100% | 90,5% / 84,2% (19) | 90,7% / 100% (3) | 90,2% / 100% (1) |
 
 ## 4. Observații
 
-- **Toate cele trei modele sunt clar mai bune decât referințele.** Pe toate măsurile probabilistice, diferența față de „frecvențele trecute” (Brier 0,6405, pierdere logaritmică 1,0613) este de peste zece ori mai mare decât erorile standard. Acuratețea crește de la 46,6% la 52,8–53,6%.
+- **Toate cele trei modele sunt clar mai bune decât referințele.** Pe toate măsurile probabilistice, diferența față de „frecvențele trecute” (Brier 0,6405, pierdere logaritmică 1,0613) este de peste zece ori mai mare decât erorile standard. Acuratețea crește de la 46,6% la 52,6–53,6%.
 - **Elo și regresia logistică sunt practic la egalitate.** Diferența dintre ele este 0,0001 la scorul Brier și 0,0014 la pierderea logaritmică, mult sub erorile standard (aproximativ 0,005). Regresia logistică folosește diferența Elo ca intrare, deci rezultatele apropiate sunt firești.
-- **Modelul Poisson este puțin în urmă** la acuratețe, scorul Brier și pierderea logaritmică, dar este cel mai bine calibrat dintre cele trei modele (eroarea de calibrare 0,0132). Dacă diferențele dintre modele sunt reale sau doar zgomot se verifică în Faza 10, prin compararea modelelor pe aceleași meciuri.
+- **Modelul Poisson este puțin în urmă** la acuratețe, scorul Brier și pierderea logaritmică, dar este cel mai bine calibrat dintre cele trei modele (eroarea de calibrare 0,0108). Dacă diferențele dintre modele sunt reale sau doar zgomot se verifică în Faza 10, prin compararea modelelor pe aceleași meciuri.
 - **Niciun model nu prezice vreodată egalul ca rezultat cel mai probabil.** Coloana „prezis D” este 0 pentru toate modelele, deci cele 1.522 de egaluri (25,0% din meciuri) sunt ratate toate de acuratețe. Probabilitățile egalurilor sunt totuși realiste, iar scorul Brier și pierderea logaritmică le recompensează. Acuratețea singură ascunde acest lucru.
-- **Victoriile oaspeților** sunt prezise corect în 791 (Elo), 670 (Poisson) și 772 (regresia logistică) din cele 1.722 de cazuri.
+- **Victoriile oaspeților** sunt prezise corect în 791 (Elo), 685 (Poisson) și 772 (regresia logistică) din cele 1.722 de cazuri.
 - **„Frecvențele trecute” prezic mereu victoria gazdelor**, pentru că gazdele câștigă cel mai des în orice fereastră de 380 de meciuri. De aceea au exact aceeași acuratețe ca „mereu victoria gazdelor”. Sunt însă bine calibrate (0,0103), pentru că nu încearcă să deosebească meciurile între ele.
-- **Calibrarea arată tendințe diferite.** Elo este ușor prea sigur pe favoriți: afirmațiile de 60–70% s-au produs în 60,4% din cazuri. Poisson este prea prudent cu favoriții clari (70–80%: prezis 74,6%, real 85,6%) și prea generos cu rezultatele puțin probabile (0–10%: prezis 7,9%, real 4,9%). Regresia logistică este între ele.
-- **Golurile așteptate** ale modelului Poisson diferă în medie cu 0,892 goluri de golurile reale ale fiecărei echipe.
+- **Calibrarea arată tendințe diferite.** Elo este ușor prea sigur pe favoriți: afirmațiile de 60–70% s-au produs în 60,4% din cazuri. Poisson este prea prudent cu favoriții (60–70%: prezis 64,5%, real 70,6%) și puțin prea generos cu rezultatele puțin probabile (0–10%: prezis 7,4%, real 5,6%). Regresia logistică este între ele.
+- **Golurile așteptate** ale modelului Poisson diferă în medie cu 0,891 goluri de golurile reale ale fiecărei echipe.
 
 ## 5. Corecție făcută în timpul evaluării
 
@@ -97,5 +97,5 @@ Echipa a ales să corecteze cauza, în model: fiecare victorie păstrează acum 
 ```bash
 python -m app.data.build_database
 python -m app.evaluation.backtesting
-python -m app.evaluation.evaluator
+python -m app.evaluation.evaluator SP1
 ```

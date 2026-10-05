@@ -20,6 +20,8 @@ from app.prediction.elo_predictions import EloRun, run_elo
 from app.statistics.team_profiles import (
     PROFILE_FEATURES,
     TeamSeasonProfile,
+    has_shot_statistics,
+    profiled_seasons,
     season_profiles,
     seasons_in,
 )
@@ -42,6 +44,7 @@ GROUP_NAMES = {
     3: "Weak everywhere",
 }
 PROMOTED_NAME = "Promoted (no previous season)"
+NO_STATISTICS_NAME = "Not available (no shot statistics in that season)"
 _GOALS_SCORED = PROFILE_FEATURES.index("goals_scored_per_match")
 _GOALS_CONCEDED = PROFILE_FEATURES.index("goals_conceded_per_match")
 
@@ -151,7 +154,9 @@ class TeamService:
         finished = before >= end
         profile = None
         season_group = None
-        if finished:
+        if finished and not has_shot_statistics(self._history, season):
+            season_group = NO_STATISTICS_NAME
+        elif finished:
             profile = next(p for p in season_profiles(self._history, season) if p.team == team)
             season_group = GROUP_NAMES[self._descriptive().group_of(profile)]
         return TeamOverview(
@@ -194,10 +199,11 @@ class TeamService:
 
     def season_groups(self, season: str) -> SeasonGroups:
         """Every team of a season placed in its descriptive group, as in ``overview``."""
+        self._season_matches(season)  # an unknown season is an error
+        if not has_shot_statistics(self._history, season):
+            raise ValueError(f"season {season} has no shot statistics, so its teams have no groups")
         clusters = self._descriptive()
         profiles = [profile for profile in clusters.profiles if profile.season == season]
-        if not profiles:
-            raise ValueError(f"no matches in season {season!r}")
         centres = clusters.result.centroids_in_original_units()
         return SeasonGroups(
             season=season,
@@ -228,6 +234,9 @@ class TeamService:
     def _pre_season_group(self, season: str, team: str) -> str:
         if season == self._seasons[0]:
             return "Not available (first season of the data)"
+        previous = self._seasons[self._seasons.index(season) - 1]
+        if not has_shot_statistics(self._history, previous):
+            return NO_STATISTICS_NAME
         if season not in self._groups:
             self._groups[season] = point_in_time_groups(self._history, season, CLUSTER_COUNT)
         group = self._groups[season][team]
@@ -235,7 +244,8 @@ class TeamService:
 
     def _descriptive(self) -> ProfileClusters:
         if self._clusters is None:
-            self._clusters = descriptive_clusters(self._history, self._seasons, CLUSTER_COUNT)
+            seasons = profiled_seasons(self._history)
+            self._clusters = descriptive_clusters(self._history, seasons, CLUSTER_COUNT)
         return self._clusters
 
     def _season_matches(self, season: str) -> list[Match]:

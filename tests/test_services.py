@@ -12,7 +12,7 @@ from app.prediction.prediction_engine import predict_fixture
 from app.services.catalog import DataCatalog
 from app.services.evaluation import EvaluationService
 from app.services.predictions import PredictionService, summarize
-from app.services.teams import GROUP_NAMES, TeamService
+from app.services.teams import GROUP_NAMES, NO_STATISTICS_NAME, TeamService
 from app.statistics.team_statistics import TeamResult
 
 W, D, L = TeamResult.WIN, TeamResult.DRAW, TeamResult.LOSS
@@ -215,6 +215,17 @@ def test_season_groups_match_the_overview(two_seasons):
 def test_season_groups_reject_an_unknown_season(two_seasons):
     with pytest.raises(ValueError, match="no matches"):
         TeamService(two_seasons).season_groups("1999-00")
+
+
+def test_a_season_without_shot_statistics_has_no_groups(season_matches, next_season_matches):
+    no_statistics = [replace(m, statistics=None) for m in season_matches]
+    service = TeamService([*no_statistics, *next_season_matches])
+
+    assert service.overview("2006-07", "Alpha").season_group == NO_STATISTICS_NAME
+    assert service.overview("2007-08", "Alpha").pre_season_group == NO_STATISTICS_NAME
+    assert service.overview("2007-08", "Alpha").season_group in GROUP_NAMES.values()
+    with pytest.raises(ValueError, match="no shot statistics"):
+        service.season_groups("2006-07")
 
 
 # --- evaluation ---

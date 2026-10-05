@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from app.data.models import Match, Outcome
 from app.data.preprocessing import sort_chronologically
 from app.prediction.elo_predictions import run_elo
-from app.prediction.poisson_predictions import LEAGUE_WINDOW
+from app.prediction.settings import LogisticSettings, settings_of
 from app.statistics.team_statistics import (
     DEFAULT_FORM_LENGTH,
     MatchHistory,
@@ -27,7 +27,6 @@ FEATURE_NAMES = (
     "form_difference",
     "shots_on_target_difference",
 )
-VENUE_WINDOW = 19  # one season of home (or away) matches in a 20-team league
 
 
 @dataclass(frozen=True, slots=True)
@@ -71,39 +70,52 @@ class _LeagueReference:
         )
 
 
-def build_features(matches: Iterable[Match]) -> list[MatchFeatures]:
+def build_features(
+    matches: Iterable[Match], settings: LogisticSettings | None = None
+) -> list[MatchFeatures]:
     """Return the features of every match of one competition, in chronological order.
 
     Matches on the competition's first day have no earlier league matches and are left out.
+    Without ``settings`` the competition's calibrated Elo and windows are used.
     """
     ordered = sort_chronologically(matches)
+    settings = settings or settings_of(ordered).logistic
     history = MatchHistory(ordered)
     elo_differences = {
-        _key(p.match): p.home_rating - p.away_rating for p in run_elo(ordered).predictions
+        _key(p.match): p.home_rating - p.away_rating
+        for p in run_elo(ordered, settings.elo).predictions
     }
     features = []
     for match in ordered:
-        league_matches = history.league_matches_before(match.match_date, last=LEAGUE_WINDOW)
+        league_matches = history.league_matches_before(
+            match.match_date, last=settings.league_window
+        )
         if not league_matches:
             continue
         league = _LeagueReference.from_matches(league_matches)
-        home = _team_values(history, match, match.home_team, Venue.HOME, league)
-        away = _team_values(history, match, match.away_team, Venue.AWAY, league)
+        window = settings.venue_window
+        home = _team_values(history, match, match.home_team, Venue.HOME, league, window)
+        away = _team_values(history, match, match.away_team, Venue.AWAY, league, window)
         values = (elo_differences[_key(match)], *(h - a for h, a in zip(home, away, strict=True)))
         features.append(MatchFeatures(match=match, values=values))
     return features
 
 
 def _team_values(
-    history: MatchHistory, match: Match, team: str, venue: Venue, league: _LeagueReference
+    history: MatchHistory,
+    match: Match,
+    team: str,
+    venue: Venue,
+    league: _LeagueReference,
+    venue_window: int,
 ) -> tuple[float, float, float, float]:
     """Points per match and goal difference per match at the venue, form, shots on target."""
     at_home = venue is Venue.HOME
     sign = 1 if at_home else -1
     before = match.match_date
-    record = team_statistics(history, team, before, last=VENUE_WINDOW, venue=venue)
+    record = team_statistics(history, team, before, last=venue_window, venue=venue)
     form = team_statistics(history, team, before, last=DEFAULT_FORM_LENGTH)
-    shots = team_match_statistics(history, team, before, last=VENUE_WINDOW, venue=venue)
+    shots = team_match_statistics(history, team, before, last=venue_window, venue=venue)
 
     points = record.points_per_match
     if points is None:

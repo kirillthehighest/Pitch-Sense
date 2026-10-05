@@ -70,9 +70,9 @@ def test_constant_prediction_error_uses_the_warm_up_average():
     assert constant_prediction_error([WARM_UP, warm_up_loss, CALIBRATION], **SEASONS) == 0.25
 
 
-def test_main_prints_the_best_pair(raw_data_dir, tmp_path, capsys):
+def test_main_prints_the_best_pair(raw_data_dir, tmp_path, capsys, four_team_league):
     database_path = tmp_path / "pitchsense.db"
-    build_database(raw_data_dir, database_path, {"SP1": 4})
+    build_database(raw_data_dir, database_path, four_team_league)
 
     exit_code = main(database_path)
 
