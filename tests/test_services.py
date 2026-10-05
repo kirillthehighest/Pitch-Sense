@@ -247,6 +247,14 @@ def test_evaluation_results_after_building_the_log(database, tmp_path):
     assert service.results() is results  # computed once
 
 
+def test_a_damaged_log_asks_for_a_new_backtest(tmp_path):
+    log = tmp_path / "log.csv"
+    log.write_text("not,a,log\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="not a prediction log.*Run the backtest again"):
+        EvaluationService(log, tmp_path / "pitchsense.db").results()
+
+
 def test_building_the_log_needs_the_database(tmp_path):
     service = EvaluationService(tmp_path / "log.csv", tmp_path / "missing.db")
 

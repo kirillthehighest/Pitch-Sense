@@ -1,55 +1,22 @@
 """Headless tests of the screens: built off-screen, driven by their own buttons, read back."""
 
-import os
 import time
 from datetime import date
 
-os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+import pytest
+from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
+from matplotlib.figure import Figure
+from PySide6.QtCore import QCoreApplication, QDate, QThread
 
-import pytest  # noqa: E402
-from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg  # noqa: E402
-from matplotlib.figure import Figure  # noqa: E402
-from PySide6.QtCore import QCoreApplication, QDate, QThread  # noqa: E402
-from PySide6.QtWidgets import QApplication  # noqa: E402
-
-from app.services.catalog import DataCatalog  # noqa: E402
-from app.services.evaluation import EvaluationService  # noqa: E402
-from app.services.predictions import PredictionService  # noqa: E402
-from app.services.teams import TeamService  # noqa: E402
-from app.ui.context import AppContext  # noqa: E402
-from app.ui.main_window import MainWindow  # noqa: E402
-from app.ui.team_analysis import GROUPS_NEED_WHOLE_SEASON  # noqa: E402
-from app.ui.widgets import ChartView  # noqa: E402
-from app.ui.worker import run_in_background, run_now  # noqa: E402
-
-
-@pytest.fixture(scope="module")
-def application():
-    return QApplication.instance() or QApplication([])
+from app.ui.main_window import MainWindow
+from app.ui.team_analysis import GROUPS_NEED_WHOLE_SEASON
+from app.ui.widgets import ChartView
+from app.ui.worker import run_in_background, run_now
 
 
 @pytest.fixture
-def errors():
-    return []
-
-
-@pytest.fixture
-def window(application, database, tmp_path, errors):
-    catalog = DataCatalog.load(database)
-    context = AppContext(
-        catalog=catalog,
-        predictions=PredictionService(catalog.matches, min_training_matches=3),
-        teams=TeamService(catalog.matches),
-        evaluation=EvaluationService(
-            tmp_path / "results" / "log.csv",
-            database,
-            first_evaluation_season="2007-08",
-            min_training_matches=3,
-        ),
-        run_task=run_now,
-        report_error=errors.append,
-    )
-    main_window = MainWindow(context)
+def window(app_context):
+    main_window = MainWindow(app_context)
     yield main_window
     main_window.close()
 

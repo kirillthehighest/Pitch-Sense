@@ -111,6 +111,25 @@ def test_total_rating_never_changes():
     assert math.fsum(elo.ratings.values()) == pytest.approx(4 * 1500, abs=1e-9)
 
 
+def test_all_draws_between_equal_teams_change_no_rating():
+    elo = new_league()
+
+    for day, (home_team, away_team) in enumerate([("A", "B"), ("C", "D"), ("B", "A"), ("D", "C")]):
+        elo.update(game(day, home_team, away_team, 1, 1))
+
+    assert set(elo.ratings.values()) == {1500}
+
+
+def test_a_draw_model_fitted_on_draws_only_still_leaves_each_win_one_percent():
+    model = DrawModel.fit([0.3, 0.5, 0.5, 0.7], [0.5] * 4)
+
+    assert set(model.draw_rates) == {1.0}
+    assert model.outcome_probabilities(0.5) == pytest.approx((0.01, 0.98, 0.01))
+    assert model.outcome_probabilities(0.7) == pytest.approx(
+        (0.41, 0.58, 0.01)
+    )  # cap 2 * 0.3 - 0.02
+
+
 def test_matches_must_be_chronological():
     elo = new_league()
     elo.update(game(10, "A", "B", 1, 0))

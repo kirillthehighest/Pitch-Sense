@@ -5,7 +5,7 @@ Aplicație desktop pentru analiza datelor istorice din fotbal și estimarea rezu
 Proiect de an la disciplina *Analiza și Proiectarea Algoritmilor* (APA), Universitatea Tehnică a Moldovei, Departamentul Ingineria Software și Automatică.
 Echipa (grupa TI-251): Goroșevschi Chiril, Cuzmici Nicolae, Păstru Alina.
 
-**Stadiu:** Faza 13, testare de integrare și finisare. Fazele 0–12 (planificare și arhitectură, prelucrarea datelor istorice, statisticile echipelor, ratingul Elo, modelul Poisson, regresia logistică, K-Means, motorul de predicție, backtesting cronologic, metricile de evaluare, compararea algoritmilor, interfața grafică, vizualizarea) au fost încheiate pe 2026-10-04. Aplicația se pornește cu `python -m app`.
+**Stadiu:** Faza 14, pachete de instalare pentru macOS și Windows. Fazele 0–12 (planificare și arhitectură, prelucrarea datelor istorice, statisticile echipelor, ratingul Elo, modelul Poisson, regresia logistică, K-Means, motorul de predicție, backtesting cronologic, metricile de evaluare, compararea algoritmilor, interfața grafică, vizualizarea) au fost încheiate pe 2026-10-04, iar Faza 13 (testare de integrare și finisare) pe 2026-10-05. Aplicația se pornește cu `python -m app`.
 
 ## Cerințe
 
@@ -44,6 +44,8 @@ python -m ruff check .
 python -m ruff format --check .
 ```
 
+Testele folosesc doar date sintetice. `tests/test_integration.py` rulează tot lanțul, de la fișierele CSV la fereastra aplicației, fără fereastră vizibilă.
+
 ## Date
 
 Meciurile din La Liga (Spania), sezoanele 2006/07–2025/26, preluate de pe [Football-Data.co.uk](https://www.football-data.co.uk). Fișierele originale se află în `data/raw/SP1/`. Sursa și verificările făcute la descărcare sunt descrise în [`data/raw/README.md`](data/raw/README.md).
@@ -73,7 +75,7 @@ La pornire, aplicația calculează o dată toate predicțiile istorice (aproxima
 - **Team Analysis:** clasamentul și prezentarea unei echipe, la final de sezon sau la o anumită dată, evoluția ratingului ei Elo și grupurile K-Means ale sezonului;
 - **Algorithm Comparison:** compararea modelelor, în tabele și în grafice (calibrarea și matricea de confuzie).
 
-Dacă jurnalul predicțiilor lipsește, butonul **Run backtest** îl construiește (aproximativ 8 secunde).
+Dacă jurnalul predicțiilor lipsește sau nu poate fi citit, butonul **Run backtest** îl construiește din nou (aproximativ 8 secunde).
 
 ## Evaluare
 

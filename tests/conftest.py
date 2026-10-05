@@ -1,6 +1,8 @@
-"""Shared fixtures: small synthetic seasons in the Football-Data.co.uk file format."""
+"""Shared fixtures: small synthetic seasons in the Football-Data.co.uk file format, and the
+services and Qt application that the GUI and end-to-end tests run on (off-screen)."""
 
 import csv
+import os
 from collections.abc import Callable
 from itertools import permutations
 from pathlib import Path
@@ -11,6 +13,8 @@ import pytest
 from app.data.build_database import build_database
 from app.data.models import Match
 from app.data.preprocessing import matches_from_frame
+
+os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")  # before Qt is first imported
 
 STATISTICS_HEADER = ("HS", "AS", "HST", "AST", "HF", "AF", "HC", "AC", "HY", "AY", "HR", "AR")
 TEAMS = ("Alpha", "Bravo", "Charlie", "Delta")
@@ -94,3 +98,47 @@ def database(raw_data_dir: Path, tmp_path: Path) -> Path:
     path = tmp_path / "pitchsense.db"
     build_database(raw_data_dir, path, {"SP1": 4})
     return path
+
+
+@pytest.fixture(scope="session")
+def application():
+    """The Qt application of the GUI tests. Qt is imported here so other tests never load it."""
+    from PySide6.QtWidgets import QApplication
+
+    return QApplication.instance() or QApplication([])
+
+
+@pytest.fixture
+def errors() -> list[str]:
+    """Collects the error messages the screens report."""
+    return []
+
+
+@pytest.fixture
+def app_context(application, database: Path, tmp_path: Path, errors: list[str]):
+    """The services over the fixture database, with tasks run at once and errors collected.
+
+    The backtest evaluates 2007-08 and the models start after 3 earlier matches, so that both
+    small seasons are useful.
+    """
+    from app.services.catalog import DataCatalog
+    from app.services.evaluation import EvaluationService
+    from app.services.predictions import PredictionService
+    from app.services.teams import TeamService
+    from app.ui.context import AppContext
+    from app.ui.worker import run_now
+
+    catalog = DataCatalog.load(database)
+    return AppContext(
+        catalog=catalog,
+        predictions=PredictionService(catalog.matches, min_training_matches=3),
+        teams=TeamService(catalog.matches),
+        evaluation=EvaluationService(
+            tmp_path / "results" / "log.csv",
+            database,
+            first_evaluation_season="2007-08",
+            min_training_matches=3,
+        ),
+        run_task=run_now,
+        report_error=errors.append,
+    )

@@ -102,6 +102,39 @@ def test_the_log_survives_saving_and_loading(backtest, tmp_path):
     assert read_log(path) == list(backtest.rows)
 
 
+def damaged(backtest, tmp_path, change):
+    """Write the log, then let ``change`` alter its lines."""
+    path = tmp_path / "backtest.csv"
+    write_log(backtest.rows, path)
+    lines = path.read_text(encoding="utf-8").splitlines(keepends=True)
+    path.write_text("".join(change(lines)), encoding="utf-8")
+    return path
+
+
+@pytest.mark.parametrize(
+    ("change", "message"),
+    [
+        (lambda lines: [], "backtest.csv is empty"),
+        (lambda lines: ["date,model\n", "2007-09-01,Elo\n"], "not a prediction log: missing"),
+        (lambda lines: [*lines[:3], lines[3][:40]], "line 4: expected 16 values"),
+        (
+            lambda lines: [*lines[:2], lines[2].rstrip("\r\n") + ",extra\r\n"],
+            "line 3: expected 16 values",
+        ),
+        (
+            lambda lines: [lines[0], lines[1].replace(",Elo,", ",Elo,abc", 1), *lines[2:]],
+            "line 2: could not convert string to float",
+        ),
+    ],
+    ids=["empty", "other file", "cut-off row", "extra value", "bad number"],
+)
+def test_a_damaged_log_is_refused_with_its_line(backtest, tmp_path, change, message):
+    path = damaged(backtest, tmp_path, change)
+
+    with pytest.raises(ValueError, match=message):
+        read_log(path)
+
+
 def test_the_first_season_cannot_be_evaluated(two_seasons):
     with pytest.raises(ValueError, match="no completed season before"):
         run_backtest(two_seasons, first_evaluation_season="2006-07", min_training_matches=3)

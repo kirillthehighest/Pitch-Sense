@@ -68,7 +68,7 @@ class DashboardTab(QWidget):
             self.backtest_button.show()
             return
         self.backtest_button.hide()
-        self._context.run_task(evaluation.results, self._show_results, self._context.report_error)
+        self._context.run_task(evaluation.results, self._show_results, self._results_failed)
 
     def _show_results(self, results: EvaluationResults) -> None:
         self.results_label.setText(
@@ -90,6 +90,12 @@ class DashboardTab(QWidget):
             fit=True,
         )
         self.results_table.show()
+
+    def _results_failed(self, message: str) -> None:
+        # Shown in place rather than in a dialog: every tab change would repeat a dialog.
+        self.results_label.setText(message)
+        self.results_table.hide()
+        self.backtest_button.show()
 
     def _run_backtest(self) -> None:
         self.backtest_button.setEnabled(False)

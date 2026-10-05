@@ -159,6 +159,19 @@ def test_predicted_probabilities_are_valid(known_problem):
     np.testing.assert_allclose(probabilities.sum(axis=1), 1.0)
 
 
+@pytest.mark.parametrize("l2", [0.0, 0.01])
+def test_loss_decreases_on_a_separable_toy_dataset(l2):
+    positions = np.linspace(-3, 3, 61)
+    labels = np.where(positions > 1, HOME_WIN, np.where(positions < -1, AWAY_WIN, DRAW))
+
+    model = fit(positions[:, None], labels, l2=l2)
+
+    history = np.array(model.loss_history)
+    assert (np.diff(history) <= 1e-12).all()
+    assert history[-1] < history[0] / 2
+    assert (model.predict_probabilities(positions[:, None]).argmax(axis=1) == labels).all()
+
+
 def test_softmax_can_make_draws_most_likely_between_two_extremes():
     positions = np.linspace(-3, 3, 61)
     labels = np.where(positions > 1, HOME_WIN, np.where(positions < -1, AWAY_WIN, DRAW))

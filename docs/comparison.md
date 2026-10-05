@@ -61,7 +61,7 @@ Ordinea este deci: **Elo ≈ regresia logistică > Poisson > frecvențele trecut
 
 - Elo este cel mai bun în 8 sezoane, regresia logistică în 7, Poisson într-unul. În niciun sezon avantajul nu este real: 380 de meciuri nu sunt suficiente pentru a separa modelele.
 - Toate modelele sunt mai bune decât frecvențele trecute în fiecare sezon.
-- Cele mai grele sezoane au fost 2018/19–2021/22 (scor Brier în jur de 0,60–0,61), exact sezoanele cu cele mai multe egaluri (27–29%, `docs/architecture.md`, secțiunea 6.5).
+- Cele mai grele sezoane au fost 2018/19–2021/22 (scor Brier în jur de 0,60–0,61). Sunt sezoane cu multe egaluri (27,6–29,2%, `docs/architecture.md`, secțiunea 6.5), dar egalurile nu explică singure dificultatea: 2023/24 a avut 28,2% egaluri și a fost totuși un sezon obișnuit (0,573–0,584).
 - Sezonul 2020/21, jucat fără spectatori, a fost cel mai slab sezon al frecvențelor trecute (0,6602), pentru că această referință se bazează mult pe avantajul gazdelor, care a scăzut.
 
 ### 4.2. Pe rezultatul real
@@ -90,7 +90,7 @@ Niciun avantaj nu este real. Meciurile cu o echipă din elită sunt cele mai pre
 Din tabelul complet „grupul gazdelor contra grupul oaspeților” (celule cu cel puțin 100 de meciuri):
 
 - cea mai previzibilă pereche este elita acasă contra unei echipe din grupul 2 (0 v 2, 127 de meciuri, scor Brier 0,23);
-- cele mai grele sunt echipele din jumătatea de jos acasă contra echipelor din jumătatea de sus (2 v 1 și 3 v 1, aproximativ 0,66);
+- cele mai grele sunt meciurile în care gazdele sunt o echipă promovată sau din jumătatea de jos, iar oaspeții sunt din grupul 1 (scorul Brier al lui Elo: promoted v 1 0,6683; 3 v 1 0,6644; 2 v 1 0,6625);
 - între echipe din jumătatea de jos (2 v 2, 3 v 2), modelele sunt abia mai bune decât frecvențele trecute (de exemplu 0,648 față de 0,652 la 2 v 2).
 
 ## 5. Cât de diferite sunt predicțiile
@@ -115,7 +115,7 @@ Cele mai mari diferențe dintre modele (victorie gazde / egal / victorie oaspeț
 | Athletic 0–1 Cádiz (01.10.2020) | 0,63 / 0,22 / 0,15 | 0,43 / 0,29 / 0,29 | 0,33 / 0,25 / 0,42 |
 | Getafe 2–0 Oviedo (13.09.2025) | 0,61 / 0,22 / 0,17 | 0,37 / 0,29 / 0,34 | 0,67 / 0,20 / 0,14 |
 
-Aproape toate aceste meciuri implică o echipă nou promovată (Cádiz în 2020/21, Oviedo în 2025/26, Las Palmas în 2015/16). Cauza este felul diferit în care modelele tratează echipele fără istoric. Elo le dă media ratingurilor echipelor retrogradate, deci le consideră slabe. Poisson le consideră echipe medii (forța 1). Regresia logistică folosește media ligii pentru indicatorii lipsă. Ca exemplu, în Real Madrid – Cádiz, Elo dădea 86% pentru Real Madrid, Poisson doar 54%; Cádiz a câștigat cu 1–0.
+Toate cele cinci meciuri implică o echipă nou promovată (Cádiz în 2020/21, Oviedo în 2025/26, Las Palmas în 2015/16). Cauza este felul diferit în care modelele tratează echipele fără istoric. Elo le dă media ratingurilor echipelor retrogradate, deci le consideră slabe. Poisson le consideră echipe medii (forța 1). Regresia logistică folosește media ligii pentru indicatorii lipsă. Ca exemplu, în Real Madrid – Cádiz, Elo dădea 86% pentru Real Madrid, Poisson doar 54%; Cádiz a câștigat cu 1–0.
 
 ## 6. Concluzii
 

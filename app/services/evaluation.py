@@ -85,8 +85,14 @@ class EvaluationService:
                 raise FileNotFoundError(
                     f"Prediction log not found: {self.log}. Run the backtest first."
                 )
-            rows = read_log(self.log)
-            evaluations = evaluate(rows)
+            try:
+                rows = read_log(self.log)
+                evaluations = evaluate(rows)
+            except ValueError as error:
+                raise ValueError(
+                    f"The prediction log cannot be used: {error}. "
+                    "Run the backtest again to rebuild it."
+                ) from error
             seasons = sorted({row.season for row in rows})
             self._results = EvaluationResults(
                 matches=evaluations[0].matches,

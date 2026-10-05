@@ -211,9 +211,9 @@ Testele sunt în `tests/test_elo.py`, `tests/test_elo_predictions.py` și `tests
 Verificare pe datele reale (rulare din 2026-10-04, cu $K = 15$ și $H = 80$, pe toate cele 7.600 de meciuri):
 
 - suma ratingurilor rămâne 30.000 (20 × 1500) după toate meciurile;
-- echipa cu cel mai mare rating la sfârșitul sezonului este echipa cu cele mai multe puncte în 16 din 20 de sezoane;
+- echipa cu cel mai mare rating la sfârșitul sezonului are cele mai multe puncte în 16 din 20 de sezoane (în 2006/07, Real Madrid, echipa cu cel mai mare rating, și Barcelona au avut amândouă 76 de puncte);
 - după sezonul 2025/26: Barcelona 1750, Real Madrid 1726, Atlético Madrid 1618; ultimele sunt cele trei echipe promovate, Elche 1403, Levante 1403 și Oviedo 1349;
-- cele 57 de echipe promovate au câștigat în medie 9,8 puncte în primul lor sezon, iar 23 dintre ele au scăzut. Regula de intrare nu le supraevaluează deci sistematic.
+- cele 57 de echipe promovate au câștigat în medie 10,6 puncte de rating în primul lor sezon (de la începutul sezonului până după ultimul lor meci), iar 24 dintre ele au scăzut. Regula de intrare nu le supraevaluează deci sistematic.
 
 ## 13. Surse
 

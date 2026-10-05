@@ -1,10 +1,12 @@
 """Charts of computed results, as matplotlib figures.
 
-Every function receives finished results and only draws them; nothing is calculated here. The
-figures are built with ``matplotlib.figure.Figure`` instead of pyplot, so no global plotting
-state is involved and the same figure can be embedded in the GUI or saved to a file.
+Every function receives finished results and only draws them; nothing is calculated from the
+data here (the only arithmetic is arranging labels). The figures are built with
+``matplotlib.figure.Figure`` instead of pyplot, so no global plotting state is involved and the
+same figure can be embedded in the GUI or saved to a file.
 """
 
+import math
 from collections.abc import Mapping, Sequence
 from datetime import date
 
@@ -12,6 +14,8 @@ import numpy as np
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
+from matplotlib.text import Annotation
+from matplotlib.transforms import Bbox
 
 from app.evaluation.metrics import CalibrationBin
 from app.services.teams import GROUP_NAMES, RatingSeason, SeasonGroups
@@ -23,6 +27,29 @@ HIGHLIGHT_COLOUR = "tab:red"
 BACKGROUND_COLOUR = "tab:blue"
 SHOWN_GOALS = 6
 FIGURE_SIZE = (6.4, 4.8)
+TEAM_MARKER_SIZE = 40  # points squared, as matplotlib's scatter sizes
+CENTRE_MARKER_SIZE = 140
+CHOSEN_MARKER_SIZE = 180
+# Where a team's name may go, tried in order: offset from its point in points, and alignment.
+LABEL_PLACES = (
+    (4, 3, "left"),
+    (4, -10, "left"),
+    (-4, 3, "right"),
+    (-4, -10, "right"),
+    (4, 10, "left"),
+    (-4, 10, "right"),
+    (4, -17, "left"),
+    (-4, -17, "right"),
+    (0, 12, "center"),
+    (0, -19, "center"),
+    (4, 17, "left"),
+    (-4, 17, "right"),
+    (4, -24, "left"),
+    (-4, -24, "right"),
+)
+LABEL_GAP = 2  # pixels kept free around each name
+# How bad it is for a name to cover each kind of obstacle, or to leave the axes.
+MARKER_CLASH, LABEL_CLASH, OUTSIDE_CLASH = 1, 4, 16
 
 
 def elo_history_chart(
@@ -170,7 +197,7 @@ def team_groups_chart(groups: SeasonGroups, team: str | None = None) -> Figure:
                 [point.goals_scored for point in members],
                 [point.goals_conceded for point in members],
                 color=GROUP_COLOURS[group],
-                s=40,
+                s=TEAM_MARKER_SIZE,
                 label=name,
             )
     axes.scatter(
@@ -178,31 +205,39 @@ def team_groups_chart(groups: SeasonGroups, team: str | None = None) -> Figure:
         [centre.goals_conceded for centre in groups.centres],
         color=[GROUP_COLOURS[centre.group] for centre in groups.centres],
         marker="X",
-        s=140,
+        s=CENTRE_MARKER_SIZE,
         edgecolors="black",
         linewidths=0.8,
         label="_group centres",
     )
-    for point in groups.teams:
+    markers = [
+        (c.goals_scored, c.goals_conceded, CENTRE_MARKER_SIZE, LABEL_CLASH) for c in groups.centres
+    ]
+    labels = []
+    for point in sorted(groups.teams, key=lambda p: p.team != team):  # the chosen team first
         chosen = point.team == team
-        axes.annotate(
-            point.team,
-            (point.goals_scored, point.goals_conceded),
-            xytext=(4, 3),
-            textcoords="offset points",
-            fontsize=9 if chosen else 7,
-            fontweight="bold" if chosen else "normal",
+        position = (point.goals_scored, point.goals_conceded)
+        labels.append(
+            axes.annotate(
+                point.team,
+                position,
+                xytext=LABEL_PLACES[0][:2],
+                textcoords="offset points",
+                fontsize=9 if chosen else 7,
+                fontweight="bold" if chosen else "normal",
+            )
         )
+        markers.append((*position, TEAM_MARKER_SIZE, MARKER_CLASH))
         if chosen:
             axes.scatter(
-                point.goals_scored,
-                point.goals_conceded,
-                s=180,
+                *position,
+                s=CHOSEN_MARKER_SIZE,
                 facecolors="none",
                 edgecolors="black",
                 linewidths=1.5,
                 label="_chosen team",
             )
+            markers.append((*position, CHOSEN_MARKER_SIZE, MARKER_CLASH))
     handles, _ = axes.get_legend_handles_labels()
     centre_handle = Line2D(
         [], [], marker="X", linestyle="none", color="black", label="Group centre (all seasons)"
@@ -212,7 +247,73 @@ def team_groups_chart(groups: SeasonGroups, team: str | None = None) -> Figure:
     axes.set_xlabel("Goals scored per match")
     axes.set_ylabel("Goals conceded per match")
     axes.grid(alpha=0.3)
+    _place_labels(axes, labels, markers)
+    # A window shows the figure at its own size; the names are placed again for every new size.
+    figure.canvas.mpl_connect("resize_event", lambda _: _place_labels(axes, labels, markers))
     return figure
+
+
+def _place_labels(
+    axes: Axes,
+    labels: Sequence[Annotation],
+    markers: Sequence[tuple[float, float, float, int]],
+) -> None:
+    """Move each label to the first of LABEL_PLACES where it overlaps nothing placed so far.
+
+    The obstacles are the markers (x, y, size in points squared, clash weight) other than the
+    label's own, the legend and the labels already placed; a label must also stay inside the
+    axes. A label that fits nowhere takes the place where the clashes weigh least (covering a
+    team's marker is better than covering text or a group centre). Places depend on the figure's
+    size, so they are found again whenever the figure is resized.
+    """
+    figure = axes.get_figure()
+    for label in labels:
+        label.set_in_layout(False)  # otherwise moving a label would resize the axes afterwards
+    figure.draw_without_rendering()  # settles the layout, the axis limits and the legend
+    pixels_per_point = figure.dpi / 72
+    # (owner point or None, box, weight)
+    obstacles: list[tuple[tuple[float, float] | None, Bbox, int]] = [
+        (None, axes.get_legend().get_window_extent(), LABEL_CLASH)
+    ]
+    for x, y, size, weight in markers:
+        centre_x, centre_y = axes.transData.transform((x, y))
+        radius = math.sqrt(size) / 2 * pixels_per_point
+        box = Bbox.from_extents(
+            centre_x - radius, centre_y - radius, centre_x + radius, centre_y + radius
+        )
+        obstacles.append(((x, y), box, weight))
+    area = axes.get_window_extent()
+    for label in labels:
+        best: tuple[int, tuple[float, float, str]] | None = None
+        for place in LABEL_PLACES:
+            _put(label, place)
+            box = label.get_window_extent().padded(LABEL_GAP)
+            clashes = sum(
+                weight
+                for owner, other, weight in obstacles
+                if owner != label.xy and box.overlaps(other)
+            ) + OUTSIDE_CLASH * (not _contains(area, box))
+            if best is None or clashes < best[0]:
+                best = (clashes, place)
+            if clashes == 0:
+                break
+        _put(label, best[1])
+        obstacles.append((None, label.get_window_extent(), LABEL_CLASH))
+
+
+def _put(label: Annotation, place: tuple[float, float, str]) -> None:
+    *offset, alignment = place
+    label.xyann = tuple(offset)
+    label.set_horizontalalignment(alignment)
+
+
+def _contains(outer: Bbox, inner: Bbox) -> bool:
+    return (
+        outer.x0 <= inner.x0
+        and inner.x1 <= outer.x1
+        and outer.y0 <= inner.y0
+        and inner.y1 <= outer.y1
+    )
 
 
 def _figure() -> tuple[Figure, Axes]:

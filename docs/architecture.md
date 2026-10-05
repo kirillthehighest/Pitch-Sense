@@ -1,6 +1,6 @@
 # Arhitectura aplicației PitchSense
 
-Acest document descrie structura aplicației, fluxul datelor și deciziile tehnice luate până acum (fazele 0–12). Se actualizează ori de câte ori structura se schimbă.
+Acest document descrie structura aplicației, fluxul datelor și deciziile tehnice luate până acum (fazele 0–13). Se actualizează ori de câte ori structura se schimbă.
 
 ## 1. Principii
 
@@ -346,7 +346,7 @@ Jurnalul este fișierul CSV `data/results/backtest_SP1.csv`, cu câte un rând p
 | `expected_home_goals`, `expected_away_goals` | golurile așteptate, doar pentru modelul Poisson |
 | `home_group`, `away_group` | grupurile K-Means momentane ale echipelor (0 = cel mai puternic, `promoted` = promovată) |
 
-Probabilitățile sunt scrise cu precizie completă, iar citirea fișierului dă exact aceleași valori. Fișierul nu este inclus în git, pentru că se reconstruiește oricând cu comanda de mai sus.
+Probabilitățile sunt scrise cu precizie completă, iar citirea fișierului dă exact aceleași valori. Un fișier deteriorat este refuzat cu un mesaj care numește fișierul și linia (secțiunea 11.2). Fișierul nu este inclus în git, pentru că se reconstruiește oricând cu comanda de mai sus.
 
 ### 8.5. Rezultatul rulării
 
@@ -387,7 +387,7 @@ Graficele sunt descrise în secțiunea 10.
 
 ### 9.3. Lucrul în fundal
 
-Operațiile lente rulează pe fire de execuție separate (`app/ui/worker.py`), iar rezultatul se întoarce prin semnale Qt pe firul interfeței; firele de lucru nu ating niciodată elementele ferestrei. Orice eroare apare ca mesaj în fereastră, fără ca aplicația să se oprească.
+Operațiile lente rulează pe fire de execuție separate (`app/ui/worker.py`), iar rezultatul se întoarce prin semnale Qt pe firul interfeței; firele de lucru nu ating niciodată elementele ferestrei. Orice eroare apare ca mesaj în fereastră, fără ca aplicația să se oprească. Un jurnal al predicțiilor care nu poate fi citit este semnalat direct în filă, cu butonul „Run backtest” (secțiunea 11.2).
 
 - La pornire, toate predicțiile istorice sunt calculate o singură dată (aproximativ 7 s). După aceea, orice meci jucat apare imediat, cu exact aceleași valori ca în evaluare.
 - Un meci ipotetic este calculat la cerere (aproximativ 7 s pentru sezoanele recente).
@@ -425,24 +425,60 @@ Grupurile sunt arătate doar pentru un sezon întreg, pentru că profilurile des
 
 ### 10.3. Construcție
 
-- `app/visualization/charts.py` conține cinci funcții care primesc rezultate deja calculate și întorc o figură matplotlib (`Figure`). Ele doar desenează: nu calculează nimic și nu folosesc `pyplot`, deci nu există stare globală, iar aceeași figură poate fi afișată în aplicație sau salvată într-un fișier.
+- `app/visualization/charts.py` conține cinci funcții care primesc rezultate deja calculate și întorc o figură matplotlib (`Figure`). Ele doar desenează: nu calculează nimic din date (singurul calcul așază numele echipelor pe graficul grupurilor, secțiunea 11.4) și nu folosesc `pyplot`, deci nu există stare globală, iar aceeași figură poate fi afișată în aplicație sau salvată într-un fișier.
 - Datele vin din servicii: `TeamService` are două metode noi (`elo_history`, `season_groups`), iar rezumatul predicției Poisson include tabelul complet al scorurilor (`ModelSummary.score_probabilities`). Rularea Elo este făcută o singură dată și păstrată în memorie (aproximativ 0,02 s pe toate datele).
 - Interfața afișează figurile prin `ChartView` (`app/ui/widgets.py`), care folosește pânza Qt a matplotlib (`FigureCanvasQTAgg`) și arată un mesaj cât timp nu există un grafic. Nu a fost necesară nicio bibliotecă nouă.
 
 ### 10.4. Verificare
 
-- `tests/test_charts.py`: fiecare grafic desenează exact valorile primite (datele liniilor, celulele, textele, etichetele și legenda) și se salvează ca imagine PNG fără avertismente; datele invalide sunt refuzate.
+- `tests/test_charts.py`: fiecare grafic desenează exact valorile primite (datele liniilor, celulele, textele, etichetele și legenda) și se salvează ca imagine PNG fără avertismente; datele invalide sunt refuzate; numele unor echipe aflate aproape una de alta nu se suprapun.
 - `tests/test_services.py`: istoricul Elo coincide cu ratingurile folosite de predicții și nu se schimbă dacă se schimbă scorul meciului însuși; grupurile coincid cu cele din prezentarea echipei.
 - `tests/test_ui.py`: fiecare filă arată un mesaj înainte de rezultate și graficele după ele; o componentă `ChartView` conține mereu exact un grafic sau un mesaj.
 - Graficele au fost desenate cu datele reale și verificate vizual, atât fără fereastră, cât și într-o fereastră macOS obișnuită (ecran Retina, mod întunecat), cu lucrul în fundal real.
 
 ### 10.5. Limitări
 
-- Pe graficul grupurilor, numele echipelor apropiate se pot suprapune.
+- Pe graficul grupurilor, numele echipelor foarte apropiate se mai pot suprapune când graficul este mic (secțiunea 11.4).
 - Graficele păstrează fundalul alb și când sistemul folosește modul întunecat.
 - Graficul scorurilor arată doar scorurile de până la 6 goluri pe echipă.
 
-## 11. Setul de date și perioadele
+## 11. Testarea de integrare și verificarea pe datele reale (Faza 13)
+
+### 11.1. Teste de la un capăt la altul
+
+`tests/test_integration.py` rulează tot lanțul pe cele două sezoane sintetice din `tests/conftest.py`: fișierele CSV brute → baza de date → jurnalul predicțiilor → evaluarea → fereastra aplicației. Testele verifică faptul că straturile spun același lucru:
+
+- pentru fiecare dintre cele 12 meciuri ale sezonului evaluat, fila Match Prediction afișează exact probabilitățile, rezultatul cel mai probabil și golurile așteptate din jurnal;
+- tabelele din Dashboard și Algorithm Comparison afișează exact măsurile calculate de evaluator din jurnal;
+- clasamentul ambelor sezoane coincide cu un clasament calculat direct din rândurile fișierelor CSV.
+
+Sunt verificate și căile de eroare: lipsa bazei de date la pornire (mesaj cu comanda `python -m app.data.build_database` și codul de ieșire 1), un jurnal deteriorat și un backtest care eșuează în timpul rulării. Aplicația Qt, serviciile peste baza de date sintetică și colectorul de erori folosite de testele interfeței sunt definite o singură dată, în `tests/conftest.py`.
+
+### 11.2. Jurnalul deteriorat
+
+Testele au găsit două probleme, corectate:
+
+- Un jurnal deteriorat dădea mesaje neclare (de exemplu `'match_date'`). Acum `read_log` numește problema, fișierul și linia (de exemplu `backtest_SP1.csv, line 4: expected 16 values`), iar serviciul de evaluare adaugă „Run the backtest again to rebuild it.”
+- Dacă fișierul jurnalului exista, dar nu putea fi citit, filele Dashboard și Algorithm Comparison ascundeau butonul „Run backtest”, deci jurnalul nu putea fi reconstruit din aplicație, iar fiecare schimbare de filă ar fi repetat mesajul de eroare. Acum ambele file arată problema direct în pagină, fără ferestre de dialog, iar butonul reconstruiește jurnalul.
+
+### 11.3. Verificarea pe datele reale
+
+Rulare din 2026-10-04:
+
+- Baza de date a fost reconstruită din cele 20 de fișiere: toate sezoanele sunt complete (7.600 de meciuri).
+- Jurnalul predicțiilor reconstruit este identic, byte cu byte, cu cel anterior (30.400 de rânduri).
+- Calibrările (Elo, Poisson, regresia logistică) și alegerea lui $k$ dau exact valorile înregistrate.
+- Toate valorile obținute din date și citate în `README.md` și în `docs/` au fost recalculate. Trei pasaje erau inexacte și au fost corectate: câștigul mediu al echipelor promovate din `docs/algorithms/elo.md` (10,6 puncte de rating și 24 de echipe în scădere, nu 9,8 și 23: calculul vechi se oprea înaintea ultimului meci al fiecărei echipe), precizarea egalității de puncte din 2006/07 în același document și trei afirmații din `docs/comparison.md` (legătura dintre egaluri și sezoanele grele, perechile de grupuri cele mai grele și numărul meciurilor cu echipe promovate dintre cele mai mari diferențe).
+- Nu au putut fi recalculate valorile care depind de cod schimbat între timp (predicțiile Elo dinaintea corecției din Faza 9, setările de probă ale modelului Poisson) și durata interogărilor din secțiunea 6.4. Celelalte durate măsurate (backtest 7,9 s, toate predicțiile 6,8 s, un meci ipotetic 6,8 s, modelul Poisson 0,63 s) corespund documentației.
+- Cerințele din `AGENTS.md`: fiecare document de algoritm are toate secțiunile cerute, există toate modulele de test cerute și teste de scurgere a informațiilor pentru fiecare model. Lipseau două teste cerute, adăugate acum: regresia logistică pe un set de date separabil și Elo cu numai egaluri.
+
+### 11.4. Numele echipelor pe graficul grupurilor
+
+Numele sunt așezate automat. Fiecare nume încearcă, în ordine, 14 poziții în jurul punctului său și o alege pe prima care rămâne în interiorul graficului și nu acoperă un nume deja așezat, legenda, un centru de grup sau un alt punct. Dacă nu există o asemenea poziție, o alege pe cea mai puțin rea: acoperirea unui punct contează mai puțin decât acoperirea unui text sau a unui centru. Numele echipei alese este așezat primul.
+
+Pozițiile depind de mărimea figurii, așa că sunt alese din nou ori de câte ori fereastra redimensionează graficul (aproximativ 65 ms de fiecare dată). Pe datele reale, la mărimea implicită a figurii (6,4 × 4,8 țoli), perechile de nume suprapuse au scăzut de la 73 la 3 în cele 20 de sezoane, iar niciun nume nu acoperă un centru; la mărimea graficului din fereastra aplicației (aproximativ 7,5 × 5,9 țoli) nu mai rămâne nicio suprapunere. Construirea graficului durează acum aproximativ 0,25 s.
+
+## 12. Setul de date și perioadele
 
 Sursa datelor este Football-Data.co.uk: La Liga (`SP1`), 20 de sezoane încheiate, 2006/07–2025/26 (7.600 de meciuri).
 
@@ -452,7 +488,7 @@ Sursa datelor este Football-Data.co.uk: La Liga (`SP1`), 20 de sezoane încheiat
 | 2007/08–2009/10 | Calibrare: se aleg hiperparametrii; rezultatele nu sunt raportate. |
 | 2010/11–2025/26 | Evaluarea raportată: 16 sezoane, 6.080 de meciuri. |
 
-## 12. Tehnologii
+## 13. Tehnologii
 
 | Componentă | Versiune | Rol |
 |---|---|---|
@@ -465,7 +501,7 @@ Sursa datelor este Football-Data.co.uk: La Liga (`SP1`), 20 de sezoane încheiat
 | pytest | 9.1.1 | testare |
 | ruff | 0.16.10 | verificarea și formatarea codului |
 
-## 13. Decizii tehnice
+## 14. Decizii tehnice
 
 | Decizie | Motiv |
 |---|---|
@@ -500,3 +536,6 @@ Sursa datelor este Football-Data.co.uk: La Liga (`SP1`), 20 de sezoane încheiat
 | Graficul grupurilor folosește golurile marcate și primite pe meci (varianta A), nu PCA | Axele au un înțeles direct și nu se adaugă o metodă nouă; limitarea (o treime dintre echipe apar mai aproape de alt centru) este documentată. |
 | Figurile sunt construite cu `matplotlib.figure.Figure`, fără `pyplot` | Nu există stare globală; aceeași figură poate fi afișată în aplicație sau salvată. |
 | Graficul Elo arată ratingul dinaintea fiecărui meci | Sunt exact valorile folosite de predicții, calculate doar din meciurile anterioare. |
+| Un jurnal care nu poate fi citit este semnalat direct în filă, cu butonul „Run backtest” vizibil | Jurnalul poate fi reconstruit din aplicație, iar o fereastră de dialog s-ar fi repetat la fiecare schimbare de filă. |
+| Numele echipelor de pe graficul grupurilor sunt așezate automat, fără o bibliotecă nouă, și din nou la fiecare redimensionare | Suprapunerile dispar aproape toate (de la 73 la 3 perechi în 20 de sezoane la mărimea implicită, niciuna la mărimea din fereastra aplicației), iar graficul rămâne determinist. |
+| Testele de la un capăt la altul folosesc doar datele sintetice | Testele nu citesc baza de date reală; verificarea pe datele reale este o rulare separată, documentată în secțiunea 11.3. |

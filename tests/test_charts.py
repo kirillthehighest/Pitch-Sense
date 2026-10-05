@@ -5,6 +5,8 @@ from io import BytesIO
 
 import numpy as np
 import pytest
+from matplotlib.backend_bases import ResizeEvent
+from matplotlib.backends.backend_agg import FigureCanvasAgg
 
 from app.algorithms.poisson import score_distribution
 from app.evaluation.metrics import CalibrationBin
@@ -181,6 +183,61 @@ def test_team_groups_colour_teams_by_group_and_mark_the_centres():
     ]
     assert "2006-07" in axes.get_title()
     render(figure)
+
+
+CROWDED = SeasonGroups(
+    season="2006-07",
+    teams=(
+        GroupPoint("Alpha", 1.500, 1.200, 1),
+        GroupPoint("Bravo", 1.505, 1.205, 1),
+        GroupPoint("Charlie", 1.510, 1.195, 2),
+        GroupPoint("Delta", 1.495, 1.200, 2),
+        GroupPoint("Echo", 2.400, 0.800, 0),
+    ),
+    centres=GROUPS.centres,
+)
+
+
+def assert_names_apart_and_inside(figure):
+    figure.draw_without_rendering()
+    axes = figure.axes[0]
+    boxes = [text.get_window_extent() for text in axes.texts]
+    assert not any(a.overlaps(b) for i, a in enumerate(boxes) for b in boxes[i + 1 :])
+    area = axes.get_window_extent()
+    assert all(
+        area.x0 <= b.x0 and b.x1 <= area.x1 and area.y0 <= b.y0 and b.y1 <= area.y1 for b in boxes
+    )
+
+
+def test_names_of_teams_that_sit_close_together_do_not_overlap():
+    figure = team_groups_chart(CROWDED, team="Alpha")
+
+    assert_names_apart_and_inside(figure)
+    render(figure)
+
+
+def test_names_are_placed_again_when_a_window_resizes_the_figure():
+    # Six names in a row fit side by side at the default size but not in a small window.
+    row = SeasonGroups(
+        season="2006-07",
+        teams=(
+            *(
+                GroupPoint(name, 1.0 + 0.06 * index, 1.2, 1)
+                for index, name in enumerate(
+                    ("Alpha", "Bravo", "Charlie", "Delta", "Foxtrot", "Golf")
+                )
+            ),
+            GroupPoint("Echo", 2.4, 0.8, 0),
+        ),
+        centres=GROUPS.centres,
+    )
+    figure = team_groups_chart(row)
+    canvas = FigureCanvasAgg(figure)  # a window gives the figure its own canvas
+
+    figure.set_size_inches(3.5, 3.0)
+    canvas.callbacks.process("resize_event", ResizeEvent("resize_event", canvas))
+
+    assert_names_apart_and_inside(figure)
 
 
 def test_team_groups_without_a_chosen_team_circle_nobody():

@@ -136,9 +136,27 @@ def write_log(rows: Sequence[PredictionLogRow], path: Path) -> None:
 
 
 def read_log(path: Path) -> list[PredictionLogRow]:
-    """Load a log written by ``write_log``."""
+    """Load a log written by ``write_log``; a damaged file raises ValueError naming the line."""
+    columns = [field.name for field in fields(PredictionLogRow)]
     with path.open(encoding="utf-8", newline="") as file:
-        return [_row_from_text(record) for record in csv.DictReader(file)]
+        reader = csv.DictReader(file)
+        if reader.fieldnames is None:
+            raise ValueError(f"{path.name} is empty")
+        missing = [column for column in columns if column not in reader.fieldnames]
+        if missing:
+            raise ValueError(
+                f"{path.name} is not a prediction log: missing columns {', '.join(missing)}"
+            )
+        rows = []
+        for record in reader:
+            line = f"{path.name}, line {reader.line_num}"
+            if None in record or None in record.values():  # too many or too few values
+                raise ValueError(f"{line}: expected {len(reader.fieldnames)} values")
+            try:
+                rows.append(_row_from_text(record))
+            except ValueError as error:
+                raise ValueError(f"{line}: {error}") from error
+        return rows
 
 
 def log_path(competition: str = COMPETITION) -> Path:
