@@ -46,7 +46,7 @@ Lângă siglă, numele se scrie **PITCHSENSE** cu Barlow Condensed ExtraBold: �
 
 ### 2.3. Iconița aplicației
 
-Iconița aplicației este chiar sigla, care umple pătratul (`icon_image`). Aplicația are imagini pentru mărimile 16, 24, 32, 48, 64, 128, 256, 512 și 1024 de pixeli (`app_icon`). Fișierele `.icns` (macOS) și `.ico` (Windows) pentru pachete se fac în Faza 17, din aceeași funcție.
+Iconița aplicației este chiar sigla, care umple pătratul (`icon_image`). Aplicația are imagini pentru mărimile 16, 24, 32, 48, 64, 128, 256, 512 și 1024 de pixeli (`app_icon`). Pentru pachete, `packaging/icons.py` salvează aceleași imagini în `PitchSense.icns` (macOS, unsprezece imagini de la 16 la 1024 de pixeli) și `PitchSense.ico` (Windows, șapte imagini de la 16 la 256 de pixeli), la fiecare construire (Faza 17).
 
 ### 2.4. Steagurile și ecusoanele
 
@@ -224,4 +224,3 @@ Graficele au fundalul cardurilor, text deschis, titluri cu Barlow Condensed și 
 
 - Interfața are doar tema întunecată, și când sistemul folosește modul luminos.
 - Echipele au ecusoane cu inițiale, nu stemele lor: stemele sunt mărci înregistrate și nu fac parte din date.
-- Iconițele pachetelor (`.icns`, `.ico`) și includerea fonturilor în pachete se fac în Faza 17.

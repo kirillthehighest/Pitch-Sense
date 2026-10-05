@@ -1,6 +1,6 @@
 # Arhitectura aplicației PitchSense
 
-Acest document descrie structura aplicației, fluxul datelor și deciziile tehnice luate până acum (fazele 0–16). Se actualizează ori de câte ori structura se schimbă.
+Acest document descrie structura aplicației, fluxul datelor și deciziile tehnice luate până acum (fazele 0–17). Se actualizează ori de câte ori structura se schimbă.
 
 ## 1. Principii
 
@@ -492,7 +492,7 @@ Pe datele reale (2026-10-05, toate cele cinci ligi, 99 de sezoane cu statistici 
 ### 12.1. Construcție
 
 - **PyInstaller 6.22.3** (dependență de dezvoltare) adună interpretorul Python, bibliotecile, codul și datele într-un folder cu un program executabil; pe macOS, folderul devine aplicația `PitchSense.app`. A fost ales în locul lui `pyside6-deploy`, care compilează totul în C cu Nuitka, cere un compilator și construiește mult mai încet.
-- `packaging/pitchsense.spec` descrie pachetul. `packaging/build.py` reconstruiește baza de date și jurnalul predicțiilor din fișierele brute, rulează PyInstaller și face arhiva: o imagine `.dmg` pe macOS (cu aplicația și o scurtătură spre `Applications`) și un fișier `.zip` pe Windows.
+- `packaging/pitchsense.spec` descrie pachetul. `packaging/build.py` reconstruiește baza de date și jurnalele predicțiilor din fișierele brute, desenează iconița aplicației (din Faza 17), rulează PyInstaller și face arhiva: o imagine `.dmg` pe macOS (cu aplicația și o scurtătură spre `Applications`) și un fișier `.zip` pe Windows.
 - PyInstaller nu poate construi pentru alt sistem decât cel pe care rulează: pachetul macOS se construiește pe un Mac, iar cel pentru Windows pe o mașină Windows oferită de GitHub (secțiunea 12.4).
 - Pachetul macOS are 68 MB (aplicația despachetată, 144 MB) și cere un Mac cu Apple Silicon și macOS 14 sau mai nou: bibliotecile NumPy incluse sunt construite pentru macOS 14, iar aplicația declară această limită (`LSMinimumSystemVersion`), ca macOS-ul mai vechi să refuze clar pornirea. Pachetul Windows are 84 MB (folderul despachetat, 188 MB) și cere Windows 10 sau 11 pe 64 de biți. Cea mai mare parte din mărime o ocupă Qt, NumPy, pandas și matplotlib.
 
@@ -503,7 +503,9 @@ Un pachet nu trebuie modificat (pe macOS, modificarea aplicației o poate strica
 | Fișier | Din codul sursă | Într-un pachet |
 |---|---|---|
 | baza de date | `data/pitchsense.db` | în pachet, doar pentru citire |
-| jurnalul predicțiilor | `data/results/` | în folderul utilizatorului; la prima pornire, jurnalul din pachet este copiat acolo, iar un jurnal reconstruit de utilizator nu este înlocuit niciodată |
+| jurnalele predicțiilor | `data/results/` | în folderul utilizatorului; la prima pornire, jurnalele din pachet sunt copiate acolo; în aceeași versiune, un jurnal reconstruit de utilizator nu este înlocuit, iar după o actualizare jurnalele versiunii vechi sunt înlocuite (secțiunea 12.7) |
+| fonturile și iconițele interfeței | `app/ui/assets/` | în pachet, doar pentru citire |
+| alegerile utilizatorului (liga, echipa ta) | `preferences.json`, în folderul utilizatorului | la fel |
 | memoria fonturilor matplotlib | `~/.matplotlib` | în folderul utilizatorului (`matplotlib/`) |
 
 Construirea a scos la iveală o problemă: PyInstaller îi dă lui matplotlib un folder temporar nou la fiecare pornire (necesar pentru pachetele dintr-un singur fișier, care se despachetează de fiecare dată în alt loc), așa că memoria fonturilor, care se construiește în aproximativ 18 s pe Mac-ul de test, s-ar fi refăcut la fiecare pornire. Pachetul nostru este un folder care nu se mută, deci punctul de intrare (`app/__main__.py`) păstrează această memorie în folderul utilizatorului. Prima pornire durează aproximativ 30 s, următoarele aproximativ 10 s.
@@ -532,6 +534,27 @@ Rulări din 2026-10-05:
 - Pachetul macOS rulează doar pe Mac-uri cu Apple Silicon; pentru Mac-urile cu procesor Intel ar trebui construit pe un Mac cu Intel.
 - Prima pornire durează aproximativ 30 s.
 - În macOS 27, comanda `hdiutil` folosită pentru imaginea `.dmg` afișează un avertisment că este învechită, dar funcționează; comanda care o înlocuiește (`diskutil image`) nu există pe versiunile mai vechi de macOS.
+
+### 12.7. Versiunea 0.2.0 (Faza 17)
+
+Pachetele versiunii 0.2.0 conțin cinci ligi, noua interfață și noua siglă. Față de 0.1.0 s-au schimbat:
+
+- **Versiunea** este scrisă într-un singur loc, `app/__init__.py` (`__version__`). De acolo o citesc `pyproject.toml`, pachetele (numele fișierelor și `CFBundleShortVersionString`) și fereastra, care o afișează în panoul din stânga.
+- **Conținutul pachetului:** baza de date cu cele cinci ligi, jurnalele celor cinci ligi, fonturile și iconițele interfeței.
+- **Iconița aplicației** este desenată din siglă la fiecare construire. `packaging/icons.py` salvează imaginile PNG ale lui `icon_image` în formatele pe care le citesc sistemele: `PitchSense.icns` pentru macOS (unsprezece imagini, de la 16 la 1024 de pixeli) și `PitchSense.ico` pentru Windows (șapte imagini, de la 16 la 256 de pixeli). Ambele formate primesc PNG direct, deci nu este nevoie de o bibliotecă nouă. Testele (`tests/test_icons.py`) citesc înapoi fișierele, iar `iconutil`, unealta macOS, desface fișierul `.icns` fără erori.
+- **Actualizarea.** Jurnalele construite de o versiune mai veche arată rezultatele vechilor modele: jurnalul La Liga din 0.1.0 a fost calculat cu $N = 38$ pentru Poisson, înainte ca Faza 15 să-l schimbe în 76. Regula de copiere de până acum („un jurnal existent nu este înlocuit niciodată”) le-ar fi păstrat după actualizare. Acum folderul utilizatorului are un fișier `VERSION` cu versiunea jurnalelor din el (`copy_bundled_results` din `app/data/paths.py`):
+  - Dacă fișierul lipsește (cazul lui 0.1.0, care nu-l scria) sau arată altă versiune, toate jurnalele din pachet le înlocuiesc pe cele vechi.
+  - În aceeași versiune, un jurnal reconstruit de utilizator este păstrat, pentru că același cod îl reconstruiește la fel.
+  - Celelalte fișiere ale utilizatorului (alegerile, memoria fonturilor) nu sunt atinse.
+
+Verificare (2026-10-06):
+
+- **macOS** (Mac cu Apple Silicon, macOS 27): `python packaging/build.py` a construit pachetul în aproximativ 90 s.
+  - Mărimea: imaginea `.dmg` are 74 MB, aplicația despachetată 163 MB.
+  - Autoverificarea pachetului a trecut (20 din 20, cu ambele fonturi și iconițele SVG), atât din `dist/`, cât și din imaginea `.dmg` montată doar pentru citire.
+  - Folderul utilizatorului de pe Mac-ul de test avea jurnalul La Liga lăsat de pachetul 0.1.0 și niciun fișier `VERSION`. Prima pornire a lui 0.2.0 l-a înlocuit cu jurnalul nou (identic, după sumele de control, cu cel construit), a adăugat celelalte patru și a scris `VERSION`.
+  - Pornită normal (`open PitchSense.app`), aplicația rulează, folosește aproximativ 450 MB de memorie și se închide fără erori.
+- **Windows** (fluxul „Windows package” pe mașina `windows-latest` de la GitHub, ramura `phase-17`): toate cele 662 de teste și verificarea codului au trecut, pachetul `.zip` are 88 MB, iar autoverificarea pachetului a trecut (20 din 20, cu ambele fonturi și iconițele SVG). Lucrarea a durat 7 min, după aproximativ 5 min de așteptare la coadă.
 
 ## 13. Cinci ligi (Faza 15)
 
@@ -706,3 +729,6 @@ Sursa datelor este Football-Data.co.uk: cinci ligi (Premier League, La Liga, Ser
 | Alegerile utilizatorului (liga, echipa) sunt într-un fișier JSON în folderul utilizatorului | Pachetul rămâne nemodificat; un fișier deteriorat sau imposibil de scris nu oprește aplicația. |
 | Textul afișat este tradus într-un singur loc (`formatting.py`, `labels.py`) | Jurnalele, testele și codul păstrează identificatorii în engleză; afișarea românească este consecventă. |
 | Cardul Acasă spune dacă avantajul modelului cu cel mai mic scor Brier este real | Un clasament după diferențe de 0,0001 ar sugera un câștigător acolo unde nu există unul. |
+| Versiunea este scrisă doar în `app/__init__.py` | Pachetele, `pyproject.toml` și fereastra arată mereu aceeași versiune. |
+| Iconițele pachetelor (`.icns`, `.ico`) sunt scrise de noi, cu imagini PNG desenate din siglă | Iconița urmează mereu sigla și nu este nevoie de o bibliotecă de imagini nouă. |
+| Un fișier `VERSION` în folderul jurnalelor; o actualizare înlocuiește jurnalele vechi | Jurnalele calculate de modele mai vechi nu mai pot ajunge în aplicația nouă; în aceeași versiune, jurnalele reconstruite rămân. |

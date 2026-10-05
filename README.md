@@ -9,18 +9,18 @@ Echipa (grupa TI-251): Goroșevschi Chiril, Cuzmici Nicolae, Păstru Alina.
 
 ## Aplicația gata de instalat
 
-Pachetele se descarcă de pe pagina [Releases](https://github.com/kirillthehighest/Pitch-Sense/releases/latest) a depozitului (versiunea curentă: 0.1.0). Depozitul este privat, deci pagina se deschide doar pentru cei care au acces la el. Pachetele nu cer Python și conțin deja datele (baza de date și jurnalul predicțiilor).
+Pachetele se descarcă de pe pagina [Releases](https://github.com/kirillthehighest/Pitch-Sense/releases/latest) a depozitului (versiunea curentă: 0.2.0). Depozitul este privat, deci pagina se deschide doar pentru cei care au acces la el. Pachetele nu cer Python și conțin deja datele: baza de date cu cele cinci ligi și jurnalele predicțiilor fiecărei ligi.
 
 | Sistem | Fișier | Cerințe |
 |---|---|---|
-| macOS | `PitchSense-0.1.0-macOS-arm64.dmg` | Mac cu procesor Apple Silicon, macOS 14 sau mai nou |
-| Windows | `PitchSense-0.1.0-Windows-amd64.zip` | Windows 10 sau 11, pe 64 de biți |
+| macOS | `PitchSense-0.2.0-macOS-arm64.dmg` | Mac cu procesor Apple Silicon, macOS 14 sau mai nou |
+| Windows | `PitchSense-0.2.0-Windows-amd64.zip` | Windows 10 sau 11, pe 64 de biți |
 
 **macOS:** deschideți fișierul `.dmg` și trageți `PitchSense` în `Applications`. Pachetul nu este semnat, așa că macOS blochează prima deschidere a unei copii descărcate din internet: deschideți *System Settings → Privacy & Security* și alegeți *Open Anyway* în dreptul mesajului despre PitchSense.
 
 **Windows:** dezarhivați fișierul `.zip` și porniți `PitchSense\PitchSense.exe`. Pachetul nu este semnat, așa că Windows poate afișa „Windows protected your PC”: alegeți *More info*, apoi *Run anyway*.
 
-Prima pornire durează până la aproximativ 30 de secunde, pentru că se pregătesc fonturile graficelor; următoarele durează aproximativ 10 secunde. Aplicația își păstrează fișierele în `~/Library/Application Support/PitchSense` (macOS) sau în `%LOCALAPPDATA%\PitchSense` (Windows); ștergerea acestui folder o readuce la starea de după instalare.
+Prima pornire durează până la aproximativ 30 de secunde, pentru că se pregătesc fonturile graficelor; următoarele durează aproximativ 10 secunde. Aplicația își păstrează fișierele în `~/Library/Application Support/PitchSense` (macOS) sau în `%LOCALAPPDATA%\PitchSense` (Windows); ștergerea acestui folder o readuce la starea de după instalare. După instalarea unei versiuni noi, jurnalele predicțiilor lăsate de versiunea veche sunt înlocuite la prima pornire cu cele noi; liga aleasă și echipa ta rămân.
 
 ## Cerințe (pentru codul sursă)
 
@@ -103,7 +103,7 @@ Dacă jurnalul predicțiilor unei ligi lipsește sau nu poate fi citit, butonul 
 python packaging/build.py
 ```
 
-Comanda reconstruiește baza de date și jurnalul predicțiilor, care intră în pachet, și produce `dist/PitchSense-0.1.0-macOS-arm64.dmg`.
+Comanda reconstruiește baza de date și jurnalele predicțiilor celor cinci ligi, care intră în pachet, desenează iconița aplicației din siglă și produce `dist/PitchSense-0.2.0-macOS-arm64.dmg`. Versiunea este scrisă într-un singur loc, `app/__init__.py`.
 
 **Windows:** pachetul se construiește pe GitHub, cu fluxul „Windows package” (`.github/workflows/package.yml`): pe pagina *Actions* a depozitului, *Windows package → Run workflow*. Fluxul rulează toate testele pe Windows, construiește pachetul, îl verifică și îl păstrează 30 de zile ca *artifact* (`PitchSense-Windows`). Pe un calculator cu Windows se poate folosi și `python packaging/build.py`.
 
