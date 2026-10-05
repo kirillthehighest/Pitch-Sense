@@ -9,7 +9,7 @@ Echipa (grupa TI-251): Goroșevschi Chiril, Cuzmici Nicolae, Păstru Alina.
 
 ## Aplicația gata de instalat
 
-Pachetele nu cer Python și conțin deja datele (baza de date și jurnalul predicțiilor).
+Pachetele se descarcă de pe pagina [Releases](https://github.com/kirillthehighest/Pitch-Sense/releases/latest) a depozitului (versiunea curentă: 0.1.0). Depozitul este privat, deci pagina se deschide doar pentru cei care au acces la el. Pachetele nu cer Python și conțin deja datele (baza de date și jurnalul predicțiilor).
 
 | Sistem | Fișier | Cerințe |
 |---|---|---|
