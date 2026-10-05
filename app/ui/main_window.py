@@ -4,6 +4,7 @@ import sys
 
 from PySide6.QtWidgets import QApplication, QMainWindow, QMessageBox, QTabWidget
 
+from app.data.paths import copy_bundled_results
 from app.ui.algorithm_comparison import AlgorithmComparisonTab
 from app.ui.context import AppContext, default_context
 from app.ui.dashboard import DashboardTab
@@ -60,6 +61,10 @@ class MainWindow(QMainWindow):
 def main() -> int:
     """Start the application; returns the exit code."""
     application = QApplication.instance() or QApplication(sys.argv)
+    try:
+        copy_bundled_results()  # a packaged application ships its prediction log read-only
+    except OSError as error:  # without the copy the log can still be rebuilt in the window
+        QMessageBox.warning(None, "PitchSense", f"Could not copy the prediction log: {error}")
     try:
         context = default_context()
     except FileNotFoundError as error:

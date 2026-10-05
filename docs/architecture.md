@@ -1,6 +1,6 @@
 # Arhitectura aplicației PitchSense
 
-Acest document descrie structura aplicației, fluxul datelor și deciziile tehnice luate până acum (fazele 0–13). Se actualizează ori de câte ori structura se schimbă.
+Acest document descrie structura aplicației, fluxul datelor și deciziile tehnice luate până acum (fazele 0–14). Se actualizează ori de câte ori structura se schimbă.
 
 ## 1. Principii
 
@@ -67,7 +67,7 @@ app/visualization → app/ui    grafice și interfața grafică
 | `loader.py` | Citește un fișier de sezon sau toate sezoanele unei competiții. |
 | `repository.py` | Stochează și interoghează meciurile în SQLite. |
 | `build_database.py` | Comanda care reconstruiește baza de date din fișierele brute. |
-| `paths.py` | Locul unic în care sunt definite căile către fișierele de date. |
+| `paths.py` | Locul unic în care sunt definite căile către fișierele de date, din codul sursă și dintr-un pachet de instalare (secțiunea 12.2). |
 
 ### 5.2. Înregistrarea unui meci (`Match`)
 
@@ -466,7 +466,7 @@ Testele au găsit două probleme, corectate:
 Rulare din 2026-10-04:
 
 - Baza de date a fost reconstruită din cele 20 de fișiere: toate sezoanele sunt complete (7.600 de meciuri).
-- Jurnalul predicțiilor reconstruit este identic, byte cu byte, cu cel anterior (30.400 de rânduri).
+- Jurnalul predicțiilor reconstruit este identic, byte cu byte, cu cel anterior (30.400 de rânduri; pe alt sistem de operare pot diferi ultimele cifre, secțiunea 12.5).
 - Calibrările (Elo, Poisson, regresia logistică) și alegerea lui $k$ dau exact valorile înregistrate.
 - Toate valorile obținute din date și citate în `README.md` și în `docs/` au fost recalculate. Trei pasaje erau inexacte și au fost corectate: câștigul mediu al echipelor promovate din `docs/algorithms/elo.md` (10,6 puncte de rating și 24 de echipe în scădere, nu 9,8 și 23: calculul vechi se oprea înaintea ultimului meci al fiecărei echipe), precizarea egalității de puncte din 2006/07 în același document și trei afirmații din `docs/comparison.md` (legătura dintre egaluri și sezoanele grele, perechile de grupuri cele mai grele și numărul meciurilor cu echipe promovate dintre cele mai mari diferențe).
 - Nu au putut fi recalculate valorile care depind de cod schimbat între timp (predicțiile Elo dinaintea corecției din Faza 9, setările de probă ale modelului Poisson) și durata interogărilor din secțiunea 6.4. Celelalte durate măsurate (backtest 7,9 s, toate predicțiile 6,8 s, un meci ipotetic 6,8 s, modelul Poisson 0,63 s) corespund documentației.
@@ -478,7 +478,53 @@ Numele sunt așezate automat. Fiecare nume încearcă, în ordine, 14 poziții �
 
 Pozițiile depind de mărimea figurii, așa că sunt alese din nou ori de câte ori fereastra redimensionează graficul (aproximativ 65 ms de fiecare dată). Pe datele reale, la mărimea implicită a figurii (6,4 × 4,8 țoli), perechile de nume suprapuse au scăzut de la 73 la 3 în cele 20 de sezoane, iar niciun nume nu acoperă un centru; la mărimea graficului din fereastra aplicației (aproximativ 7,5 × 5,9 țoli) nu mai rămâne nicio suprapunere. Construirea graficului durează acum aproximativ 0,25 s.
 
-## 12. Setul de date și perioadele
+## 12. Pachetele de instalare (Faza 14)
+
+### 12.1. Construcție
+
+- **PyInstaller 6.22.3** (dependență de dezvoltare) adună interpretorul Python, bibliotecile, codul și datele într-un folder cu un program executabil; pe macOS, folderul devine aplicația `PitchSense.app`. A fost ales în locul lui `pyside6-deploy`, care compilează totul în C cu Nuitka, cere un compilator și construiește mult mai încet.
+- `packaging/pitchsense.spec` descrie pachetul. `packaging/build.py` reconstruiește baza de date și jurnalul predicțiilor din fișierele brute, rulează PyInstaller și face arhiva: o imagine `.dmg` pe macOS (cu aplicația și o scurtătură spre `Applications`) și un fișier `.zip` pe Windows.
+- PyInstaller nu poate construi pentru alt sistem decât cel pe care rulează: pachetul macOS se construiește pe un Mac, iar cel pentru Windows pe o mașină Windows oferită de GitHub (secțiunea 12.4).
+- Pachetul macOS are 68 MB (aplicația despachetată, 144 MB) și cere un Mac cu Apple Silicon și macOS 14 sau mai nou: bibliotecile NumPy incluse sunt construite pentru macOS 14, iar aplicația declară această limită (`LSMinimumSystemVersion`), ca macOS-ul mai vechi să refuze clar pornirea. Pachetul Windows are 84 MB (folderul despachetat, 188 MB) și cere Windows 10 sau 11 pe 64 de biți. Cea mai mare parte din mărime o ocupă Qt, NumPy, pandas și matplotlib.
+
+### 12.2. Fișierele într-un pachet
+
+Un pachet nu trebuie modificat (pe macOS, modificarea aplicației o poate strica), deci aplicația scrie doar în folderul utilizatorului: `~/Library/Application Support/PitchSense` pe macOS și `%LOCALAPPDATA%\PitchSense` pe Windows. Toate căile vin din `app/data/paths.py`:
+
+| Fișier | Din codul sursă | Într-un pachet |
+|---|---|---|
+| baza de date | `data/pitchsense.db` | în pachet, doar pentru citire |
+| jurnalul predicțiilor | `data/results/` | în folderul utilizatorului; la prima pornire, jurnalul din pachet este copiat acolo, iar un jurnal reconstruit de utilizator nu este înlocuit niciodată |
+| memoria fonturilor matplotlib | `~/.matplotlib` | în folderul utilizatorului (`matplotlib/`) |
+
+Construirea a scos la iveală o problemă: PyInstaller îi dă lui matplotlib un folder temporar nou la fiecare pornire (necesar pentru pachetele dintr-un singur fișier, care se despachetează de fiecare dată în alt loc), așa că memoria fonturilor, care se construiește în aproximativ 18 s pe Mac-ul de test, s-ar fi refăcut la fiecare pornire. Pachetul nostru este un folder care nu se mută, deci punctul de intrare (`app/__main__.py`) păstrează această memorie în folderul utilizatorului. Prima pornire durează aproximativ 30 s, următoarele aproximativ 10 s.
+
+### 12.3. Autoverificarea (`--self-test`)
+
+`python -m app --self-test`, sau programul din pachet pornit cu `--self-test`, deschide fereastra fără a o afișa, pe datele reale, folosește fiecare filă prin propriile butoane, desenează cele cinci grafice și se termină cu codul 0 dacă toate cele 13 verificări au reușit (`app/ui/self_test.py`). Este singura verificare automată posibilă pentru un pachet, în care testele nu pot rula. Raportul este afișat în terminal; o aplicație Windows nu are consolă, așa că acolo raportul este scris în `self-test.txt`, în folderul utilizatorului.
+
+### 12.4. Pachetul pentru Windows (GitHub Actions)
+
+Fluxul `.github/workflows/package.yml` rulează pe o mașină Windows oferită de GitHub: instalează Python 3.14 și dependențele fixate, rulează toate testele și verificarea codului, construiește pachetul cu `packaging/build.py`, pornește autoverificarea pachetului și păstrează fișierul `.zip` 30 de zile, ca *artifact*. Fluxul pornește manual (*Run workflow* pe pagina *Actions*, sau `gh workflow run "Windows package"`) sau la publicarea unei etichete de versiune (`v*`). Depozitul este privat, deci fiecare rulare consumă din minutele gratuite lunare ale contului (o rulare a durat aproximativ 4 minute, care se socotesc dublu pentru Windows).
+
+### 12.5. Verificare
+
+Rulări din 2026-10-05:
+
+- **macOS** (Mac cu Apple Silicon, macOS 27): autoverificarea pachetului a trecut (13 din 13 verificări; prima pornire 29 s, a doua 10 s), inclusiv pornit direct din imaginea `.dmg` montată doar pentru citire, ceea ce arată că aplicația nu scrie nimic în pachet; pornită normal (`open PitchSense.app`), aplicația rulează și folosește aproximativ 320 MB de memorie.
+- **Windows** (mașina `windows-latest` de la GitHub): toate cele 525 de teste, verificarea codului, construirea pachetului și autoverificarea acestuia (13 din 13) au trecut; rularea a durat 3 min 54 s. Testele nu rulaseră niciodată pe Windows până acum.
+- **Între sisteme:** jurnalul predicțiilor construit pe Windows diferă de cel construit pe macOS doar în ultima cifră a unor probabilități (cel mult $3{,}3 \cdot 10^{-16}$), din cauza bibliotecilor numerice diferite. Toate cele 30.400 de rezultate prezise, toate măsurile raportate (cu 4 zecimale), matricele de confuzie și diferențele dintre modele sunt identice.
+- **Teste noi:** `tests/test_paths.py` (folderul utilizatorului pe fiecare sistem, copierea jurnalului, memoria fonturilor, pornirea cu o copiere eșuată) și `tests/test_self_test.py`.
+- **Neverificat:** pachetul pentru Windows nu a fost deschis de o persoană pe un calculator cu Windows, ci doar autoverificat, fără fereastră vizibilă, pe mașina GitHub; pachetul macOS nu a fost încercat pe alt Mac sau după descărcarea din internet.
+
+### 12.6. Limitări
+
+- Pachetele nu sunt semnate (semnarea cere un abonament Apple Developer de 99 USD pe an și, pentru Windows, un certificat de semnare a codului), deci ambele sisteme avertizează la prima deschidere; `README.md` explică pașii.
+- Pachetul macOS rulează doar pe Mac-uri cu Apple Silicon; pentru Mac-urile cu procesor Intel ar trebui construit pe un Mac cu Intel.
+- Prima pornire durează aproximativ 30 s.
+- În macOS 27, comanda `hdiutil` folosită pentru imaginea `.dmg` afișează un avertisment că este învechită, dar funcționează; comanda care o înlocuiește (`diskutil image`) nu există pe versiunile mai vechi de macOS.
+
+## 13. Setul de date și perioadele
 
 Sursa datelor este Football-Data.co.uk: La Liga (`SP1`), 20 de sezoane încheiate, 2006/07–2025/26 (7.600 de meciuri).
 
@@ -488,7 +534,7 @@ Sursa datelor este Football-Data.co.uk: La Liga (`SP1`), 20 de sezoane încheiat
 | 2007/08–2009/10 | Calibrare: se aleg hiperparametrii; rezultatele nu sunt raportate. |
 | 2010/11–2025/26 | Evaluarea raportată: 16 sezoane, 6.080 de meciuri. |
 
-## 13. Tehnologii
+## 14. Tehnologii
 
 | Componentă | Versiune | Rol |
 |---|---|---|
@@ -500,8 +546,9 @@ Sursa datelor este Football-Data.co.uk: La Liga (`SP1`), 20 de sezoane încheiat
 | SQLite (`sqlite3`, inclus în Python) | – | stocarea datelor prelucrate |
 | pytest | 9.1.1 | testare |
 | ruff | 0.16.10 | verificarea și formatarea codului |
+| PyInstaller | 6.22.3 | construirea pachetelor de instalare |
 
-## 14. Decizii tehnice
+## 15. Decizii tehnice
 
 | Decizie | Motiv |
 |---|---|
@@ -539,3 +586,9 @@ Sursa datelor este Football-Data.co.uk: La Liga (`SP1`), 20 de sezoane încheiat
 | Un jurnal care nu poate fi citit este semnalat direct în filă, cu butonul „Run backtest” vizibil | Jurnalul poate fi reconstruit din aplicație, iar o fereastră de dialog s-ar fi repetat la fiecare schimbare de filă. |
 | Numele echipelor de pe graficul grupurilor sunt așezate automat, fără o bibliotecă nouă, și din nou la fiecare redimensionare | Suprapunerile dispar aproape toate (de la 73 la 3 perechi în 20 de sezoane la mărimea implicită, niciuna la mărimea din fereastra aplicației), iar graficul rămâne determinist. |
 | Testele de la un capăt la altul folosesc doar datele sintetice | Testele nu citesc baza de date reală; verificarea pe datele reale este o rulare separată, documentată în secțiunea 11.3. |
+| PyInstaller în locul lui `pyside6-deploy` (Nuitka) | Construire simplă și rapidă, fără compilator C; funcționează bine cu PySide6, matplotlib și pandas. |
+| Baza de date și jurnalul predicțiilor sunt incluse în pachet | Aplicația pornește gata de folosit, fără Python și fără să ruleze backtestul. |
+| Aplicația împachetată scrie doar în folderul utilizatorului | Pachetul rămâne nemodificat; jurnalul reconstruit de utilizator este păstrat. |
+| Pachetul pentru Windows se construiește cu GitHub Actions | Nu este nevoie de un calculator cu Windows, iar testele rulează și pe Windows. |
+| Pachete nesemnate: `.dmg` pentru macOS și `.zip` pentru Windows | Semnarea costă; avertismentele de la prima deschidere sunt explicate în `README.md`. |
+| Opțiunea `--self-test` | Singura verificare automată a unui pachet; o folosește și fluxul pentru Windows. |

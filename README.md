@@ -5,14 +5,29 @@ Aplicație desktop pentru analiza datelor istorice din fotbal și estimarea rezu
 Proiect de an la disciplina *Analiza și Proiectarea Algoritmilor* (APA), Universitatea Tehnică a Moldovei, Departamentul Ingineria Software și Automatică.
 Echipa (grupa TI-251): Goroșevschi Chiril, Cuzmici Nicolae, Păstru Alina.
 
-**Stadiu:** Faza 14, pachete de instalare pentru macOS și Windows. Fazele 0–12 (planificare și arhitectură, prelucrarea datelor istorice, statisticile echipelor, ratingul Elo, modelul Poisson, regresia logistică, K-Means, motorul de predicție, backtesting cronologic, metricile de evaluare, compararea algoritmilor, interfața grafică, vizualizarea) au fost încheiate pe 2026-10-04, iar Faza 13 (testare de integrare și finisare) pe 2026-10-05. Aplicația se pornește cu `python -m app`.
+**Stadiu:** toate etapele (0–14) sunt încheiate. Fazele 0–12 (planificare și arhitectură, prelucrarea datelor istorice, statisticile echipelor, ratingul Elo, modelul Poisson, regresia logistică, K-Means, motorul de predicție, backtesting cronologic, metricile de evaluare, compararea algoritmilor, interfața grafică, vizualizarea) au fost încheiate pe 2026-10-04, iar fazele 13 (testare de integrare și finisare) și 14 (pachete de instalare pentru macOS și Windows) pe 2026-10-05. Aplicația se pornește cu `python -m app` sau din pachetele de instalare.
 
-## Cerințe
+## Aplicația gata de instalat
+
+Pachetele nu cer Python și conțin deja datele (baza de date și jurnalul predicțiilor).
+
+| Sistem | Fișier | Cerințe |
+|---|---|---|
+| macOS | `PitchSense-0.1.0-macOS-arm64.dmg` | Mac cu procesor Apple Silicon, macOS 14 sau mai nou |
+| Windows | `PitchSense-0.1.0-Windows-amd64.zip` | Windows 10 sau 11, pe 64 de biți |
+
+**macOS:** deschideți fișierul `.dmg` și trageți `PitchSense` în `Applications`. Pachetul nu este semnat, așa că macOS blochează prima deschidere a unei copii descărcate din internet: deschideți *System Settings → Privacy & Security* și alegeți *Open Anyway* în dreptul mesajului despre PitchSense.
+
+**Windows:** dezarhivați fișierul `.zip` și porniți `PitchSense\PitchSense.exe`. Pachetul nu este semnat, așa că Windows poate afișa „Windows protected your PC”: alegeți *More info*, apoi *Run anyway*.
+
+Prima pornire durează până la aproximativ 30 de secunde, pentru că se pregătesc fonturile graficelor; următoarele durează aproximativ 10 secunde. Aplicația își păstrează fișierele în `~/Library/Application Support/PitchSense` (macOS) sau în `%LOCALAPPDATA%\PitchSense` (Windows); ștergerea acestui folder o readuce la starea de după instalare.
+
+## Cerințe (pentru codul sursă)
 
 - Python 3.14 (PySide6 6.11 nu suportă încă Python 3.15)
 - macOS sau Windows
 
-## Instalare
+## Instalare (din codul sursă)
 
 Comenzile se rulează din folderul proiectului.
 
@@ -76,6 +91,26 @@ La pornire, aplicația calculează o dată toate predicțiile istorice (aproxima
 - **Algorithm Comparison:** compararea modelelor, în tabele și în grafice (calibrarea și matricea de confuzie).
 
 Dacă jurnalul predicțiilor lipsește sau nu poate fi citit, butonul **Run backtest** îl construiește din nou (aproximativ 8 secunde).
+
+## Construirea pachetelor
+
+**macOS** (pe un Mac cu Apple Silicon, cu mediul virtual activat):
+
+```bash
+python packaging/build.py
+```
+
+Comanda reconstruiește baza de date și jurnalul predicțiilor, care intră în pachet, și produce `dist/PitchSense-0.1.0-macOS-arm64.dmg`.
+
+**Windows:** pachetul se construiește pe GitHub, cu fluxul „Windows package” (`.github/workflows/package.yml`): pe pagina *Actions* a depozitului, *Windows package → Run workflow*. Fluxul rulează toate testele pe Windows, construiește pachetul, îl verifică și îl păstrează 30 de zile ca *artifact* (`PitchSense-Windows`). Pe un calculator cu Windows se poate folosi și `python packaging/build.py`.
+
+Orice pachet se poate verifica automat: opțiunea `--self-test` deschide fereastra fără a o afișa, folosește fiecare filă și se termină cu codul 0 dacă totul a funcționat.
+
+```bash
+dist/PitchSense.app/Contents/MacOS/PitchSense --self-test
+```
+
+Din codul sursă, aceeași verificare este `python -m app --self-test`.
 
 ## Evaluare
 
