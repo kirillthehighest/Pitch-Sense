@@ -5,7 +5,7 @@ Aplicație desktop pentru analiza datelor istorice din fotbal și estimarea rezu
 Proiect de an la disciplina *Analiza și Proiectarea Algoritmilor* (APA), Universitatea Tehnică a Moldovei, Departamentul Ingineria Software și Automatică.
 Echipa (grupa TI-251): Goroșevschi Chiril, Cuzmici Nicolae, Păstru Alina.
 
-**Stadiu:** Faza 17, pachetele de instalare și versiunea 0.2.0. Fazele 0–12 (planificare și arhitectură, prelucrarea datelor istorice, statisticile echipelor, ratingul Elo, modelul Poisson, regresia logistică, K-Means, motorul de predicție, backtesting cronologic, metricile de evaluare, compararea algoritmilor, interfața grafică, vizualizarea) au fost încheiate pe 2026-10-04, iar fazele 13 (testare de integrare și finisare), 14 (pachete de instalare pentru macOS și Windows), 15 (cinci ligi) și 16 (identitate vizuală și interfață nouă, în limba română) pe 2026-10-05. Aplicația se pornește cu `python -m app` sau din pachetele de instalare.
+**Stadiu:** toate etapele (0–17) sunt încheiate; versiunea curentă este 0.2.0. Fazele 0–12 (planificare și arhitectură, prelucrarea datelor istorice, statisticile echipelor, ratingul Elo, modelul Poisson, regresia logistică, K-Means, motorul de predicție, backtesting cronologic, metricile de evaluare, compararea algoritmilor, interfața grafică, vizualizarea) au fost încheiate pe 2026-10-04, fazele 13 (testare de integrare și finisare), 14 (pachete de instalare pentru macOS și Windows), 15 (cinci ligi) și 16 (identitate vizuală și interfață nouă, în limba română) pe 2026-10-05, iar faza 17 (pachete și versiunea 0.2.0) pe 2026-10-06. Aplicația se pornește cu `python -m app` sau din pachetele de instalare.
 
 ## Aplicația gata de instalat
 
