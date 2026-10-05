@@ -47,25 +47,61 @@ def test_a_package_keeps_the_matplotlib_cache_in_the_user_folder(monkeypatch):
     assert environ["MPLCONFIGDIR"] == str(paths.user_data_dir() / "matplotlib")
 
 
-def test_the_shipped_log_is_copied_once_and_a_rebuilt_log_is_kept(tmp_path):
-    shipped = tmp_path / "package" / "results"
-    shipped.mkdir(parents=True)
-    (shipped / "backtest_SP1.csv").write_text("shipped", encoding="utf-8")
-    (shipped / "backtest_XX.csv").write_text("other", encoding="utf-8")
+@pytest.fixture
+def shipped(tmp_path):
+    folder = tmp_path / "package" / "results"
+    folder.mkdir(parents=True)
+    (folder / "backtest_SP1.csv").write_text("shipped", encoding="utf-8")
+    (folder / "backtest_XX.csv").write_text("other", encoding="utf-8")
+    return folder
+
+
+def test_the_shipped_logs_are_copied_once_and_a_rebuilt_log_is_kept(shipped, tmp_path):
     user = tmp_path / "user" / "results"
 
-    copied = paths.copy_bundled_results(shipped, user)
+    copied = paths.copy_bundled_results(shipped, user, "0.2.0")
 
     assert copied == [user / "backtest_SP1.csv", user / "backtest_XX.csv"]
     assert (user / "backtest_SP1.csv").read_text(encoding="utf-8") == "shipped"
+    assert (user / paths.VERSION_FILE).read_text(encoding="utf-8") == "0.2.0\n"
     (user / "backtest_SP1.csv").write_text("rebuilt", encoding="utf-8")
-    assert paths.copy_bundled_results(shipped, user) == []
+    assert paths.copy_bundled_results(shipped, user, "0.2.0") == []
     assert (user / "backtest_SP1.csv").read_text(encoding="utf-8") == "rebuilt"
+
+
+def test_a_missing_log_is_copied_again_within_a_version(shipped, tmp_path):
+    user = tmp_path / "user" / "results"
+    paths.copy_bundled_results(shipped, user, "0.2.0")
+    (user / "backtest_XX.csv").unlink()
+
+    assert paths.copy_bundled_results(shipped, user, "0.2.0") == [user / "backtest_XX.csv"]
+
+
+@pytest.mark.parametrize("old_version", [None, "0.1.0"])
+def test_an_update_replaces_the_logs_of_the_older_version(shipped, tmp_path, old_version):
+    user = tmp_path / "user" / "results"
+    user.mkdir(parents=True)
+    (user / "backtest_SP1.csv").write_text("built by 0.1.0", encoding="utf-8")
+    (user / "notes.txt").write_text("the user's own file", encoding="utf-8")
+    if old_version is not None:
+        (user / paths.VERSION_FILE).write_text(old_version, encoding="utf-8")
+
+    copied = paths.copy_bundled_results(shipped, user, "0.2.0")
+
+    assert copied == [user / "backtest_SP1.csv", user / "backtest_XX.csv"]
+    assert (user / "backtest_SP1.csv").read_text(encoding="utf-8") == "shipped"
+    assert (user / "notes.txt").read_text(encoding="utf-8") == "the user's own file"
+    assert (user / paths.VERSION_FILE).read_text(encoding="utf-8") == "0.2.0\n"
 
 
 def test_nothing_is_copied_without_shipped_results(tmp_path):
     assert paths.copy_bundled_results(tmp_path / "missing", tmp_path / "user") == []
     assert not (tmp_path / "user").exists()
+
+
+def test_from_the_source_code_nothing_is_copied(shipped):
+    assert paths.copy_bundled_results(shipped, shipped) == []
+    assert not (shipped / paths.VERSION_FILE).exists()
 
 
 def test_start_up_copies_the_shipped_results_before_loading(application, monkeypatch, tmp_path):

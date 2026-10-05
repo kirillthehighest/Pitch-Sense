@@ -1,8 +1,10 @@
 """Build the PitchSense package for this operating system: ``python packaging/build.py``.
 
-1. Rebuild the database and the prediction log from ``data/raw``; both ship inside the package.
-2. Run PyInstaller with ``packaging/pitchsense.spec``.
-3. Pack the result in ``dist/``: a ``.dmg`` disk image on macOS, a ``.zip`` folder on Windows.
+1. Rebuild the database and the prediction log of every league from ``data/raw``; they ship
+   inside the package.
+2. Draw the app icon files from the logo (``packaging/icons.py``).
+3. Run PyInstaller with ``packaging/pitchsense.spec``.
+4. Pack the result in ``dist/``: a ``.dmg`` disk image on macOS, a ``.zip`` folder on Windows.
 
 PyInstaller does not cross-compile: build the macOS package on macOS and the Windows package on
 Windows. The packages are not signed, so each system warns the first time they are opened.
@@ -13,10 +15,13 @@ import shutil
 import subprocess
 import sys
 import tempfile
-import tomllib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
+
+from app import __version__  # noqa: E402
+
 DIST = ROOT / "dist"
 BUILD = ROOT / "build"
 NAME = "PitchSense"
@@ -25,11 +30,6 @@ NAME = "PitchSense"
 def run(*command: str) -> None:
     print("$", " ".join(command), flush=True)
     subprocess.run(command, cwd=ROOT, check=True)
-
-
-def version() -> str:
-    project = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"]
-    return project["version"]
 
 
 def disk_image(application: Path, target: Path) -> Path:
@@ -48,10 +48,11 @@ def main() -> int:
     python = sys.executable
     run(python, "-m", "app.data.build_database")
     run(python, "-m", "app.evaluation.backtesting")
+    run(python, str(ROOT / "packaging" / "icons.py"), str(BUILD / "icons"))
     run(python, "-m", "PyInstaller", "--noconfirm", "--clean", "--distpath", str(DIST),
         "--workpath", str(BUILD), str(ROOT / "packaging" / "pitchsense.spec"))  # fmt: skip
 
-    stem = f"{NAME}-{version()}-{{system}}-{platform.machine().lower()}"
+    stem = f"{NAME}-{__version__}-{{system}}-{platform.machine().lower()}"
     if sys.platform == "darwin":
         package = disk_image(DIST / f"{NAME}.app", DIST / (stem.format(system="macOS") + ".dmg"))
     elif sys.platform == "win32":

@@ -23,6 +23,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from app import __version__
 from app.data.competitions import competition
 from app.data.paths import copy_bundled_results
 from app.services.formatting import season_text
@@ -292,9 +293,11 @@ class MainWindow(QMainWindow):
             self.league_buttons[code] = button
         layout.addStretch()
         note = label(
-            "Date: Football-Data.co.uk\n5 ligi · 2006/07–2025/26\nUTM · APA · TI-251",
+            f"PitchSense {__version__}\nDate: Football-Data.co.uk\n5 ligi · 2006/07–2025/26\n"
+            "UTM · APA · TI-251",
             "sidebar-note",
         )
+        self.version_note = note
         note.setContentsMargins(22, 0, 12, 0)
         layout.addWidget(note)
         return panel

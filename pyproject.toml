@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pitchsense"
-version = "0.1.0"
+dynamic = ["version"]  # app.__version__, see [tool.setuptools.dynamic]
 description = "Desktop application for football match analysis and outcome prediction (UTM, APA course project)."
 readme = "README.md"
 requires-python = ">=3.14,<3.15"
@@ -27,6 +27,9 @@ dev = [
     "ruff==0.16.10",
     "pyinstaller==6.22.3",  # builds the macOS and Windows packages (Phase 14)
 ]
+
+[tool.setuptools.dynamic]
+version = { attr = "app.__version__" }
 
 [tool.setuptools.packages.find]
 include = ["app*"]

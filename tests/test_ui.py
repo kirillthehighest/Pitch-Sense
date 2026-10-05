@@ -9,6 +9,7 @@ from matplotlib.figure import Figure
 from PySide6.QtCore import QCoreApplication, QDate, Qt, QThread
 from PySide6.QtGui import QColor
 
+from app import __version__
 from app.services.preferences import FavouriteTeam, Preferences
 from app.ui.brand import flag_pixmap
 from app.ui.main_window import MainWindow
@@ -105,6 +106,7 @@ def test_the_window_prepares_the_predictions_of_the_league(window, app_context):
     assert window.statusBar().currentMessage() == "Predicțiile pentru La Liga sunt gata"
     assert window.windowTitle().startswith("PitchSense")
     assert not window.windowIcon().isNull()
+    assert window.version_note.text().startswith(f"PitchSense {__version__}\n")
 
 
 # --- Acasă ---

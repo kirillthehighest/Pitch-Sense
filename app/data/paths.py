@@ -4,7 +4,7 @@ Run from the source code, the paths are relative to the project folder, so they 
 the project is cloned. In a packaged application (PyInstaller, Phase 14) the database and the
 prediction log built before packaging travel inside the package, which must stay read-only;
 results the application writes go to the user's application-data folder instead, and
-``copy_bundled_results`` puts the shipped log there on first start.
+``copy_bundled_results`` puts the shipped logs there on first start and after an update.
 """
 
 import os
@@ -12,6 +12,8 @@ import shutil
 import sys
 from collections.abc import Mapping, MutableMapping
 from pathlib import Path
+
+from app import __version__
 
 APP_NAME = "PitchSense"
 PACKAGED = bool(getattr(sys, "frozen", False))  # set by PyInstaller in a packaged application
@@ -48,23 +50,33 @@ PREFERENCES_PATH = user_data_dir() / "preferences.json"
 ASSETS_DIR = BASE_DIR / "app" / "ui" / "assets"
 
 
+VERSION_FILE = "VERSION"  # in the results folder: the version whose logs are there
+
+
 def copy_bundled_results(
-    source: Path = BUNDLED_RESULTS_DIR, target: Path = RESULTS_DIR
+    source: Path = BUNDLED_RESULTS_DIR, target: Path = RESULTS_DIR, version: str = __version__
 ) -> list[Path]:
     """Copy the result files shipped in a package to the writable results folder.
 
-    Files already in ``target`` are kept, so a log the user rebuilt is never replaced. Run from
-    the source code both folders are the same and nothing is copied. Returns the copied files.
+    Within one version, files already in ``target`` are kept, so a log the user rebuilt is never
+    replaced (the same code rebuilds the same log). When ``target`` holds the logs of another
+    version, or of a version that did not record itself (0.1.0), every shipped file replaces its
+    old copy: logs built by older code would show results the current models do not give. Run
+    from the source code both folders are the same and nothing is copied. Returns the copied
+    files.
     """
     if not source.is_dir() or source.resolve() == target.resolve():
         return []
+    marker = target / VERSION_FILE
+    current = marker.is_file() and marker.read_text(encoding="utf-8").strip() == version
+    target.mkdir(parents=True, exist_ok=True)
     copied = []
     for file in sorted(source.iterdir()):
         destination = target / file.name
-        if file.is_file() and not destination.exists():
-            target.mkdir(parents=True, exist_ok=True)
+        if file.is_file() and file.name != VERSION_FILE and not (current and destination.exists()):
             shutil.copyfile(file, destination)
             copied.append(destination)
+    marker.write_text(version + "\n", encoding="utf-8")
     return copied
 
 
