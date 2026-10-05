@@ -1,2 +1,5 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Raw data files are stored exactly as downloaded (CRLF line endings included)
+data/raw/**/*.csv -text
