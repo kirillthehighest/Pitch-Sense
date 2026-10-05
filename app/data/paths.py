@@ -42,6 +42,10 @@ DATABASE_PATH = DATA_DIR / "pitchsense.db"
 BUNDLED_RESULTS_DIR = DATA_DIR / "results"  # in a package: the read-only results shipped in it
 # Generated evaluation outputs, rebuilt by commands or by the application.
 RESULTS_DIR = user_data_dir() / "results" if PACKAGED else BUNDLED_RESULTS_DIR
+# What the user chose in the application (league, "your team"); user state, kept per user.
+PREFERENCES_PATH = user_data_dir() / "preferences.json"
+# Fonts and other files of the interface, shipped with the code (and inside a package).
+ASSETS_DIR = BASE_DIR / "app" / "ui" / "assets"
 
 
 def copy_bundled_results(

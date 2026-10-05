@@ -36,15 +36,17 @@ from app.statistics.team_statistics import (
     team_statistics,
 )
 
-# Names of the k = 4 groups, from the clusters of all seasons (docs/algorithms/kmeans.md).
+# Names of the k = 4 groups shown to the user (Romanian), from the clusters of all seasons
+# (docs/algorithms/kmeans.md).
 GROUP_NAMES = {
-    0: "Elite",
-    1: "Upper half",
-    2: "Lower half, strong at home",
-    3: "Weak everywhere",
+    0: "Elită",
+    1: "Jumătatea de sus",
+    2: "Jumătatea de jos, puternică acasă",
+    3: "Slabă peste tot",
 }
-PROMOTED_NAME = "Promoted (no previous season)"
-NO_STATISTICS_NAME = "Not available (no shot statistics in that season)"
+PROMOTED_NAME = "Promovată (fără sezonul anterior în ligă)"
+NO_STATISTICS_NAME = "Indisponibil (sezonul nu are statistici de șuturi)"
+FIRST_SEASON_NAME = "Indisponibil (primul sezon din date)"
 _GOALS_SCORED = PROFILE_FEATURES.index("goals_scored_per_match")
 _GOALS_CONCEDED = PROFILE_FEATURES.index("goals_conceded_per_match")
 
@@ -233,7 +235,7 @@ class TeamService:
 
     def _pre_season_group(self, season: str, team: str) -> str:
         if season == self._seasons[0]:
-            return "Not available (first season of the data)"
+            return FIRST_SEASON_NAME
         previous = self._seasons[self._seasons.index(season) - 1]
         if not has_shot_statistics(self._history, previous):
             return NO_STATISTICS_NAME

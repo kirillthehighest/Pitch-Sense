@@ -37,9 +37,11 @@ def test_league_character_by_hand():
     assert (character.closed_doors_home_win, character.other_seasons_home_win) == (0.5, 0.5)
 
 
-def test_league_character_needs_the_closed_doors_season_and_others():
-    with pytest.raises(ValueError, match="2020-21"):
-        league_character("SP1", [row("2019-20", 2, 0, 1)])
+def test_without_the_closed_doors_season_that_comparison_is_not_available():
+    character = league_character("SP1", [row("2019-20", 2, 0, 1)])
+
+    assert character.home_win == 1.0
+    assert (character.closed_doors_home_win, character.other_seasons_home_win) == (None, None)
 
 
 @pytest.fixture

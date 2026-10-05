@@ -5,7 +5,7 @@ Aplicație desktop pentru analiza datelor istorice din fotbal și estimarea rezu
 Proiect de an la disciplina *Analiza și Proiectarea Algoritmilor* (APA), Universitatea Tehnică a Moldovei, Departamentul Ingineria Software și Automatică.
 Echipa (grupa TI-251): Goroșevschi Chiril, Cuzmici Nicolae, Păstru Alina.
 
-**Stadiu:** Faza 16, identitate vizuală și interfață nouă, în limba română. Fazele 0–12 (planificare și arhitectură, prelucrarea datelor istorice, statisticile echipelor, ratingul Elo, modelul Poisson, regresia logistică, K-Means, motorul de predicție, backtesting cronologic, metricile de evaluare, compararea algoritmilor, interfața grafică, vizualizarea) au fost încheiate pe 2026-10-04, iar fazele 13 (testare de integrare și finisare), 14 (pachete de instalare pentru macOS și Windows) și 15 (cinci ligi) pe 2026-10-05. Aplicația se pornește cu `python -m app` sau din pachetele de instalare.
+**Stadiu:** Faza 17, pachetele de instalare și versiunea 0.2.0. Fazele 0–12 (planificare și arhitectură, prelucrarea datelor istorice, statisticile echipelor, ratingul Elo, modelul Poisson, regresia logistică, K-Means, motorul de predicție, backtesting cronologic, metricile de evaluare, compararea algoritmilor, interfața grafică, vizualizarea) au fost încheiate pe 2026-10-04, iar fazele 13 (testare de integrare și finisare), 14 (pachete de instalare pentru macOS și Windows), 15 (cinci ligi) și 16 (identitate vizuală și interfață nouă, în limba română) pe 2026-10-05. Aplicația se pornește cu `python -m app` sau din pachetele de instalare.
 
 ## Aplicația gata de instalat
 
@@ -83,14 +83,17 @@ Cu mediul virtual activat și baza de date construită:
 python -m app
 ```
 
-La pornire, aplicația calculează o dată toate predicțiile istorice (aproximativ 7 secunde; bara de stare arată „Predictions ready” când au fost calculate). Filele:
+Liga se alege din panoul din stânga (sau dintr-un card al ecranului Ligi); prima dată când o ligă este afișată, aplicația îi calculează toate predicțiile istorice (aproximativ 7 secunde; bara de stare arată „Predicțiile pentru … sunt gata”). Ultima ligă afișată este redeschisă la următoarea pornire. Ecranele, din bara de sus:
 
-- **Dashboard:** datele încărcate și rezultatele principale ale modelelor;
-- **Match Prediction:** predicția unui meci jucat sau a oricăror două echipe dintr-un sezon, la o anumită dată, cu graficul probabilităților scorurilor (Poisson);
-- **Team Analysis:** clasamentul și prezentarea unei echipe, la final de sezon sau la o anumită dată, evoluția ratingului ei Elo și grupurile K-Means ale sezonului;
-- **Algorithm Comparison:** compararea modelelor, în tabele și în grafice (calibrarea și matricea de confuzie).
+- **Acasă:** liga pe scurt, modelul cu cel mai mic scor Brier (și dacă avantajul lui este real), echipa ta și rezultatele modelelor;
+- **Predicție:** predicția unui meci jucat sau a oricăror două echipe dintr-un sezon, la o anumită dată, cu graficul probabilităților scorurilor (Poisson);
+- **Echipe:** clasamentul și profilul unei echipe, la final de sezon sau la o anumită dată, evoluția ratingului ei Elo și grupurile K-Means ale sezonului;
+- **Modele:** compararea modelelor ligii, în tabele și în grafice (calibrarea și matricea de confuzie);
+- **Ligi:** cele cinci ligi comparate: caracterul fiecăreia și cât de bine prezic modelele în fiecare.
 
-Dacă jurnalul predicțiilor lipsește sau nu poate fi citit, butonul **Run backtest** îl construiește din nou (aproximativ 8 secunde).
+Butonul auriu **Echipa ta** din dreapta sus păstrează echipa pe care o urmăriți: este evidențiată în clasamente și aleasă din start în ecranele Predicție și Echipe.
+
+Dacă jurnalul predicțiilor unei ligi lipsește sau nu poate fi citit, butonul **Rulează backtestul** îl construiește din nou (aproximativ 8–10 secunde pe ligă).
 
 ## Construirea pachetelor
 
@@ -104,7 +107,7 @@ Comanda reconstruiește baza de date și jurnalul predicțiilor, care intră în
 
 **Windows:** pachetul se construiește pe GitHub, cu fluxul „Windows package” (`.github/workflows/package.yml`): pe pagina *Actions* a depozitului, *Windows package → Run workflow*. Fluxul rulează toate testele pe Windows, construiește pachetul, îl verifică și îl păstrează 30 de zile ca *artifact* (`PitchSense-Windows`). Pe un calculator cu Windows se poate folosi și `python packaging/build.py`.
 
-Orice pachet se poate verifica automat: opțiunea `--self-test` deschide fereastra fără a o afișa, folosește fiecare filă și se termină cu codul 0 dacă totul a funcționat.
+Orice pachet se poate verifica automat: opțiunea `--self-test` deschide fereastra fără a o afișa, folosește fiecare ecran și se termină cu codul 0 dacă totul a funcționat.
 
 ```bash
 dist/PitchSense.app/Contents/MacOS/PitchSense --self-test
@@ -150,6 +153,7 @@ python -m app.evaluation.leagues
 - [`docs/evaluation.md`](docs/evaluation.md): măsurile de evaluare și rezultatele modelelor în La Liga.
 - [`docs/comparison.md`](docs/comparison.md): compararea algoritmilor în La Liga.
 - [`docs/leagues.md`](docs/leagues.md): comparația celor cinci ligi.
+- [`docs/brand.md`](docs/brand.md): identitatea vizuală: semnul, culorile, literele și regulile interfeței.
 - `docs/algorithms/`: câte un document pentru fiecare algoritm: [`elo.md`](docs/algorithms/elo.md) (ratingul Elo), [`poisson.md`](docs/algorithms/poisson.md) (modelul Poisson), [`logistic_regression.md`](docs/algorithms/logistic_regression.md) (regresia logistică), [`kmeans.md`](docs/algorithms/kmeans.md) (K-Means).
 
 ## Etape

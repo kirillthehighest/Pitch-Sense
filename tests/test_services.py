@@ -6,13 +6,16 @@ import pytest
 
 from app.algorithms.elo import DEFAULT_INITIAL_RATING
 from app.data.models import Outcome
+from app.evaluation.backtesting import log_path, read_log
 from app.prediction.elo_predictions import run_elo
 from app.prediction.outputs import ModelName
 from app.prediction.prediction_engine import predict_fixture
-from app.services.catalog import DataCatalog
+from app.services.catalog import DataCatalog, available_competitions
 from app.services.evaluation import EvaluationService
+from app.services.leagues import LeagueComparisonService
 from app.services.predictions import PredictionService, summarize
-from app.services.teams import GROUP_NAMES, NO_STATISTICS_NAME, TeamService
+from app.services.preferences import FavouriteTeam, Preferences
+from app.services.teams import FIRST_SEASON_NAME, GROUP_NAMES, NO_STATISTICS_NAME, TeamService
 from app.statistics.team_statistics import TeamResult
 
 W, D, L = TeamResult.WIN, TeamResult.DRAW, TeamResult.LOSS
@@ -146,7 +149,7 @@ def test_overview_of_a_finished_season(two_seasons):
     assert overview.form == (W, W, D, W, D)
     assert overview.season_profile is not None
     assert overview.season_group in GROUP_NAMES.values()
-    assert overview.pre_season_group.startswith("Not available")
+    assert overview.pre_season_group == FIRST_SEASON_NAME
 
 
 def test_overview_part_way_through_a_season(two_seasons):
@@ -271,3 +274,118 @@ def test_building_the_log_needs_the_database(tmp_path):
 
     with pytest.raises(FileNotFoundError, match="build_database"):
         service.build_log()
+
+
+def test_the_log_of_a_league_is_built_from_that_league(two_league_database, tmp_path):
+    service = EvaluationService(
+        tmp_path / "backtest_E0.csv",
+        two_league_database,
+        competition="E0",
+        first_evaluation_season="2007-08",
+        min_training_matches=3,
+    )
+
+    service.build_log()
+
+    teams = {row.home_team for row in read_log(service.log)}
+    assert teams == {"Echo", "Foxtrot", "Golf", "Hotel"}
+    assert EvaluationService(competition="I1").log == log_path("I1")
+
+
+# --- leagues ---
+
+
+def test_available_competitions_are_the_known_leagues_in_registry_order(two_league_database):
+    assert available_competitions(two_league_database) == ["E0", "SP1"]
+
+
+def test_available_competitions_need_the_database(tmp_path):
+    with pytest.raises(FileNotFoundError, match="build_database"):
+        available_competitions(tmp_path / "missing.db")
+
+
+@pytest.fixture
+def comparison(two_league_database, tmp_path):
+    return LeagueComparisonService(
+        ("E0", "SP1"),
+        tmp_path / "results",
+        two_league_database,
+        first_evaluation_season="2007-08",
+        min_training_matches=3,
+    )
+
+
+def test_the_leagues_are_compared_once_every_log_exists(comparison, tmp_path):
+    assert comparison.missing() == ["E0", "SP1"]
+    assert comparison.log("SP1") == tmp_path / "results" / "backtest_SP1.csv"
+    with pytest.raises(FileNotFoundError, match="E0, SP1"):
+        comparison.overview()
+
+    comparison.build_missing_logs()
+    overview = comparison.overview()
+
+    assert comparison.missing() == []
+    assert [result.competition for result in overview.results] == ["E0", "SP1"]
+    assert overview.matches == 24
+    assert len(overview.pooled) == 3
+    assert comparison.overview() is overview  # computed once
+
+
+def test_only_the_missing_logs_are_built(comparison):
+    comparison.log("SP1").parent.mkdir(parents=True)
+    comparison.log("SP1").write_text("kept", encoding="utf-8")
+
+    comparison.build_missing_logs()
+
+    assert comparison.log("SP1").read_text(encoding="utf-8") == "kept"
+    assert comparison.log("E0").is_file()
+
+
+def test_building_the_league_logs_needs_the_database(tmp_path):
+    comparison = LeagueComparisonService(("SP1",), tmp_path, tmp_path / "missing.db")
+
+    with pytest.raises(FileNotFoundError, match="build_database"):
+        comparison.build_missing_logs()
+
+
+# --- preferences ---
+
+
+def test_preferences_start_empty_and_are_remembered(tmp_path):
+    path = tmp_path / "PitchSense" / "preferences.json"
+    preferences = Preferences(path)
+    assert (preferences.competition, preferences.favourite) == (None, None)
+
+    assert preferences.set_competition("E0")
+    assert preferences.set_favourite(FavouriteTeam("SP1", "Barcelona"))
+
+    again = Preferences(path)
+    assert again.competition == "E0"
+    assert again.favourite == FavouriteTeam("SP1", "Barcelona")
+    again.set_favourite(None)
+    assert Preferences(path).favourite is None
+    assert Preferences(path).competition == "E0"
+
+
+@pytest.mark.parametrize(
+    "content",
+    ["{not json", "[1, 2]", '{"competition": 3, "favourite": {"team": "Barcelona"}}'],
+)
+def test_a_damaged_preferences_file_is_ignored(tmp_path, content):
+    path = tmp_path / "preferences.json"
+    path.write_text(content, encoding="utf-8")
+
+    preferences = Preferences(path)
+
+    assert (preferences.competition, preferences.favourite) == (None, None)
+    preferences.set_competition("SP1")
+    assert Preferences(path).competition == "SP1"
+
+
+def test_a_choice_that_cannot_be_saved_lasts_until_the_application_closes(tmp_path):
+    blocked = tmp_path / "file"
+    blocked.write_text("", encoding="utf-8")  # a file where the folder should be
+    preferences = Preferences(blocked / "preferences.json")
+
+    assert not preferences.set_favourite(FavouriteTeam("E0", "Arsenal"))
+    assert preferences.favourite == FavouriteTeam("E0", "Arsenal")

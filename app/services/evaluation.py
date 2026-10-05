@@ -43,17 +43,19 @@ class EvaluationResults:
 
 
 class EvaluationService:
-    """Reads (and if needed builds) the prediction log and computes the results once."""
+    """Reads (and if needed builds) one league's prediction log and computes the results once."""
 
     def __init__(
         self,
         log: Path | None = None,
         database_path: Path = DATABASE_PATH,
         *,
+        competition: str = COMPETITION,
         first_evaluation_season: str = FIRST_EVALUATION_SEASON,
         min_training_matches: int = MIN_TRAINING_MATCHES,
     ) -> None:
-        self.log = log or log_path()
+        self.log = log or log_path(competition)
+        self.competition = competition
         self._database_path = database_path
         self._first_evaluation_season = first_evaluation_season
         self._min_training_matches = min_training_matches
@@ -71,7 +73,7 @@ class EvaluationService:
             )
         with MatchRepository.open(self._database_path) as repository:
             backtest = run_backtest(
-                repository.matches(COMPETITION),
+                repository.matches(self.competition),
                 first_evaluation_season=self._first_evaluation_season,
                 min_training_matches=self._min_training_matches,
             )

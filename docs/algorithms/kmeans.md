@@ -234,7 +234,7 @@ Testele sunt în `tests/test_kmeans.py`, `tests/test_team_profiles.py`, `tests/t
 
 ## 13. Rolul în PitchSense
 
-- În interfață (analiza unei echipe), K-Means arată tipul echipei în fiecare sezon și echipele cu profil asemănător. Graficul „Team groups” (Faza 12) arată echipele unui sezon după golurile marcate și primite pe meci, colorate după grup; pe aceste două axe, 134 din cele 400 de profiluri apar mai aproape de centrul altui grup, pentru că grupurile folosesc toate cele șase mărimi (`docs/architecture.md`, secțiunea 10.2).
+- În interfață (analiza unei echipe), K-Means arată tipul echipei în fiecare sezon și echipele cu profil asemănător. Graficul din sub-fila „Grupuri” a ecranului Echipe (Faza 12) arată echipele unui sezon după golurile marcate și primite pe meci, colorate după grup; pe aceste două axe, 134 din cele 400 de profiluri apar mai aproape de centrul altui grup, pentru că grupurile folosesc toate cele șase mărimi (`docs/architecture.md`, secțiunea 10.2).
 - În evaluare (Faza 10), grupurile momentane permit răspunsul la întrebarea „unde funcționează bine fiecare metodă”, de exemplu în meciurile elită contra echipă slabă sau între echipe din același grup.
 - Grupurile nu sunt folosite ca intrări pentru predicții.
 

@@ -49,8 +49,8 @@ class LeagueCharacter:
     away_win: float
     goals: float  # per match
     home_margin: float  # home goals minus away goals per match
-    closed_doors_home_win: float  # in 2020/21
-    other_seasons_home_win: float
+    closed_doors_home_win: float | None  # in 2020/21; None when the log has no such season
+    other_seasons_home_win: float | None
 
 
 @dataclass(frozen=True, eq=False)
@@ -81,8 +81,8 @@ def league_character(
         raise ValueError(f"{competition}: the log has no matches")
     closed = [row for row in matches if row.season == closed_doors_season]
     others = [row for row in matches if row.season != closed_doors_season]
-    if not closed or not others:
-        raise ValueError(f"{competition}: need {closed_doors_season} and other seasons")
+    if not closed or not others:  # the comparison needs both; without them it is not available
+        closed = others = []
     count = len(matches)
     return LeagueCharacter(
         competition=competition,
@@ -92,8 +92,8 @@ def league_character(
         away_win=_share(matches, "A"),
         goals=math.fsum(row.home_goals + row.away_goals for row in matches) / count,
         home_margin=math.fsum(row.home_goals - row.away_goals for row in matches) / count,
-        closed_doors_home_win=_share(closed, "H"),
-        other_seasons_home_win=_share(others, "H"),
+        closed_doors_home_win=_share(closed, "H") if closed else None,
+        other_seasons_home_win=_share(others, "H") if others else None,
     )
 
 
@@ -150,7 +150,8 @@ def main(
         print(
             f"{_name(r.competition):16s} {c.matches:7d} {c.home_win:6.1%} {c.draw:6.1%}"
             f" {c.away_win:6.1%} {c.goals:6.2f} {c.home_margin:+7.2f}"
-            f" {c.closed_doors_home_win:11.1%} {c.other_seasons_home_win:11.1%}"
+            f" {_optional_share(c.closed_doors_home_win):>11s}"
+            f" {_optional_share(c.other_seasons_home_win):>11s}"
         )
 
     print("\nModels per league (accuracy / Brier score / log loss; skill = 1 - Brier / baseline)")
@@ -182,6 +183,10 @@ def _brier_differences(rows: Sequence[PredictionLogRow]) -> tuple[PairedDifferen
         for difference in paired_differences(rows, MODEL_PAIRS)
         if difference.measure is Measure.BRIER
     )
+
+
+def _optional_share(value: float | None) -> str:
+    return "-" if value is None else f"{value:.1%}"
 
 
 def _share(rows: Sequence[PredictionLogRow], outcome: str) -> float:

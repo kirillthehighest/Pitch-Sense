@@ -111,4 +111,8 @@ def test_a_failed_copy_is_reported_and_start_up_goes_on(application, monkeypatch
     monkeypatch.setattr(main_window, "QMessageBox", MessageBox)
 
     assert main_window.main() == 1
-    assert calls == ["Could not copy the prediction log: read-only folder", "stopped: no database"]
+    assert calls == [
+        "Jurnalele predicțiilor nu au putut fi copiate: read-only folder",
+        "stopped: Baza de date nu a fost găsită. Construiți-o cu comanda de mai jos și porniți "
+        "aplicația din nou.\n\nno database",
+    ]

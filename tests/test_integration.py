@@ -10,9 +10,10 @@ import pytest
 from app.evaluation.backtesting import read_log
 from app.evaluation.evaluator import evaluate
 from app.services.catalog import DataCatalog
+from app.services.formatting import number, percent, season_text
+from app.services.labels import model_label, outcome_label
 from app.ui import main_window
 from app.ui.main_window import MainWindow
-from app.ui.widgets import OUTCOME_NAMES, number, percent
 
 MODELS = ("Elo", "Poisson", "Logistic regression")
 
@@ -33,17 +34,21 @@ def window(app_context):
 
 @pytest.fixture
 def window_with_log(window):
-    window.dashboard.backtest_button.click()
+    window.home.backtest_button.click()
     return window
+
+
+def show(window, page):
+    window.show_page(window.pages.index(page))
 
 
 def test_every_played_match_shows_the_forecasts_of_the_backtest_log(
     window_with_log, app_context, errors
 ):
-    log = read_log(app_context.evaluation.log)
+    log = read_log(app_context.league("SP1").evaluation.log)
     logged = {(row.match_date, row.home_team, row.away_team, row.model): row for row in log}
     tab = window_with_log.match_prediction
-    tab.season_box.setCurrentText("2007-08")
+    tab.season_box.setCurrentText(season_text("2007-08"))
 
     for index in range(tab.match_box.count()):
         tab.match_box.setCurrentIndex(index)
@@ -56,17 +61,17 @@ def test_every_played_match_shows_the_forecasts_of_the_backtest_log(
         }
         assert table_rows(tab.probability_table) == [
             [
-                model,
+                model_label(model),
                 percent(rows[model].p_home),
                 percent(rows[model].p_draw),
                 percent(rows[model].p_away),
-                OUTCOME_NAMES[rows[model].predicted],
+                outcome_label(rows[model].predicted),
             ]
             for model in MODELS
         ]
         poisson = rows["Poisson"]
         assert tab.goals_label.text() == (
-            f"Expected goals: {match.home_team} {number(poisson.expected_home_goals, 2)}, "
+            f"Goluri așteptate: {match.home_team} {number(poisson.expected_home_goals, 2)}, "
             f"{match.away_team} {number(poisson.expected_away_goals, 2)}"
         )
     assert tab.match_box.count() == 12
@@ -74,12 +79,12 @@ def test_every_played_match_shows_the_forecasts_of_the_backtest_log(
 
 
 def test_the_screens_show_the_evaluation_of_the_log(window_with_log, app_context, errors):
-    evaluations = evaluate(read_log(app_context.evaluation.log))
-    window_with_log.tabs.setCurrentWidget(window_with_log.algorithm_comparison)
+    evaluations = evaluate(read_log(app_context.league("SP1").evaluation.log))
+    show(window_with_log, window_with_log.algorithm_comparison)
 
-    assert table_rows(window_with_log.dashboard.results_table) == [
+    assert table_rows(window_with_log.home.results_table) == [
         [
-            e.model,
+            model_label(e.model),
             percent(e.accuracy.value),
             number(e.brier.value if e.brier else None),
             number(e.log_loss.value if e.log_loss else None),
@@ -88,7 +93,7 @@ def test_the_screens_show_the_evaluation_of_the_log(window_with_log, app_context
     ]
     assert table_rows(window_with_log.algorithm_comparison.metrics_table) == [
         [
-            e.model,
+            model_label(e.model),
             percent(e.accuracy.value),
             number(e.brier.value if e.brier else None),
             number(e.log_loss.value if e.log_loss else None),
@@ -129,7 +134,7 @@ def test_the_league_table_matches_the_raw_files(window, raw_season_rows, next_se
         ),
     )
     tab = window.team_analysis
-    tab.season_box.setCurrentText(season)
+    tab.season_box.setCurrentText(season_text(season))
 
     tab.show_button.click()
 
@@ -138,7 +143,7 @@ def test_the_league_table_matches_the_raw_files(window, raw_season_rows, next_se
             str(position),
             team,
             *(str(value) for value in record),
-            str(record[4] - record[5]),
+            f"{record[4] - record[5]:+d}".replace("-", "−") if record[4] != record[5] else "0",
             str(3 * record[1] + record[2]),
         ]
         for position, (team, record) in enumerate(expected, start=1)
@@ -164,28 +169,32 @@ def test_a_missing_database_is_explained_at_start_up(application, monkeypatch, t
 
 
 def test_a_damaged_log_is_explained_in_place_and_can_be_rebuilt(app_context, errors):
-    log = app_context.evaluation.log
+    log = app_context.league("SP1").evaluation.log
     log.parent.mkdir(parents=True)
     log.write_text("not,a,prediction,log\n1,2,3,4\n", encoding="utf-8")
 
     window = MainWindow(app_context)
-    dashboard, comparison = window.dashboard, window.algorithm_comparison
+    home, comparison, leagues = window.home, window.algorithm_comparison, window.leagues
 
-    for label in (dashboard.results_label, comparison.summary_label):
-        assert "is not a prediction log" in label.text()
-        assert "Run the backtest again" in label.text()
-    assert not dashboard.backtest_button.isHidden()
+    for label in (home.results_label, comparison.summary_label, leagues.summary_label):
+        assert label.text().startswith("Rezultatele nu pot fi citite. Rulează din nou backtestul")
+        assert "is not a prediction log" in label.text()  # the details
+    assert not home.backtest_button.isHidden()
     assert not comparison.backtest_button.isHidden()
-    window.tabs.setCurrentWidget(comparison)  # changing tabs repeats no dialog
+    show(window, comparison)  # changing screens repeats no dialog
+    show(window, leagues)
     assert errors == []
 
-    dashboard.backtest_button.click()
-    window.tabs.setCurrentWidget(window.dashboard)
+    home.backtest_button.click()
+    show(window, home)
 
-    assert dashboard.results_table.rowCount() == 5
-    assert dashboard.backtest_button.isHidden()
+    assert home.results_table.rowCount() == 5
+    assert home.backtest_button.isHidden()
+    show(window, comparison)
     assert comparison.backtest_button.isHidden()
     assert comparison.metrics_table.rowCount() == 5
+    show(window, leagues)
+    assert leagues.models_table.rowCount() == 1
     assert errors == []
     window.close()
 
@@ -196,12 +205,12 @@ def test_a_backtest_that_fails_is_reported_and_the_window_keeps_working(
     window = MainWindow(app_context)
     database.unlink()  # the data is already loaded; the backtest reads the database again
 
-    window.dashboard.backtest_button.click()
+    window.home.backtest_button.click()
 
     assert len(errors) == 1
     assert "Database not found" in errors[0]
-    assert window.dashboard.backtest_button.isEnabled()
-    assert not window.dashboard.backtest_button.isHidden()
+    assert window.home.backtest_button.isEnabled()
+    assert not window.home.backtest_button.isHidden()
     window.team_analysis.show_button.click()  # the loaded data still works
     assert window.team_analysis.standings_table.rowCount() == 4
     assert len(errors) == 1

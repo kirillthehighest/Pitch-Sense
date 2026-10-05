@@ -1,6 +1,6 @@
 # Arhitectura aplicației PitchSense
 
-Acest document descrie structura aplicației, fluxul datelor și deciziile tehnice luate până acum (fazele 0–15). Se actualizează ori de câte ori structura se schimbă.
+Acest document descrie structura aplicației, fluxul datelor și deciziile tehnice luate până acum (fazele 0–16). Se actualizează ori de câte ori structura se schimbă.
 
 ## 1. Principii
 
@@ -19,8 +19,8 @@ Acest document descrie structura aplicației, fluxul datelor și deciziile tehni
 | `app/prediction` | Rulează modelele pentru un meci și întoarce rezultatele într-un format comun. | `app.algorithms`, `app.statistics`, `app.data` |
 | `app/evaluation` | Backtesting cronologic, metrici de evaluare, compararea modelelor. | straturile de mai sus |
 | `app/services` | Operațiile cerute de interfață, gata de afișat, cu rezultatele lente păstrate în memorie. Fără Qt. | toate straturile de mai sus |
-| `app/visualization` | Construiește graficele din rezultate deja calculate, fără calcule proprii. | matplotlib, tipurile de rezultate din `app.services` și `app.evaluation` |
-| `app/ui` | Interfața grafică: preia datele de intrare, apelează serviciile și afișează rezultatele. | PySide6 și celelalte straturi |
+| `app/visualization` | Construiește graficele din rezultate deja calculate, fără calcule proprii; păstrează culorile aplicației (`palette.py`). | matplotlib, tipurile de rezultate din `app.services` și `app.evaluation` |
+| `app/ui` | Interfața grafică: preia datele de intrare, apelează serviciile și afișează rezultatele; identitatea vizuală (`brand.py`, `theme.py`, `assets/`). | PySide6 și celelalte straturi |
 
 ## 3. Reguli verificate automat
 
@@ -368,29 +368,32 @@ Pe sezoanele de test, testele verifică:
 
 ## 9. Interfața grafică (Faza 11)
 
-Aplicația se pornește cu `python -m app`. Interfața este scrisă cu PySide6 și este în limba engleză.
+Aplicația se pornește cu `python -m app`. Interfața este scrisă cu PySide6 și, din Faza 16, este în limba română (secțiunea 14 și `docs/brand.md`).
 
 ### 9.1. Ecranele
 
-| Fila | Ce permite |
+Fereastra are o bară de sus cu sigla, cele cinci ecrane și butonul „Echipa ta”, un panou în stânga cu cele cinci ligi și, deasupra fiecărui ecran, un „erou” cu liga și titlul ecranului (secțiunea 14.1). Toate ecranele arată liga aleasă.
+
+| Ecranul | Ce permite |
 |---|---|
-| Dashboard | rezumatul datelor încărcate și rezultatele principale ale modelelor; dacă jurnalul predicțiilor lipsește, un buton „Run backtest” îl construiește |
-| Match Prediction | alegerea unui sezon și a unui meci jucat sau a oricăror două echipe din sezon și a unei date; probabilitățile fiecărui model, golurile așteptate, scorurile cele mai probabile și graficul probabilităților scorurilor (Poisson) și rezultatul real, dacă meciul s-a jucat |
-| Team Analysis | clasamentul la o anumită dată sau la final de sezon și prezentarea unei echipe: poziție, rezultate, acasă și în deplasare, ultimele 5 rezultate, șuturi pe poartă, grupul K-Means de dinaintea sezonului și grupul sezonului încheiat; sub-filele „League table”, „Elo rating” și „Team groups” |
-| Algorithm Comparison | măsurile de evaluare, diferențele reale dintre modele, împărțirea pe sezoane, rezultate și tipuri de meciuri și cât de diferite sunt predicțiile (sub-fila „Tables”); calibrarea și matricea de confuzie (sub-fila „Charts”) |
+| Acasă | liga pe scurt, modelul cu cel mai mic scor Brier și dacă avantajul lui față de următorul este real, echipa ta și rezultatele principale ale modelelor; dacă jurnalul predicțiilor lipsește, butonul „Rulează backtestul” îl construiește |
+| Predicție | alegerea unui sezon și a unui meci jucat sau a oricăror două echipe din sezon și a unei date; probabilitățile fiecărui model, golurile așteptate, scorurile cele mai probabile, graficul probabilităților scorurilor (Poisson) și rezultatul real, dacă meciul s-a jucat |
+| Echipe | clasamentul la o anumită dată sau la final de sezon și profilul unei echipe: poziție, rezultate, acasă și în deplasare, ultimele 5 rezultate, șuturi pe poartă, grupul K-Means de dinaintea sezonului și grupul sezonului încheiat; sub-filele „Clasament”, „Rating Elo” și „Grupuri” |
+| Modele | măsurile de evaluare, diferențele reale dintre modele, împărțirea pe sezoane, rezultate și tipuri de meciuri și cât de diferite sunt predicțiile (sub-fila „Tabele”); calibrarea și matricea de confuzie (sub-fila „Grafice”) |
+| Ligi | cele cinci ligi comparate: caracterul fiecăreia, scorul Brier al modelelor, diferențele reale dintre modele în fiecare ligă și pe toate la un loc (sub-fila „Tabele”); abilitatea modelelor și avantajul gazdelor (sub-fila „Grafice”); dacă lipsesc jurnale, un buton le construiește |
 
 Graficele sunt descrise în secțiunea 10.
 
 ### 9.2. Straturile interfeței
 
-- `app/services/` conține operațiile cerute de interfață, fără Qt: lista sezoanelor, echipelor și meciurilor (`catalog.py`), predicțiile cu memorie (`predictions.py`), analiza echipelor și clasamentul (`teams.py`) și rezultatele evaluării (`evaluation.py`). Serviciile sunt testate fără nicio fereastră.
+- `app/services/` conține operațiile cerute de interfață, fără Qt: ligile din baza de date și lista sezoanelor, echipelor și meciurilor (`catalog.py`), predicțiile cu memorie (`predictions.py`), analiza echipelor și clasamentul (`teams.py`), rezultatele evaluării unei ligi (`evaluation.py`), comparația ligilor (`leagues.py`), alegerile păstrate între porniri (`preferences.py`) și textul afișat în română (`formatting.py`, `labels.py`). Serviciile sunt testate fără nicio fereastră.
 - `app/ui/` conține doar ecranele: preiau alegerile utilizatorului, apelează serviciile și afișează rezultatele. Nu calculează nimic.
 
 ### 9.3. Lucrul în fundal
 
-Operațiile lente rulează pe fire de execuție separate (`app/ui/worker.py`), iar rezultatul se întoarce prin semnale Qt pe firul interfeței; firele de lucru nu ating niciodată elementele ferestrei. Orice eroare apare ca mesaj în fereastră, fără ca aplicația să se oprească. Un jurnal al predicțiilor care nu poate fi citit este semnalat direct în filă, cu butonul „Run backtest” (secțiunea 11.2).
+Operațiile lente rulează pe fire de execuție separate (`app/ui/worker.py`), iar rezultatul se întoarce prin semnale Qt pe firul interfeței; firele de lucru nu ating niciodată elementele ferestrei. Orice eroare apare ca mesaj în fereastră, fără ca aplicația să se oprească. Un jurnal al predicțiilor care nu poate fi citit este semnalat direct în ecran, cu butonul „Rulează backtestul” (secțiunea 11.2).
 
-- La pornire, toate predicțiile istorice sunt calculate o singură dată (aproximativ 7 s). După aceea, orice meci jucat apare imediat, cu exact aceleași valori ca în evaluare.
+- La pornire, toate predicțiile istorice ale ligii afișate sunt calculate o singură dată (aproximativ 7 s); o ligă aleasă pentru prima dată își pregătește predicțiile la fel, iar bara de stare arată când sunt gata. După aceea, orice meci jucat apare imediat, cu exact aceleași valori ca în evaluare.
 - Un meci ipotetic este calculat la cerere (aproximativ 7 s pentru sezoanele recente).
 - Jurnalul predicțiilor se construiește la cerere (aproximativ 8 s).
 
@@ -400,9 +403,9 @@ Echipele sunt ordonate după puncte, apoi după golaveraj, apoi după golurile m
 
 ### 9.5. Verificare
 
-- Ecranele sunt testate fără fereastră vizibilă (`QT_QPA_PLATFORM=offscreen`): fiecare filă este construită cu datele de test și acționată prin propriile butoane, iar valorile afișate sunt comparate cu cele calculate de mână. Pentru teste, lucrul în fundal este înlocuit cu o execuție imediată, cu același contract.
+- Ecranele sunt testate fără fereastră vizibilă (`QT_QPA_PLATFORM=offscreen`): fiecare ecran este construit cu datele de test și acționat prin propriile butoane, iar valorile afișate sunt comparate cu cele calculate de mână. Din Faza 16, testele folosesc și o bază de date sintetică cu două ligi (alegerea ligii, „echipa ta” dintr-o altă ligă, ecranul Ligi). Pentru teste, lucrul în fundal este înlocuit cu o execuție imediată, cu același contract.
 - Un test separat folosește firele de execuție reale și verifică faptul că rezultatul ajunge pe firul interfeței.
-- Toate filele au fost desenate cu datele reale și verificate vizual; aplicația a fost pornită într-o fereastră obișnuită pe macOS și a rulat fără erori.
+- Toate ecranele au fost desenate cu datele reale și verificate vizual; aplicația a fost pornită într-o fereastră obișnuită pe macOS și a rulat fără erori.
 
 ## 10. Graficele (Faza 12)
 
@@ -410,15 +413,17 @@ Echipele sunt ordonate după puncte, apoi după golaveraj, apoi după golurile m
 
 | Grafic | Unde apare | Ce arată | De unde vin datele |
 |---|---|---|---|
-| Evoluția ratingului Elo | Team Analysis, sub-fila „Elo rating” | ratingul echipei înaintea fiecăruia dintre meciurile ei, câte o linie pe sezon; golurile dintre linii sunt vacanțele de vară și sezoanele petrecute în afara La Liga; sezonul ales este evidențiat, iar data aleasă (dacă nu este ales sezonul întreg) este marcată cu o linie punctată | `TeamService.elo_history`: exact ratingurile folosite de predicțiile Elo, calculate doar din meciurile zilelor anterioare |
-| Probabilitățile scorurilor | Match Prediction | probabilitatea Poisson a fiecărui scor de la 0-0 la 6-6 | tabelul scorurilor din predicția Poisson (calculat până la 20 de goluri pe echipă; scorurile mai mari nu sunt afișate) |
-| Calibrarea | Algorithm Comparison, sub-fila „Charts” | pentru fiecare model, frecvența observată în funcție de probabilitatea prezisă, pe 10 intervale, cu toate rezultatele la un loc; diagonala înseamnă calibrare perfectă; intervalele goale sunt omise | tabelele de calibrare ale evaluării (Faza 9) |
-| Matricea de confuzie | Algorithm Comparison, sub-fila „Charts” | numărul de meciuri după rezultatul real (rânduri) și cel prezis (coloane), pentru modelul ales din listă | evaluarea (Faza 9) |
-| Grupurile echipelor | Team Analysis, sub-fila „Team groups” | echipele sezonului după golurile marcate și primite pe meci, colorate după grupul K-Means, cu centrele grupurilor (✕) și echipa aleasă încercuită | `TeamService.season_groups`: grupurile descriptive din Faza 6, aceleași ca „Season group” din prezentarea echipei |
+| Evoluția ratingului Elo | Echipe, sub-fila „Rating Elo” | ratingul echipei înaintea fiecăruia dintre meciurile ei, câte o linie pe sezon; golurile dintre linii sunt vacanțele de vară și sezoanele petrecute în afara ligii; sezonul ales este evidențiat cu auriu, iar data aleasă (dacă nu este ales sezonul întreg) este marcată cu o linie verticală | `TeamService.elo_history`: exact ratingurile folosite de predicțiile Elo, calculate doar din meciurile zilelor anterioare |
+| Probabilitățile scorurilor | Predicție | probabilitatea Poisson a fiecărui scor de la 0-0 la 6-6 | tabelul scorurilor din predicția Poisson (calculat până la 20 de goluri pe echipă; scorurile mai mari nu sunt afișate) |
+| Calibrarea | Modele, sub-fila „Grafice” | pentru fiecare model, frecvența observată în funcție de probabilitatea prezisă, pe 10 intervale, cu toate rezultatele la un loc; diagonala înseamnă calibrare perfectă; intervalele goale sunt omise | tabelele de calibrare ale evaluării (Faza 9) |
+| Matricea de confuzie | Modele, sub-fila „Grafice” | numărul de meciuri după rezultatul real (rânduri) și cel prezis (coloane), pentru modelul ales din listă | evaluarea (Faza 9) |
+| Grupurile echipelor | Echipe, sub-fila „Grupuri” | echipele sezonului după golurile marcate și primite pe meci, colorate după grupul K-Means, cu centrele grupurilor (✕) și echipa aleasă încercuită | `TeamService.season_groups`: grupurile descriptive din Faza 6, aceleași ca „Grupul sezonului” din profilul echipei |
+| Abilitatea modelelor (Faza 16) | Ligi, sub-fila „Grafice” | pentru fiecare ligă și model, partea din scorul Brier al frecvențelor trecute eliminată de model (scorul de abilitate Brier), în bare orizontale | `LeagueResults.skill` (`app/evaluation/leagues.py`) |
+| Avantajul gazdelor (Faza 16) | Ligi, sub-fila „Grafice” | pentru fiecare ligă, procentul victoriilor gazdelor în 2020/21 (sezon jucat în mare parte fără spectatori) și în celelalte sezoane de evaluare, unite printr-o linie | `LeagueCharacter` (`app/evaluation/leagues.py`); o ligă fără ambele valori este omisă |
 
 ### 10.2. Axele graficului grupurilor
 
-Echipa a ales două mărimi ușor de citit: golurile marcate și golurile primite pe meci. K-Means folosește însă șase mărimi (secțiunea 5 din `docs/algorithms/kmeans.md`), deci pe aceste două axe o echipă poate apărea mai aproape de centrul altui grup. Pe datele reale, 134 din cele 400 de profiluri (33,5%) sunt mai aproape, pe grafic, de centrul altui grup decât al propriului grup (de exemplu, în 2015/16: Sociedad și Valencia, din grupul „Weak everywhere”, apar lângă centrul grupului „Lower half, strong at home”). Graficul și nota din filă precizează că grupurile folosesc toate cele șase mărimi.
+Echipa a ales două mărimi ușor de citit: golurile marcate și golurile primite pe meci. K-Means folosește însă șase mărimi (secțiunea 5 din `docs/algorithms/kmeans.md`), deci pe aceste două axe o echipă poate apărea mai aproape de centrul altui grup. Pe datele reale, 134 din cele 400 de profiluri (33,5%) sunt mai aproape, pe grafic, de centrul altui grup decât al propriului grup (de exemplu, în 2015/16: Sociedad și Valencia, din grupul „Slabă peste tot”, apar lângă centrul grupului „Jumătatea de jos, puternică acasă”). Graficul și nota din filă precizează că grupurile folosesc toate cele șase mărimi.
 
 Varianta respinsă, PCA (proiecția celor șase mărimi pe două axe), ar fi arătat mai bine structura, dar axele nu ar fi avut un înțeles direct și ar fi adăugat o metodă nouă, care trebuia implementată și documentată.
 
@@ -426,21 +431,22 @@ Grupurile sunt arătate doar pentru un sezon întreg, pentru că profilurile des
 
 ### 10.3. Construcție
 
-- `app/visualization/charts.py` conține cinci funcții care primesc rezultate deja calculate și întorc o figură matplotlib (`Figure`). Ele doar desenează: nu calculează nimic din date (singurul calcul așază numele echipelor pe graficul grupurilor, secțiunea 11.4) și nu folosesc `pyplot`, deci nu există stare globală, iar aceeași figură poate fi afișată în aplicație sau salvată într-un fișier.
+- `app/visualization/charts.py` conține șapte funcții (două adăugate în Faza 16) care primesc rezultate deja calculate și întorc o figură matplotlib (`Figure`). Ele doar desenează: nu calculează nimic din date (singurul calcul așază numele echipelor pe graficul grupurilor, secțiunea 11.4) și nu folosesc `pyplot`, deci nu există stare globală, iar aceeași figură poate fi afișată în aplicație sau salvată într-un fișier.
 - Datele vin din servicii: `TeamService` are două metode noi (`elo_history`, `season_groups`), iar rezumatul predicției Poisson include tabelul complet al scorurilor (`ModelSummary.score_probabilities`). Rularea Elo este făcută o singură dată și păstrată în memorie (aproximativ 0,02 s pe toate datele).
 - Interfața afișează figurile prin `ChartView` (`app/ui/widgets.py`), care folosește pânza Qt a matplotlib (`FigureCanvasQTAgg`) și arată un mesaj cât timp nu există un grafic. Nu a fost necesară nicio bibliotecă nouă.
+- Din Faza 16, fiecare figură este construită în stilul PitchSense: fundalul întunecat al cardurilor, titlurile cu Barlow Condensed, textul cu Libre Franklin, culorile din `palette.py`, grile subțiri, zecimale cu virgulă. Stilul este aplicat doar figurii respective (`rc_context`), fără a schimba setările globale ale matplotlib. Regulile sunt în `docs/brand.md`, secțiunea 6.
 
 ### 10.4. Verificare
 
-- `tests/test_charts.py`: fiecare grafic desenează exact valorile primite (datele liniilor, celulele, textele, etichetele și legenda) și se salvează ca imagine PNG fără avertismente; datele invalide sunt refuzate; numele unor echipe aflate aproape una de alta nu se suprapun.
+- `tests/test_charts.py`: fiecare grafic desenează exact valorile primite (datele liniilor, celulele, barele, textele, etichetele, culorile și legenda) și se salvează ca imagine PNG fără avertismente; datele invalide sunt refuzate; numele unor echipe aflate aproape una de alta nu se suprapun; gradațiile axelor arată exact valoarea lor.
 - `tests/test_services.py`: istoricul Elo coincide cu ratingurile folosite de predicții și nu se schimbă dacă se schimbă scorul meciului însuși; grupurile coincid cu cele din prezentarea echipei.
-- `tests/test_ui.py`: fiecare filă arată un mesaj înainte de rezultate și graficele după ele; o componentă `ChartView` conține mereu exact un grafic sau un mesaj.
+- `tests/test_ui.py`: fiecare ecran arată un mesaj înainte de rezultate și graficele după ele; o componentă `ChartView` conține mereu exact un grafic sau un mesaj.
 - Graficele au fost desenate cu datele reale și verificate vizual, atât fără fereastră, cât și într-o fereastră macOS obișnuită (ecran Retina, mod întunecat), cu lucrul în fundal real.
 
 ### 10.5. Limitări
 
 - Pe graficul grupurilor, numele echipelor foarte apropiate se mai pot suprapune când graficul este mic (secțiunea 11.4).
-- Graficele păstrează fundalul alb și când sistemul folosește modul întunecat.
+- Interfața și graficele au doar tema întunecată, și când sistemul folosește modul luminos (`docs/brand.md`, secțiunea 9).
 - Graficul scorurilor arată doar scorurile de până la 6 goluri pe echipă.
 
 ## 11. Testarea de integrare și verificarea pe datele reale (Faza 13)
@@ -449,8 +455,8 @@ Grupurile sunt arătate doar pentru un sezon întreg, pentru că profilurile des
 
 `tests/test_integration.py` rulează tot lanțul pe cele două sezoane sintetice din `tests/conftest.py`: fișierele CSV brute → baza de date → jurnalul predicțiilor → evaluarea → fereastra aplicației. Testele verifică faptul că straturile spun același lucru:
 
-- pentru fiecare dintre cele 12 meciuri ale sezonului evaluat, fila Match Prediction afișează exact probabilitățile, rezultatul cel mai probabil și golurile așteptate din jurnal;
-- tabelele din Dashboard și Algorithm Comparison afișează exact măsurile calculate de evaluator din jurnal;
+- pentru fiecare dintre cele 12 meciuri ale sezonului evaluat, ecranul Predicție afișează exact probabilitățile, rezultatul cel mai probabil și golurile așteptate din jurnal;
+- tabelele din ecranele Acasă și Modele afișează exact măsurile calculate de evaluator din jurnal;
 - clasamentul ambelor sezoane coincide cu un clasament calculat direct din rândurile fișierelor CSV.
 
 Sunt verificate și căile de eroare: lipsa bazei de date la pornire (mesaj cu comanda `python -m app.data.build_database` și codul de ieșire 1), un jurnal deteriorat și un backtest care eșuează în timpul rulării. Aplicația Qt, serviciile peste baza de date sintetică și colectorul de erori folosite de testele interfeței sunt definite o singură dată, în `tests/conftest.py`.
@@ -459,8 +465,8 @@ Sunt verificate și căile de eroare: lipsa bazei de date la pornire (mesaj cu c
 
 Testele au găsit două probleme, corectate:
 
-- Un jurnal deteriorat dădea mesaje neclare (de exemplu `'match_date'`). Acum `read_log` numește problema, fișierul și linia (de exemplu `backtest_SP1.csv, line 4: expected 16 values`), iar serviciul de evaluare adaugă „Run the backtest again to rebuild it.”
-- Dacă fișierul jurnalului exista, dar nu putea fi citit, filele Dashboard și Algorithm Comparison ascundeau butonul „Run backtest”, deci jurnalul nu putea fi reconstruit din aplicație, iar fiecare schimbare de filă ar fi repetat mesajul de eroare. Acum ambele file arată problema direct în pagină, fără ferestre de dialog, iar butonul reconstruiește jurnalul.
+- Un jurnal deteriorat dădea mesaje neclare (de exemplu `'match_date'`). Acum `read_log` numește problema, fișierul și linia (de exemplu `backtest_SP1.csv, line 4: expected 16 values`), iar serviciul de evaluare adaugă „Run the backtest again to rebuild it.” Din Faza 16, ecranele pun înaintea acestor detalii tehnice o explicație în română.
+- Dacă fișierul jurnalului exista, dar nu putea fi citit, ecranele cu rezultate ascundeau butonul de backtest, deci jurnalul nu putea fi reconstruit din aplicație, iar fiecare schimbare de ecran ar fi repetat mesajul de eroare. Acum ecranele Acasă, Modele și Ligi arată problema direct în pagină, fără ferestre de dialog, iar butonul reconstruiește jurnalul.
 
 ### 11.3. Verificarea pe datele reale
 
@@ -475,9 +481,11 @@ Rulare din 2026-10-04:
 
 ### 11.4. Numele echipelor pe graficul grupurilor
 
-Numele sunt așezate automat. Fiecare nume încearcă, în ordine, 14 poziții în jurul punctului său și o alege pe prima care rămâne în interiorul graficului și nu acoperă un nume deja așezat, legenda, un centru de grup sau un alt punct. Dacă nu există o asemenea poziție, o alege pe cea mai puțin rea: acoperirea unui punct contează mai puțin decât acoperirea unui text sau a unui centru. Numele echipei alese este așezat primul.
+Numele sunt așezate automat. Fiecare nume încearcă, în ordine, 20 de poziții în jurul punctului său și o alege pe prima care rămâne în interiorul graficului și nu acoperă un nume deja așezat, legenda, un centru de grup sau un alt punct. Dacă nu există o asemenea poziție, o alege pe cea mai puțin rea: acoperirea unui punct contează mai puțin decât acoperirea unui text sau a unui centru. Numele echipei alese este așezat primul.
 
-Pozițiile depind de mărimea figurii, așa că sunt alese din nou ori de câte ori fereastra redimensionează graficul (aproximativ 65 ms de fiecare dată). Pe datele reale, la mărimea implicită a figurii (6,4 × 4,8 țoli), perechile de nume suprapuse au scăzut de la 73 la 3 în cele 20 de sezoane, iar niciun nume nu acoperă un centru; la mărimea graficului din fereastra aplicației (aproximativ 7,5 × 5,9 țoli) nu mai rămâne nicio suprapunere. Construirea graficului durează acum aproximativ 0,25 s.
+Pozițiile depind de mărimea figurii, așa că sunt alese din nou ori de câte ori fereastra redimensionează graficul. În Faza 13 erau 14 poziții, la distanțe fixe în puncte, potrivite pentru fontul implicit al matplotlib. Libre Franklin (Faza 16) are rândul cu aproximativ 30% mai înalt, așa că pozițiile de deasupra și de dedesubt ajunseseră să se suprapună între ele, iar un test a semnalat suprapuneri la o figură mică. Acum distanțele pe verticală sunt măsurate în înălțimi ale numelui însuși, deci se potrivesc oricărui font, și s-au adăugat șase poziții mai depărtate.
+
+Pe datele reale (2026-10-05, toate cele cinci ligi, 99 de sezoane cu statistici de șuturi, cu stilul întunecat și titlurile Barlow Condensed), la mărimea implicită a figurii (6,4 × 4,8 țoli) rămâne o singură pereche de nume suprapuse (în La Liga), iar la mărimea graficului din fereastra aplicației (aproximativ 6,0 × 5,5 țoli, la mărimea inițială a ferestrei) nu rămâne niciuna; niciun nume nu acoperă un centru. Pentru asta, graficele ecranului Echipe au cel puțin 540 de pixeli înălțime: la 485 de pixeli rămâneau două perechi. Construirea graficului durează aproximativ 0,1 s.
 
 ## 12. Pachetele de instalare (Faza 14)
 
@@ -502,7 +510,7 @@ Construirea a scos la iveală o problemă: PyInstaller îi dă lui matplotlib un
 
 ### 12.3. Autoverificarea (`--self-test`)
 
-`python -m app --self-test`, sau programul din pachet pornit cu `--self-test`, deschide fereastra fără a o afișa, pe datele reale, folosește fiecare filă prin propriile butoane, desenează cele cinci grafice și se termină cu codul 0 dacă toate cele 13 verificări au reușit (`app/ui/self_test.py`). Este singura verificare automată posibilă pentru un pachet, în care testele nu pot rula. Raportul este afișat în terminal; o aplicație Windows nu are consolă, așa că acolo raportul este scris în `self-test.txt`, în folderul utilizatorului.
+`python -m app --self-test`, sau programul din pachet pornit cu `--self-test`, deschide fereastra fără a o afișa, pe datele reale, folosește fiecare ecran prin propriile butoane (construind jurnalele care lipsesc), desenează cele șapte grafice, verifică cele două fonturi și iconițele SVG ale interfeței și se termină cu codul 0 dacă toate cele 20 de verificări au reușit (13 până în Faza 16; `app/ui/self_test.py`). Este singura verificare automată posibilă pentru un pachet, în care testele nu pot rula. Raportul este afișat în terminal; o aplicație Windows nu are consolă, așa că acolo raportul este scris în `self-test.txt`, în folderul utilizatorului.
 
 ### 12.4. Pachetul pentru Windows (GitHub Actions)
 
@@ -553,7 +561,65 @@ Grupurile K-Means folosesc doar sezoanele cu statistici de șuturi. Dacă sezonu
 - Teste noi: `tests/test_competitions.py`, `tests/test_settings.py`, `tests/test_league_calibration.py` și `tests/test_leagues.py` (caracterul unei ligi calculat de mână, scorul de abilitate, comparația pe toate ligile la un loc ca medie ponderată a ligilor), plus teste pentru un sezon oprit mai devreme, pentru schimbarea numărului de echipe, pentru un sezon încheiat în august, pentru sezoanele fără statistici, pentru setările implicite ale fiecărei ligi și pentru grila lui $N$.
 - Pe datele reale (2026-10-05): toate cele 100 de sezoane trec verificările la construirea bazei de date; după trecerea la setări pe ligă, dar înainte de schimbarea lui $N$, jurnalul La Liga a rămas identic byte cu byte; niciun meci de evaluare al vreunei ligi nu a fost exclus; autoverificarea aplicației trece.
 
-## 14. Setul de date și perioadele
+## 14. Identitatea vizuală și interfața în română (Faza 16)
+
+Semnul, culorile, literele și regulile interfeței sunt descrise, cu motivele lor, în `docs/brand.md`. Această secțiune descrie structura.
+
+### 14.1. Ce s-a schimbat
+
+Faza a avut mai multe variante. Prima (deschisă la culoare, cu un semn neutru) a fost înlocuită la cererea echipei cu tema întunecată și culorile blaugrana de acum, după modelul site-ului FC Barcelona, al LiveScore și al OneFootball. Stema de club desenată pentru ea a semănat prea mult cu cea a Barcelonei, așa că a fost înlocuită de monograma PS; echipa a ales varianta minimalistă, fără minge (`docs/brand.md`, secțiunile 1–2).
+
+- **Fereastra** (`app/ui/main_window.py`) are următoarele părți:
+  - **bara de sus**: sigla cu numele PITCHSENSE, cele cinci ecrane (Acasă, Predicție, Echipe, Modele, Ligi, cu majuscule, cel ales subliniat cu auriu) și butonul „Echipa ta”;
+  - **linia albastru–grena** de sub bară;
+  - **panoul ligilor** din stânga („COMPETIȚII”, câte un buton cu steag și țară pentru fiecare ligă, `LeagueButton`);
+  - **eroul** (`HeroBanner`): gradient de noapte, liniile terenului, liga cu steag și titlul ecranului.
+
+  Ecranele stau sub erou, în zone care se derulează.
+- **Ligile în aplicație.** Liga se alege din panoul din stânga sau dintr-un card de ligă al ecranului Ligi, iar toate ecranele o arată. Serviciile unei ligi (catalog, predicții, echipe, evaluare) sunt deschise prima dată când liga este aleasă și apoi păstrate (`AppContext.league` în `app/ui/context.py`). Ecranul **Ligi** (`app/ui/leagues.py`) compară cele cinci ligi, cu datele din `app/services/leagues.py`. Liga afișată la închidere este afișată și la următoarea pornire.
+- **Echipa ta.** Utilizatorul își alege o echipă, păstrată între porniri (`app/services/preferences.py`). Echipa este evidențiată în clasamente și aleasă din start în Predicție și Echipe (`docs/brand.md`, secțiunea 5.2).
+- **Ecranul Acasă** (`app/ui/home.py`) a înlocuit Dashboard.
+  - Are patru cifre mari (`StatTile`) și cardul echipei tale, cu ecuson și ultimele cinci rezultate (`FormStrip`).
+  - Nu mai numește „cel mai bun model” doar după cel mai mic scor Brier: spune și dacă diferența față de următorul model este reală. În La Liga, de exemplu, Elo (0,5776) și regresia logistică (0,5777) nu diferă real.
+- **Cardul meciului** (ecranul Predicție) are ecusoanele echipelor, scorul și câte o bară de probabilitate pe model (`ProbabilityBars`). Cifrele exacte rămân și într-un tabel.
+- **Limba.** Tot textul afișat este în română, cu numerele scrise românește (`app/services/formatting.py`, `labels.py`). Jurnalele și codul își păstrează identificatorii în engleză.
+- **Aspectul** stă în câteva fișiere:
+  - foaia de stil, paleta Qt și fonturile: `app/ui/theme.py`;
+  - sigla, iconița, steagurile și ecusoanele: `app/ui/brand.py`, desenate cu QPainter;
+  - piesele desenate ale ecranelor: `app/ui/widgets.py`;
+  - fișierele fonturilor și iconițele: `app/ui/assets/`;
+  - culorile: `app/visualization/palette.py`.
+
+### 14.2. Corecții găsite pe parcurs
+
+- Butonul de backtest din ecranul de rezultate construia mereu jurnalul La Liga, oricare ar fi fost liga, pentru că serviciul de evaluare avea liga fixată în cod. Greșeala nu se vedea cât timp interfața arăta doar La Liga. Acum `EvaluationService` primește liga (`competition`), iar un test verifică faptul că jurnalul unei ligi conține echipele ei.
+- Numele echipelor de pe graficul grupurilor erau așezate pe distanțe potrivite pentru vechiul font (secțiunea 11.4).
+- Prima culoare a egalului din barele de probabilitate stătea prea aproape de grena pentru daltonism (3,5); a fost luminată (secțiunea 6 din `docs/brand.md`).
+- Gradațiile cu o zecimală puteau rotunji valoarea (1,25 apărea ca „1,2”); acum gradațiile sunt la distanțe de 1, 2 sau 5 unități și au exact câte zecimale le trebuie.
+
+### 14.3. Verificare
+
+Rulări din 2026-10-05:
+
+- **Teste.** Toate cele 655 de teste trec; `ruff check` și `ruff format --check` nu găsesc nimic. Fișiere de test noi: `tests/test_brand.py` (sigla, iconița, steagurile, ecusoanele, fonturile, contrastele) și `tests/test_formatting.py` (scrierea românească, numele modelelor, prescurtările echipelor, țările). Testele interfeței (`tests/test_ui.py`), de la un capăt la altul (`tests/test_integration.py`), ale autoverificării, ale graficelor și ale serviciilor au fost actualizate și extinse: navigarea, alegerea ligii din panou și din cardurile ligilor, „echipa ta”, cardul meciului, ecranul Ligi, preferințele, comparația ligilor și piesele desenate.
+- **Autoverificarea** pe datele reale: 20 din 20.
+- **Verificare vizuală.** Toate ecranele și sub-filele au fost desenate fără fereastră, cu datele reale, și verificate vizual, în ambele variante. Au fost găsite și corectate, printre altele:
+  - indicatorii butoanelor radio și ai casetelor de bifat erau invizibili;
+  - numele modelelor erau tăiate în tabelul predicției;
+  - graficele se întindeau pe toată înălțimea paginii de tabele;
+  - legendele așezate sub axe erau tăiate;
+  - butoanele rotunjite își pierdeau colțurile când raza depășea jumătatea înălțimii;
+  - cardurile din stânga ecranului Predicție se întindeau pe toată coloana.
+- **Culori.** Paletele graficelor și barele de probabilitate au fost verificate cu validatorul de palete, în modul întunecat (`docs/brand.md`, secțiunea 6).
+- **Pornire.** Aplicația a fost pornită pe macOS (`python -m app`) și a rulat 15 s fără erori. Fereastra obișnuită nu a fost inspectată vizual în această fază; imaginile verificate sunt cele desenate fără fereastră.
+
+### 14.4. Limitări
+
+- Doar tema întunecată.
+- Echipele au ecusoane cu inițiale, nu stemele lor (stemele sunt mărci înregistrate).
+- Pachetele de instalare nu au fost reconstruite în această fază: fonturile, iconițele, iconița aplicației și jurnalele celor cinci ligi trebuie incluse în pachete (Faza 17). Pachetul Windows nu a fost încercat cu noua interfață.
+
+## 15. Setul de date și perioadele
 
 Sursa datelor este Football-Data.co.uk: cinci ligi (Premier League, La Liga, Serie A, Bundesliga, Ligue 1), fiecare cu 20 de sezoane încheiate, 2006/07–2025/26 (36.197 de meciuri). Perioadele sunt aceleași pentru toate ligile.
 
@@ -563,7 +629,7 @@ Sursa datelor este Football-Data.co.uk: cinci ligi (Premier League, La Liga, Ser
 | 2007/08–2009/10 | Calibrare: se aleg hiperparametrii; rezultatele nu sunt raportate. |
 | 2010/11–2025/26 | Evaluarea raportată: 16 sezoane; 6.080 de meciuri în fiecare ligă cu 20 de echipe, 4.896 în Bundesliga, 5.757 în Ligue 1; 28.893 în total. |
 
-## 15. Tehnologii
+## 16. Tehnologii
 
 | Componentă | Versiune | Rol |
 |---|---|---|
@@ -576,8 +642,10 @@ Sursa datelor este Football-Data.co.uk: cinci ligi (Premier League, La Liga, Ser
 | pytest | 9.1.1 | testare |
 | ruff | 0.16.10 | verificarea și formatarea codului |
 | PyInstaller | 6.22.3 | construirea pachetelor de instalare |
+| Libre Franklin (font, SIL Open Font License 1.1) | cinci grosimi statice | textul interfeței și al graficelor, inclus în `app/ui/assets/fonts/` |
+| Barlow Condensed (font, SIL Open Font License 1.1) | patru grosimi statice | titlurile, cifrele mari, scorul și navigarea, inclus în `app/ui/assets/fonts/` |
 
-## 16. Decizii tehnice
+## 17. Decizii tehnice
 
 | Decizie | Motiv |
 |---|---|
@@ -586,7 +654,7 @@ Sursa datelor este Football-Data.co.uk: cinci ligi (Premier League, La Liga, Ser
 | `pyproject.toml` cu versiuni fixe (`==`), mediu virtual `.venv` și `pip` | Aceleași versiuni pe macOS și Windows. Actualizările se fac intenționat și sunt urmate de rularea tuturor testelor. |
 | ruff, fără verificator static de tipuri | Un singur instrument rapid pentru stil și erori frecvente. Adnotările de tip rămân obligatorii. |
 | Avertismentele sunt tratate ca erori în teste | Schimbările de API din pandas 3 și NumPy 2 sunt observate imediat, nu ignorate. |
-| Interfața și codul în engleză; documentația și raportul în română | Decizia echipei. |
+| Interfața în română (din Faza 16); codul și comentariile în engleză; documentația și raportul în română | Decizia echipei: aplicația este prezentată colegilor și profesorilor din UTM. Până în Faza 15, interfața era în engleză. |
 | Statisticile unui meci sunt păstrate doar dacă există toate cele 12 valori | Un model care folosește statistici primește mereu setul complet; un meci cu date parțiale este tratat ca un meci fără statistici. |
 | Cotele de pariuri și scorul la pauză nu sunt încărcate | Nu sunt folosite de niciun algoritm, iar pariurile sunt în afara scopului proiectului. |
 | Numele echipelor rămân ca în sursă (`Ath Madrid`, `Sociedad`) | Sunt consecvente în toate cele 20 de sezoane; nume mai prietenoase se pot adăuga ulterior într-un singur loc. |
@@ -612,8 +680,8 @@ Sursa datelor este Football-Data.co.uk: cinci ligi (Premier League, La Liga, Ser
 | Graficul grupurilor folosește golurile marcate și primite pe meci (varianta A), nu PCA | Axele au un înțeles direct și nu se adaugă o metodă nouă; limitarea (o treime dintre echipe apar mai aproape de alt centru) este documentată. |
 | Figurile sunt construite cu `matplotlib.figure.Figure`, fără `pyplot` | Nu există stare globală; aceeași figură poate fi afișată în aplicație sau salvată. |
 | Graficul Elo arată ratingul dinaintea fiecărui meci | Sunt exact valorile folosite de predicții, calculate doar din meciurile anterioare. |
-| Un jurnal care nu poate fi citit este semnalat direct în filă, cu butonul „Run backtest” vizibil | Jurnalul poate fi reconstruit din aplicație, iar o fereastră de dialog s-ar fi repetat la fiecare schimbare de filă. |
-| Numele echipelor de pe graficul grupurilor sunt așezate automat, fără o bibliotecă nouă, și din nou la fiecare redimensionare | Suprapunerile dispar aproape toate (de la 73 la 3 perechi în 20 de sezoane la mărimea implicită, niciuna la mărimea din fereastra aplicației), iar graficul rămâne determinist. |
+| Un jurnal care nu poate fi citit este semnalat direct în ecran, cu butonul de backtest vizibil | Jurnalul poate fi reconstruit din aplicație, iar o fereastră de dialog s-ar fi repetat la fiecare schimbare de filă. |
+| Numele echipelor de pe graficul grupurilor sunt așezate automat, fără o bibliotecă nouă, și din nou la fiecare redimensionare | Suprapunerile dispar aproape toate (o pereche în 99 de sezoane ale celor cinci ligi la mărimea implicită, niciuna la mărimea din fereastra aplicației; secțiunea 11.4), iar graficul rămâne determinist. |
 | Testele de la un capăt la altul folosesc doar datele sintetice | Testele nu citesc baza de date reală; verificarea pe datele reale este o rulare separată, documentată în secțiunea 11.3. |
 | PyInstaller în locul lui `pyside6-deploy` (Nuitka) | Construire simplă și rapidă, fără compilator C; funcționează bine cu PySide6, matplotlib și pandas. |
 | Baza de date și jurnalul predicțiilor sunt incluse în pachet | Aplicația pornește gata de folosit, fără Python și fără să ruleze backtestul. |
@@ -627,3 +695,14 @@ Sursa datelor este Football-Data.co.uk: cinci ligi (Premier League, La Liga, Ser
 | Grila lui $N$ merge până la cinci sezoane pentru toate ligile | Două ligi își alegeau marginea grilei; aceeași grilă pentru toate a schimbat și valoarea La Liga (38 → 76). |
 | Sezonul Ligue 1 2019/20, oprit oficial, este păstrat ca excepție documentată | Meciurile jucate sunt reale; eliminarea lor ar rupe istoricul echipelor. |
 | K-Means sare peste sezoanele fără statistici de șuturi | Profilul unei echipe are nevoie de șuturi; restul modelelor folosesc media ligii unde lipsesc. |
+| Sigla PitchSense: monograma PS albă pe un pătrat rotunjit albastru–grena, fără alte elemente | Inițiale pe un pătrat, ca la aplicațiile de scoruri (LiveScore); o stemă de club încercată înainte semăna prea mult cu cea a Barcelonei, iar dintre trei variante ale monogramei (fără minge, cu silueta mingii, cu liniile terenului) echipa a ales-o pe cea minimalistă (`docs/brand.md`). |
+| Temă întunecată cu blaugrana și un singur accent auriu | Aspectul site-urilor de fotbal pe care publicul le folosește (FC Barcelona, LiveScore, OneFootball); aurul arată pe fiecare ecran un singur lucru. |
+| Barlow Condensed pentru titluri și cifre, Libre Franklin pentru text, ambele incluse în aplicație | O literă condensată de sport pentru ce se citește dintr-o privire și una clasică de ziar pentru text; aceleași pe macOS, pe Windows și în grafice, cu diacriticele românești; licențele permit includerea. |
+| Stilul Qt Fusion, o paletă Qt întunecată și o singură foaie de stil | Aplicația arată la fel pe ambele sisteme și oricare ar fi tema sistemului. |
+| Bara de sus cu ecranele și panoul ligilor în stânga, ca la LiveScore | Ecranele și ligile se aleg cu un singur clic, iar liga aleasă se vede mereu. |
+| Sigla, steagurile și ecusoanele sunt desenate cu QPainter, literele din cercuri și dreptunghiuri, nu cu un font | Desenul este exact la fel pe orice sistem și se poate testa, atât geometric, cât și citind culorile pixelilor. |
+| Echipele au ecusoane cu trei litere, ligile steagul țării | Stemele cluburilor și siglele ligilor sunt mărci înregistrate și nu fac parte din date. |
+| Serviciile unei ligi sunt deschise la prima alegere și păstrate | Pornirea nu așteaptă cele cinci ligi; schimbarea ligii este imediată după prima dată. |
+| Alegerile utilizatorului (liga, echipa) sunt într-un fișier JSON în folderul utilizatorului | Pachetul rămâne nemodificat; un fișier deteriorat sau imposibil de scris nu oprește aplicația. |
+| Textul afișat este tradus într-un singur loc (`formatting.py`, `labels.py`) | Jurnalele, testele și codul păstrează identificatorii în engleză; afișarea românească este consecventă. |
+| Cardul Acasă spune dacă avantajul modelului cu cel mai mic scor Brier este real | Un clasament după diferențe de 0,0001 ar sugera un câștigător acolo unde nu există unul. |

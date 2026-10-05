@@ -1,14 +1,26 @@
-"""The data the user can choose from: one competition's seasons, teams and matches."""
+"""The data the user can choose from: the leagues in the database, and one league's seasons,
+teams and matches."""
 
 from dataclasses import dataclass
 from pathlib import Path
 
+from app.data.competitions import COMPETITIONS
 from app.data.models import Match
 from app.data.paths import DATABASE_PATH
 from app.data.repository import MatchRepository
 
 DEFAULT_COMPETITION = "SP1"
-COMPETITION_NAMES = {"SP1": "La Liga"}
+
+
+def available_competitions(database_path: Path = DATABASE_PATH) -> list[str]:
+    """The known leagues stored in the database, in the order of ``COMPETITIONS``."""
+    if not database_path.is_file():
+        raise FileNotFoundError(
+            f"Database not found: {database_path}. Run: python -m app.data.build_database"
+        )
+    with MatchRepository.open(database_path) as repository:
+        stored = set(repository.competitions())
+    return [code for code in COMPETITIONS if code in stored]
 
 
 @dataclass(frozen=True, slots=True)
@@ -65,7 +77,11 @@ class DataCatalog:
         teams = {team for m in self.matches for team in (m.home_team, m.away_team)}
         return CatalogSummary(
             competition=self.competition,
-            competition_name=COMPETITION_NAMES.get(self.competition, self.competition),
+            competition_name=(
+                COMPETITIONS[self.competition].name
+                if self.competition in COMPETITIONS
+                else self.competition
+            ),
             seasons=len(seasons),
             first_season=seasons[0],
             last_season=seasons[-1],
