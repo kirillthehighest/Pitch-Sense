@@ -40,7 +40,7 @@ from app.ui.widgets import FormStrip, ResponsiveBox, card, label
 DEFAULT_MODEL = ModelName.LOGISTIC_REGRESSION
 SIDE_WIDTH = 340
 COLUMNS_BREAKPOINT = 980  # narrower, "your team" and the table go under the matches
-CONTROLS_BREAKPOINT = 780  # narrower, the choice of model goes under the filters
+CONTROLS_BREAKPOINT = 720  # narrower, the choice of model goes under the filters
 TABLE_ROWS = 6
 PREPARING = "Se pregătesc predicțiile…"
 NO_MATCHES = "Nu sunt meciuri în această zi."
