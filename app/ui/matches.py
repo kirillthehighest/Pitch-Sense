@@ -8,7 +8,8 @@ and the chosen league's table.
 from collections.abc import Callable
 from datetime import date
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QRectF, Qt
+from PySide6.QtGui import QColor, QPainter, QPainterPath, QPen
 from PySide6.QtWidgets import (
     QButtonGroup,
     QComboBox,
@@ -31,12 +32,14 @@ from app.ui.brand import flag_pixmap, team_badge
 from app.ui.context import AppContext, LeagueServices
 from app.ui.match_detail import HypotheticalDialog, MatchDetail
 from app.ui.match_widgets import DayStrip, MatchRow, ProbabilityHeading
-from app.ui.widgets import FormStrip, card, label
+from app.ui.themes import current_theme
+from app.ui.widgets import FormStrip, ResponsiveBox, card, label
 
 # The model shown in the list unless the user picks another: over the five leagues together,
 # logistic regression has the lowest Brier score, really ahead of Elo and Poisson (docs/leagues.md).
 DEFAULT_MODEL = ModelName.LOGISTIC_REGRESSION
-SIDE_WIDTH = 360
+SIDE_WIDTH = 340
+COLUMNS_BREAKPOINT = 980  # narrower, "your team" and the table go under the matches
 TABLE_ROWS = 6
 PREPARING = "Se pregătesc predicțiile…"
 NO_MATCHES = "Nu sunt meciuri în această zi."
@@ -48,14 +51,16 @@ def next_match_day(days: list[date], today: date) -> date:
 
 
 class LeagueGroup(QFrame):
-    """One league's matches of the day: a heading with the flag, then one row per match."""
+    """One league's matches of the day, on a glass card with round corners: a heading with the
+    flag, then one row per match. The card is painted, not styled, so the heading's band and the
+    rows' hover stay inside its corners."""
+
+    RADIUS = 20
 
     def __init__(self, code: str, open_standings: Callable[[str], None]) -> None:
         super().__init__()
         self.code = code
-        self.setProperty("role", "list")
-        head = QFrame()
-        head.setProperty("role", "list-head")
+        self.head = head = QWidget()
         flag = QLabel()
         flag.setPixmap(flag_pixmap(code, 20))
         name = label(competition(code).name.upper(), "strong")
@@ -65,7 +70,7 @@ class LeagueGroup(QFrame):
         self.standings_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.standings_button.clicked.connect(lambda: open_standings(code))
         heading = QHBoxLayout(head)
-        heading.setContentsMargins(16, 10, 12, 10)
+        heading.setContentsMargins(18, 12, 14, 12)
         heading.setSpacing(10)
         heading.addWidget(flag)
         heading.addWidget(name)
@@ -78,7 +83,7 @@ class LeagueGroup(QFrame):
         self.note = label(role="caption", wrap=True)
         self.note.setContentsMargins(16, 12, 16, 14)
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setContentsMargins(0, 0, 0, 4)
         layout.setSpacing(0)
         layout.addWidget(head)
         layout.addLayout(self.rows_layout)
@@ -89,11 +94,38 @@ class LeagueGroup(QFrame):
         self.rows = rows
         for row in rows:
             self.rows_layout.addWidget(row)
+        if rows:
+            rows[-1].last = True
         self.note.setVisible(False)
 
     def show_note(self, text: str) -> None:
         self.note.setText(text)
         self.note.setVisible(True)
+
+    def paintEvent(self, event) -> None:  # noqa: N802 (Qt's name)
+        theme = current_theme()
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        area = QRectF(self.rect()).adjusted(0.5, 0.5, -0.5, -0.5)
+        card = QPainterPath()
+        card.addRoundedRect(area, self.RADIUS, self.RADIUS)
+        glass = QColor(theme.surface)
+        glass.setAlpha(190)
+        painter.fillPath(card, glass)
+        painter.save()
+        painter.setClipPath(card)
+        band = QColor(theme.surface_high)
+        band.setAlpha(150)
+        head = QRectF(area.left(), area.top(), area.width(), self.head.height())
+        painter.fillRect(head, band)
+        painter.fillRect(
+            QRectF(head.left(), head.bottom() - 1, head.width(), 1), QColor(255, 255, 255, 14)
+        )
+        painter.restore()
+        painter.setPen(QPen(QColor(255, 255, 255, 22), 1))
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        painter.drawPath(card)
+        painter.end()
 
 
 class MatchesPage(QWidget):
@@ -179,20 +211,22 @@ class MatchesPage(QWidget):
         listing.addStretch()
 
         side = QVBoxLayout()
+        side.setContentsMargins(0, 0, 0, 0)
         side.setSpacing(16)
         side.addWidget(self._favourite_card(choose_favourite))
         side.addWidget(self._table_card())
         side.addStretch()
         side_widget = QWidget()
         side_widget.setLayout(side)
-        side_widget.setFixedWidth(SIDE_WIDTH)
+        listing_widget = QWidget()
+        listing.setContentsMargins(0, 0, 0, 0)
+        listing_widget.setLayout(listing)
 
-        list_page = QWidget()
-        columns = QHBoxLayout(list_page)
-        columns.setContentsMargins(0, 0, 0, 0)
-        columns.setSpacing(20)
-        columns.addLayout(listing, stretch=1)
-        columns.addWidget(side_widget, alignment=Qt.AlignmentFlag.AlignTop)
+        # The right column moves under the list when the window is narrow.
+        self.columns = ResponsiveBox(COLUMNS_BREAKPOINT, spacing=20)
+        self.columns.add(listing_widget, stretch=1, top=True)
+        self.columns.add(side_widget, stretch=0, top=True, width=SIDE_WIDTH)
+        list_page = self.columns
 
         self.detail = MatchDetail(context, open_team)
         self.detail.back_button.clicked.connect(self.show_list)

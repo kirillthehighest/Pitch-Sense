@@ -21,20 +21,8 @@ from app.services.formatting import MONTHS, WEEKDAYS, day_name, percent
 from app.services.predictions import MatchForecast
 from app.ui.brand import team_badge
 from app.ui.theme import DISPLAY_FAMILY, FONT_FAMILY
-from app.visualization.palette import (
-    AWAY,
-    DRAW,
-    GOLD,
-    HOME,
-    LINE,
-    LOSS,
-    MUTED,
-    NIGHT,
-    SURFACE,
-    SURFACE_HIGH,
-    TEXT,
-    WIN,
-)
+from app.ui.themes import current_theme
+from app.visualization.palette import AWAY, DRAW, HOME, LOSS, NIGHT, WIN
 
 LEFT = Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
 RIGHT = Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
@@ -116,12 +104,14 @@ class ProbabilityHeading(QWidget):
         self.setFixedHeight(20)
 
     def paintEvent(self, event) -> None:  # noqa: N802 (Qt's name)
+        if self.width() < MatchRow.NARROW:
+            return  # the rows are stacked: their probabilities are not in columns
         painter = QPainter(self)
         font = QFont(FONT_FAMILY)
         font.setPixelSize(11)
         font.setWeight(QFont.Weight.Bold)
         painter.setFont(font)
-        painter.setPen(QColor(MUTED))
+        painter.setPen(QColor(current_theme().muted))
         width = MatchRow.PROBABILITY_WIDTH
         left = self.width() - 12 - 3 * width - 2 * 6
         for index, name in enumerate(("GAZDE", "EGAL", "OASPEȚI")):
@@ -135,9 +125,12 @@ class MatchRow(QAbstractButton):
     either the score or the chosen model's three probabilities, the most likely one filled.
 
     A played match also says whether that model's most likely outcome happened. ``stacked`` puts
-    the teams on one line and the probabilities under them, for narrow columns.
+    the teams on one line and the probabilities under them, for narrow columns; a row narrower
+    than ``NARROW`` stacks itself. The last row of a list (``last``) draws no line under itself,
+    so nothing crosses the card's round corners.
     """
 
+    NARROW = 560
     HEIGHT = 66
     STACKED_HEIGHT = 80
     TIME_WIDTH = 64
@@ -158,7 +151,9 @@ class MatchRow(QAbstractButton):
         self.model = model
         self.favourite = favourite
         self.show_date = show_date
+        self.always_stacked = stacked
         self.stacked = stacked
+        self.last = False
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setFixedHeight(self.STACKED_HEIGHT if stacked else self.HEIGHT)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
@@ -166,6 +161,16 @@ class MatchRow(QAbstractButton):
 
     def sizeHint(self) -> QSize:  # noqa: N802 (Qt's name)
         return QSize(320 if self.stacked else 640, self.height())
+
+    def minimumSizeHint(self) -> QSize:  # noqa: N802 (Qt's name)
+        return QSize(280, self.height())
+
+    def resizeEvent(self, event) -> None:  # noqa: N802 (Qt's name)
+        stacked = self.always_stacked or event.size().width() < self.NARROW
+        if stacked != self.stacked:
+            self.stacked = stacked
+            self.setFixedHeight(self.STACKED_HEIGHT if stacked else self.HEIGHT)
+        super().resizeEvent(event)
 
     @property
     def status_text(self) -> str:
@@ -196,12 +201,20 @@ class MatchRow(QAbstractButton):
         super().leaveEvent(event)
 
     def paintEvent(self, event) -> None:  # noqa: N802 (Qt's name)
+        theme = current_theme()
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         area = QRectF(self.rect())
         if self.underMouse():
-            painter.fillRect(area, QColor(SURFACE_HIGH))
-        painter.fillRect(QRectF(0, area.height() - 1, area.width(), 1), QColor(LINE))
+            hover = QPainterPath()
+            hover.addRoundedRect(area.adjusted(6, 3, -6, -3), 14, 14)
+            fill = QColor(theme.surface_high)
+            fill.setAlpha(190)
+            painter.fillPath(hover, fill)
+        if not self.last:
+            painter.fillRect(
+                QRectF(16, area.height() - 1, area.width() - 32, 1), QColor(255, 255, 255, 16)
+            )
         if self.stacked:
             self._paint_stacked(painter, area)
             painter.end()
@@ -214,7 +227,7 @@ class MatchRow(QAbstractButton):
         )
         right -= probabilities_width + 18
         if self.forecast.played is not None:
-            self._paint_score(painter, QRectF(right - self.SCORE_WIDTH, 0, self.SCORE_WIDTH, 66))
+            self._paint_score(painter, QRectF(right - self.SCORE_WIDTH, 7, self.SCORE_WIDTH, 52))
             right -= self.SCORE_WIDTH + 12
         left = 12 + self.TIME_WIDTH + 10
         for line, team in enumerate((self.forecast.home_team, self.forecast.away_team)):
@@ -232,7 +245,7 @@ class MatchRow(QAbstractButton):
             font.setPixelSize(18)
             font.setWeight(QFont.Weight.Bold)
             painter.setFont(font)
-            painter.setPen(QColor(TEXT))
+            painter.setPen(QColor(current_theme().text))
             painter.drawText(
                 QRectF(right - 50, 8, 50, 24), RIGHT, f"{played.home_goals}–{played.away_goals}"
             )
@@ -245,10 +258,12 @@ class MatchRow(QAbstractButton):
 
     def _paint_status(self, painter: QPainter, box: QRectF) -> None:
         font = QFont(DISPLAY_FAMILY)
-        font.setPixelSize(16)
-        font.setWeight(QFont.Weight.DemiBold)
+        font.setPixelSize(17)
+        font.setWeight(QFont.Weight.Bold)
         painter.setFont(font)
-        painter.setPen(QColor(MUTED))
+        theme = current_theme()
+        upcoming = self.forecast.played is None and not self.forecast.postponed
+        painter.setPen(QColor(theme.text if upcoming and not self.show_date else theme.muted))
         painter.drawText(box, LEFT, self.status_text.upper())
 
     def _paint_team(self, painter: QPainter, box: QRectF, team: str) -> None:
@@ -263,7 +278,8 @@ class MatchRow(QAbstractButton):
         )
         font.setWeight(QFont.Weight.Bold if won else QFont.Weight.DemiBold)
         painter.setFont(font)
-        painter.setPen(QColor(GOLD if favourite else TEXT))
+        theme = current_theme()
+        painter.setPen(QColor(theme.accent if favourite else theme.text))
         text_box = box.adjusted(28, 0, 0, 0)
         name = QFontMetrics(font).elidedText(
             team, Qt.TextElideMode.ElideRight, int(text_box.width())
@@ -272,13 +288,21 @@ class MatchRow(QAbstractButton):
 
     def _paint_score(self, painter: QPainter, box: QRectF) -> None:
         played = self.forecast.played
+        theme = current_theme()
+        pill = QPainterPath()
+        pill.addRoundedRect(box, 12, 12)
+        fill = QColor(theme.surface_top)
+        fill.setAlpha(220)
+        painter.fillPath(pill, fill)
         font = QFont(DISPLAY_FAMILY)
         font.setPixelSize(19)
         font.setWeight(QFont.Weight.Bold)
         painter.setFont(font)
-        painter.setPen(QColor(TEXT))
+        painter.setPen(QColor(theme.text))
+        half = box.height() / 2
         for line, goals in enumerate((played.home_goals, played.away_goals)):
-            painter.drawText(QRectF(box.left(), 9 + line * 25, box.width(), 22), RIGHT, str(goals))
+            cell = QRectF(box.left(), box.top() + line * half, box.width(), half)
+            painter.drawText(cell, CENTRE, str(goals))
 
     def _paint_probabilities(
         self, painter: QPainter, box: QRectF, chip_width: float = PROBABILITY_WIDTH
@@ -286,9 +310,10 @@ class MatchRow(QAbstractButton):
         prediction = self.forecast.of(self.model)
         font = QFont(FONT_FAMILY)
         font.setPixelSize(13)
+        theme = current_theme()
         if prediction is None:
             painter.setFont(font)
-            painter.setPen(QColor(MUTED))
+            painter.setPen(QColor(theme.muted))
             painter.drawText(box, RIGHT, "fără predicție")
             return
         probabilities = prediction.probabilities
@@ -299,20 +324,22 @@ class MatchRow(QAbstractButton):
                 box.left() + index * (chip_width + 6), box.center().y() - 15, chip_width, 30
             )
             path = QPainterPath()
-            path.addRoundedRect(chip, 8, 8)
+            path.addRoundedRect(chip, 15, 15)
             chosen = outcome is best
             if chosen:
                 painter.fillPath(path, QColor(OUTCOME_COLOURS[outcome]))
                 if hit is not None:  # a played match: a green tick when right, a red cross not
                     painter.setPen(QPen(QColor(WIN if hit else LOSS), 2))
                     painter.setBrush(Qt.BrushStyle.NoBrush)
-                    painter.drawRoundedRect(chip.adjusted(-2, -2, 2, 2), 9, 9)
+                    painter.drawRoundedRect(chip.adjusted(-2, -2, 2, 2), 17, 17)
                     _paint_mark(painter, QPointF(chip.right() - 1, chip.top() + 1), hit)
             else:
-                painter.fillPath(path, QColor(SURFACE))
+                idle = QColor(theme.surface_high)
+                idle.setAlpha(170)
+                painter.fillPath(path, idle)
             font.setWeight(QFont.Weight.Bold if chosen else QFont.Weight.Medium)
             painter.setFont(font)
-            painter.setPen(QColor(OUTCOME_INKS[outcome] if chosen else MUTED))
+            painter.setPen(QColor(OUTCOME_INKS[outcome] if chosen else theme.muted))
             painter.drawText(chip, CENTRE, percent(probabilities.of(outcome), 0))
 
 

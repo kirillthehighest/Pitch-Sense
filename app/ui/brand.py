@@ -1,16 +1,18 @@
 """The PitchSense logo, the app icon, the league flags and the team badges, drawn with QPainter.
 
-The logo is a monogram on a rounded tile, as a scoreboard app has: the letters P and S, heavy and
-geometric, white on a tile that runs from Barça blue to garnet, and nothing else. The reasons are
-in ``docs/brand.md``.
+The logo (Phase 21) is the letters PS in Kanit's black italic, cut by a rising slash: white above
+the cut, the league's accent below it, so the mark takes the colours of the league on screen. The
+app icon puts it on a tile of the league's night, lit by the league's glow. The team chose it
+over earlier monograms that looked too much like a design program's icon; the reasons are in
+``docs/brand.md``.
 
 A team's badge is its club crest when ``assets/crests`` has one (Phase 19, collected from
 Wikipedia by ``tools/crests.py``; the crests belong to the clubs), otherwise its three letters.
 """
 
 import json
+import math
 import re
-from dataclasses import dataclass
 from functools import cache
 
 import numpy as np
@@ -19,6 +21,7 @@ from PySide6.QtGui import (
     QBrush,
     QColor,
     QFont,
+    QFontMetricsF,
     QIcon,
     QImage,
     QLinearGradient,
@@ -26,25 +29,23 @@ from PySide6.QtGui import (
     QPainterPath,
     QPen,
     QPixmap,
+    QPolygonF,
+    QRadialGradient,
+    QTransform,
 )
-from PySide6.QtWidgets import QHBoxLayout, QLabel, QSizePolicy, QWidget
+from PySide6.QtWidgets import QSizePolicy, QWidget
 
 from app.data.paths import ASSETS_DIR
 from app.services.labels import team_abbreviation
-from app.ui.theme import DISPLAY_FAMILY
-from app.visualization.palette import (
-    BLAU,
-    GOLD,
-    GRANA,
-    LINE,
-    SURFACE_TOP,
-    TEXT,
-)
+from app.ui.theme import DISPLAY_FAMILY, LOGO_FAMILY
+from app.ui.themes import Theme, current_theme
 
-LOGO_UNITS = 100.0  # the logo is drawn on a 100 x 100 square
-TILE_RADIUS = 23.0  # rounded corners, as macOS draws its icons
 ICON_SIZES = (16, 24, 32, 48, 64, 128, 256, 512, 1024)
 PIXEL_RATIO = 2  # pixmaps are drawn at twice their size, sharp on high-density screens
+CUT_ANGLE = math.radians(15)  # the slash rises to the right
+CUT_HEIGHT = 0.56  # where the slash crosses the letters, from their top
+CUT_GAP = 0.09  # its width, as a share of the letters' height
+TILE_RADIUS = 0.23  # of the icon's side, as macOS draws its icons
 CRESTS_DIR = ASSETS_DIR / "crests"  # <crest_slug(team)>.png, at most 128 pixels
 LEAGUE_PHOTOS_DIR = ASSETS_DIR / "leagues"  # <code>.jpg, supplied by the team, see sources.json
 DEFAULT_TOP = 0.1  # where the banner's strip of an image starts, as a share of its height
@@ -65,116 +66,105 @@ FLAGS = {
 }
 
 
-@dataclass(frozen=True, slots=True)
-class MonogramGeometry:
-    """The measures of the letters, in logo units. Both letters have the same stroke and height;
-    the S is two half-rings stacked so that their middle strokes coincide."""
-
-    stroke: float
-    top: float
-    height: float
-    bowl_radius: float  # outer radius of the P's round bowl
-    gap: float  # between the P and the S
-
-    @property
-    def s_radius(self) -> float:
-        return (self.height + self.stroke) / 4
-
-    @property
-    def left(self) -> float:
-        """Where the P starts, so that the pair is centred on the tile."""
-        width = 2 * self.bowl_radius + self.gap + 2 * self.s_radius
-        return (LOGO_UNITS - width) / 2
-
-    @property
-    def bowl_centre(self) -> tuple[float, float]:
-        return self.left + self.bowl_radius, self.top + self.bowl_radius
-
-    @property
-    def counter_radius(self) -> float:
-        """The round hole of the P."""
-        return self.bowl_radius - self.stroke
-
-
-MONOGRAM = MonogramGeometry(stroke=11.0, top=19.0, height=62.0, bowl_radius=22.5, gap=3.0)
-
-
-def _circle(x: float, y: float, radius: float) -> QPainterPath:
+@cache
+def _letters() -> QPainterPath:
+    """The outline of PS in Kanit's black italic, overlapping contours merged."""
+    font = QFont(LOGO_FAMILY)
+    font.setPixelSize(200)
+    font.setWeight(QFont.Weight.Black)
+    font.setItalic(True)
     path = QPainterPath()
-    path.addEllipse(QPointF(x, y), radius, radius)
+    path.addText(0, 0, font, "PS")
+    path.setFillRule(Qt.FillRule.WindingFill)
+    return path.simplified()
+
+
+def _strip(centre: QPointF, offset_from: float, offset_to: float, reach: float) -> QPainterPath:
+    """The region between two lines parallel to the slash, at signed distances from ``centre``."""
+    along = QPointF(math.cos(CUT_ANGLE), -math.sin(CUT_ANGLE))
+    across = QPointF(-along.y(), along.x())  # pointing down
+    corners = [(-reach, offset_from), (reach, offset_from), (reach, offset_to), (-reach, offset_to)]
+    points = [centre + along * u + across * v for u, v in corners]
+    path = QPainterPath()
+    path.addPolygon(QPolygonF(points))
+    path.closeSubpath()
     return path
 
 
-def _box(x: float, y: float, width: float, height: float) -> QPainterPath:
-    path = QPainterPath()
-    path.addRect(QRectF(x, y, width, height))
-    return path
-
-
-def _ring(x: float, y: float, radius: float, stroke: float) -> QPainterPath:
-    return _circle(x, y, radius).subtracted(_circle(x, y, radius - stroke))
-
-
-def letter_p(shape: MonogramGeometry = MONOGRAM) -> QPainterPath:
-    """The P: a stem and a round bowl joined to it by straight strokes at its top and bottom."""
-    x, y = shape.bowl_centre
-    radius, stroke = shape.bowl_radius, shape.stroke
-    path = _box(shape.left, shape.top, stroke, shape.height)
-    path = path.united(_ring(x, y, radius, stroke))
-    path = path.united(_box(shape.left, shape.top, radius, stroke))
-    return path.united(_box(shape.left, y + radius - stroke, radius, stroke))
-
-
-def letter_s(shape: MonogramGeometry = MONOGRAM) -> QPainterPath:
-    """The S: an upper half-ring open at its lower right and a lower one open at its upper left,
-    sharing their middle stroke."""
-    radius, stroke = shape.s_radius, shape.stroke
-    x = shape.left + 2 * shape.bowl_radius + shape.gap + radius
-    upper_y = shape.top + radius
-    lower_y = upper_y + 2 * radius - stroke
-    upper = _ring(x, upper_y, radius, stroke).subtracted(_box(x, upper_y, radius + 1, radius + 1))
-    lower = _ring(x, lower_y, radius, stroke).subtracted(
-        _box(x - radius - 1, lower_y - radius - 1, radius + 1, radius + 1)
+def logo_parts(rect: QRectF) -> tuple[QPainterPath, QPainterPath]:
+    """The mark fitted and centred in ``rect``: the letters above the slash and below it."""
+    letters = _letters()
+    bounds = letters.boundingRect()
+    scale = min(rect.width() / bounds.width(), rect.height() / bounds.height())
+    fitted = QTransform().scale(scale, scale).map(letters)
+    bounds = fitted.boundingRect()
+    fitted.translate(
+        rect.center().x() - bounds.center().x(), rect.center().y() - bounds.center().y()
     )
-    return upper.united(lower)
+    bounds = fitted.boundingRect()
+    height, reach = bounds.height(), bounds.width() * 2
+    centre = QPointF(bounds.center().x(), bounds.top() + height * CUT_HEIGHT)
+    half_gap = height * CUT_GAP / 2
+    above = fitted.intersected(_strip(centre, -reach, -half_gap, reach))
+    below = fitted.intersected(_strip(centre, half_gap, reach, reach))
+    return above, below
 
 
-def tile_path() -> QPainterPath:
-    path = QPainterPath()
-    path.addRoundedRect(QRectF(0, 0, LOGO_UNITS, LOGO_UNITS), TILE_RADIUS, TILE_RADIUS)
-    return path
-
-
-def paint_logo(painter: QPainter, rect: QRectF) -> None:
-    """Draw the logo into the square ``rect``: the tile and the letters."""
+def paint_logo(painter: QPainter, rect: QRectF, theme: Theme | None = None) -> None:
+    """Draw the mark into ``rect``: white above the slash, the league's accent below it."""
+    theme = theme or current_theme()
+    above, below = logo_parts(rect)
     painter.save()
     painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-    painter.translate(rect.topLeft())
-    painter.scale(rect.width() / LOGO_UNITS, rect.height() / LOGO_UNITS)
-    blaugrana = QLinearGradient(0, 0, LOGO_UNITS, LOGO_UNITS)
-    blaugrana.setColorAt(0, QColor(BLAU))
-    blaugrana.setColorAt(1, QColor(GRANA))
-    painter.fillPath(tile_path(), QBrush(blaugrana))
-    painter.fillPath(letter_p(), QColor(TEXT))
-    painter.fillPath(letter_s(), QColor(TEXT))
+    painter.fillPath(above, QColor("#FFFFFF"))
+    painter.fillPath(below, QColor(theme.accent))
     painter.restore()
 
 
-def icon_image(size: int) -> QImage:
-    """The app icon at one size: the logo tile, filling the square."""
+def tile_path(rect: QRectF) -> QPainterPath:
+    path = QPainterPath()
+    radius = rect.width() * TILE_RADIUS
+    path.addRoundedRect(rect, radius, radius)
+    return path
+
+
+def paint_icon(painter: QPainter, rect: QRectF, theme: Theme | None = None) -> None:
+    """The app icon: the mark on a tile of the league's night, lit from its lower corner."""
+    theme = theme or current_theme()
+    painter.save()
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+    tile = tile_path(rect)
+    night = QLinearGradient(rect.topLeft(), rect.bottomRight())
+    night.setColorAt(0, QColor(theme.surface_top))
+    night.setColorAt(1, QColor(theme.night))
+    painter.fillPath(tile, QBrush(night))
+    glow = QRadialGradient(rect.bottomRight(), rect.width() * 1.1)
+    light = QColor(theme.glow_primary)
+    light.setAlpha(150)
+    glow.setColorAt(0, light)
+    light.setAlpha(0)
+    glow.setColorAt(1, light)
+    painter.fillPath(tile, QBrush(glow))
+    painter.restore()
+    margin = rect.width() * 0.16
+    paint_logo(painter, rect.adjusted(margin, margin, -margin, -margin), theme)
+
+
+def icon_image(size: int, theme: Theme | None = None) -> QImage:
+    """The app icon at one size, filling the square."""
     image = QImage(size, size, QImage.Format.Format_ARGB32_Premultiplied)
     image.fill(Qt.GlobalColor.transparent)
     painter = QPainter(image)
-    paint_logo(painter, QRectF(0, 0, size, size))
+    paint_icon(painter, QRectF(0, 0, size, size), theme)
     painter.end()
     return image
 
 
-def app_icon() -> QIcon:
+def app_icon(theme: Theme | None = None) -> QIcon:
     """The window and taskbar icon, with an image for every usual size."""
     icon = QIcon()
     for size in ICON_SIZES:
-        icon.addPixmap(QPixmap.fromImage(icon_image(size)))
+        icon.addPixmap(QPixmap.fromImage(icon_image(size, theme)))
     return icon
 
 
@@ -207,7 +197,7 @@ def flag_pixmap(code: str, size: int = 22) -> QPixmap:
             )
             painter.fillRect(band, QColor(colour))
     painter.setClipping(False)
-    ring = QColor(TEXT)
+    ring = QColor(current_theme().text)
     ring.setAlpha(60)
     painter.setPen(QPen(ring, 1))
     painter.setBrush(Qt.BrushStyle.NoBrush)
@@ -279,23 +269,24 @@ def _crest_is_dark(team: str) -> bool:
 
 
 def team_badge(team: str, size: int = 40, highlighted: bool = False) -> QPixmap:
-    """The club's crest, or a round badge with the team's three letters; "your team" gets a gold
-    ring. A dark crest sits on a light disc."""
+    """The club's crest, or a round badge with the team's three letters; "your team" gets a ring
+    in the league's accent. A dark crest sits on a light disc."""
     crest = crest_image(team)
     if crest is not None:
         return _crest_badge(crest, size, highlighted, _crest_is_dark(team))
     pixmap = _blank(size)
     painter = QPainter(pixmap)
     painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+    theme = current_theme()
     ring = max(1.5, size / 20)
-    painter.setPen(QPen(QColor(GOLD if highlighted else LINE), ring))
-    painter.setBrush(QColor(SURFACE_TOP))
+    painter.setPen(QPen(QColor(theme.accent if highlighted else theme.line), ring))
+    painter.setBrush(QColor(theme.surface_top))
     painter.drawEllipse(QRectF(ring / 2, ring / 2, size - ring, size - ring))
     font = QFont(DISPLAY_FAMILY)
     font.setPixelSize(round(size * (0.36 if size >= 40 else 0.42)))
     font.setWeight(QFont.Weight.Bold)
     painter.setFont(font)
-    painter.setPen(QColor(GOLD if highlighted else TEXT))
+    painter.setPen(QColor(theme.accent if highlighted else theme.text))
     centre = Qt.AlignmentFlag.AlignCenter
     painter.drawText(QRectF(0, 0, size, size), centre, team_abbreviation(team))
     painter.end()
@@ -314,7 +305,7 @@ def _crest_badge(crest: QImage, size: int, highlighted: bool, dark: bool) -> QPi
         painter.setBrush(QColor(CREST_DISC))
         painter.drawEllipse(QRectF(ring / 2, ring / 2, size - ring, size - ring))
     if highlighted:
-        painter.setPen(QPen(QColor(GOLD), ring))
+        painter.setPen(QPen(QColor(current_theme().accent), ring))
         painter.setBrush(Qt.BrushStyle.NoBrush)
         painter.drawEllipse(QRectF(ring / 2, ring / 2, size - ring, size - ring))
     if highlighted or dark:
@@ -359,7 +350,7 @@ def _blank(size: int) -> QPixmap:
 
 
 class LogoWidget(QWidget):
-    """The logo tile at a fixed size."""
+    """The mark at a fixed size, in the colours of the league on screen."""
 
     def __init__(self, size: int) -> None:
         super().__init__()
@@ -372,20 +363,44 @@ class LogoWidget(QWidget):
 
 
 class Lockup(QWidget):
-    """The logo tile beside the wordmark: PITCH in white, SENSE in gold, condensed and heavy."""
+    """The mark beside the wordmark, PITCH in white and SENSE in the league's accent, in Kanit's
+    heavy italic; ``compact``, the mark alone (a narrow window)."""
 
     def __init__(self, height: int = 40) -> None:
         super().__init__()
-        layout = QHBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(round(height * 0.3))
-        layout.addWidget(LogoWidget(height))
-        self.wordmark = QLabel(
-            f'<span style="color:{TEXT}">PITCH</span><span style="color:{GOLD}">SENSE</span>'
-        )
-        self.wordmark.setStyleSheet(
-            f'font-family: "{DISPLAY_FAMILY}"; font-size: {round(height * 0.66)}px; '
-            "font-weight: 800; background: transparent;"
-        )
-        layout.addWidget(self.wordmark)
+        self.mark_height = height
+        self.word_font = QFont(LOGO_FAMILY)
+        self.word_font.setPixelSize(round(height * 0.62))
+        self.word_font.setWeight(QFont.Weight.ExtraBold)
+        self.word_font.setItalic(True)
+        metrics = QFontMetricsF(self.word_font)
+        self.mark_width = height * 1.45
+        self.text_left = self.mark_width + height * 0.3
+        self.full_width = round(self.text_left + metrics.horizontalAdvance("PITCHSENSE") + 4)
+        self.compact = False
+        self.setFixedSize(self.full_width, height)
         self.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        self.setToolTip("PitchSense")
+
+    def set_compact(self, compact: bool) -> None:
+        self.compact = compact
+        self.setFixedWidth(round(self.mark_width) + 2 if compact else self.full_width)
+
+    def paintEvent(self, event) -> None:  # noqa: N802 (Qt's name)
+        theme = current_theme()
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        paint_logo(painter, QRectF(0, 0, self.mark_width, self.mark_height), theme)
+        if self.compact:
+            painter.end()
+            return
+        painter.setFont(self.word_font)
+        metrics = QFontMetricsF(self.word_font)
+        baseline = (self.mark_height + metrics.capHeight()) / 2
+        painter.setPen(QColor("#FFFFFF"))
+        painter.drawText(QPointF(self.text_left, baseline), "PITCH")
+        painter.setPen(QColor(theme.accent))
+        painter.drawText(
+            QPointF(self.text_left + metrics.horizontalAdvance("PITCH"), baseline), "SENSE"
+        )
+        painter.end()

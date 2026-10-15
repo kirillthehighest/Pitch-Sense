@@ -23,7 +23,7 @@ import numpy as np
 from matplotlib import font_manager, rc_context
 from matplotlib.axes import Axes
 from matplotlib.axis import Axis
-from matplotlib.colors import LinearSegmentedColormap
+from matplotlib.colors import LinearSegmentedColormap, to_rgba, to_rgba_array
 from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
 from matplotlib.text import Annotation
@@ -120,6 +120,40 @@ STYLE = {
     "lines.linewidth": 2,
     "lines.solid_capstyle": "round",
 }
+
+
+def on_surface(figure: Figure, colour: str, previous: str = SURFACE) -> Figure:
+    """Show ``figure`` on a card of another colour: its background becomes transparent, and every
+    ring, edge and gap drawn in ``previous`` (the card colour it was built for) takes ``colour``.
+
+    Returns the same figure, changed in place.
+    """
+    old, new = np.array(to_rgba(previous)), to_rgba(colour)
+    backgrounds = {id(figure.patch), *(id(axes.patch) for axes in figure.axes)}
+    figure.patch.set_alpha(0.0)
+    for axes in figure.axes:
+        axes.patch.set_alpha(0.0)
+    for artist in figure.findobj():
+        if id(artist) in backgrounds:
+            continue
+        for name in ("edgecolor", "facecolor", "markeredgecolor", "color"):
+            getter = getattr(artist, f"get_{name}", None)
+            setter = getattr(artist, f"set_{name}", None)
+            if getter is None or setter is None:
+                continue
+            try:
+                colours = to_rgba_array(getter())
+            except TypeError, ValueError:
+                continue  # not a colour (a colour map, for instance)
+            same = np.all(np.abs(colours - old) < 1 / 255, axis=1)
+            if not same.any():
+                continue
+            if len(colours) == 1:
+                setter(new)
+            else:
+                colours[same] = new
+                setter(colours)
+    return figure
 
 
 @cache

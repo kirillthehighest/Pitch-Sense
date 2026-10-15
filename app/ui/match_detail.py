@@ -1,5 +1,5 @@
-"""A match's page (Phase 19): both clubs on a blaugrana card, what each model expects and why,
-the likely scores of the Poisson model and how both teams came into the match.
+"""A match's page (Phase 19): both clubs on a card in the league's colours, what each model
+expects and why, the likely scores of the Poisson model and how both teams came into the match.
 
 ``HypotheticalDialog`` asks for any two teams of a season and a day, the "Orice meci" of earlier
 phases, and opens the answer on the same page.
@@ -9,8 +9,8 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date, timedelta
 
-from PySide6.QtCore import QDate, QPointF, QRectF, Qt, Signal
-from PySide6.QtGui import QBrush, QColor, QLinearGradient, QPainter, QPainterPath
+from PySide6.QtCore import QDate, QRectF, Qt, Signal
+from PySide6.QtGui import QPainter
 from PySide6.QtWidgets import (
     QComboBox,
     QDateEdit,
@@ -32,7 +32,7 @@ from app.services.formatting import date_text, number, percent, season_text
 from app.services.labels import model_label, outcome_label
 from app.services.predictions import MatchForecast, forecast_of, summarize
 from app.services.teams import TeamOverview
-from app.ui.brand import flag_pixmap, paint_pitch, team_badge
+from app.ui.brand import flag_pixmap, team_badge
 from app.ui.context import AppContext, LeagueServices
 from app.ui.widgets import (
     BarRow,
@@ -43,9 +43,9 @@ from app.ui.widgets import (
     fill_table,
     label,
     make_table,
+    paint_league_card,
 )
 from app.visualization.charts import score_heatmap
-from app.visualization.palette import BLAU, GRANA, NIGHT, TEXT
 
 CREST_SIZE = 96
 # What each model looks at, in a sentence anyone can follow (the details: Analiză).
@@ -136,7 +136,8 @@ def verdict_text(forecast: MatchForecast) -> str:
 
 
 class MatchHero(QFrame):
-    """The head of a match: blaugrana gradient, faint pitch lines, both crests, the score."""
+    """The head of a match: the league's colours and glows, faint pitch lines, both crests and
+    the score."""
 
     def __init__(self) -> None:
         super().__init__()
@@ -177,19 +178,7 @@ class MatchHero(QFrame):
 
     def paintEvent(self, event) -> None:  # noqa: N802 (Qt's name)
         painter = QPainter(self)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        area = QRectF(self.rect())
-        path = QPainterPath()
-        path.addRoundedRect(area, 16, 16)
-        gradient = QLinearGradient(QPointF(0, 0), QPointF(area.width(), area.height()))
-        gradient.setColorAt(0, QColor(BLAU))
-        gradient.setColorAt(0.55, QColor(NIGHT))
-        gradient.setColorAt(1, QColor(GRANA))
-        painter.fillPath(path, QBrush(gradient))
-        painter.setClipPath(path)
-        lines = QColor(TEXT)
-        lines.setAlpha(28)
-        paint_pitch(painter, area.adjusted(-area.width() * 0.12, -20, 0, 20), lines)
+        paint_league_card(painter, QRectF(self.rect()))
         painter.end()
 
 

@@ -5,8 +5,8 @@ prediction, the last results, the club's K-Means profile in plain words and its 
 from collections.abc import Callable
 from dataclasses import dataclass
 
-from PySide6.QtCore import QPointF, QRectF
-from PySide6.QtGui import QBrush, QColor, QLinearGradient, QPainter, QPainterPath
+from PySide6.QtCore import QRectF
+from PySide6.QtGui import QPainter
 from PySide6.QtWidgets import (
     QComboBox,
     QFrame,
@@ -21,12 +21,19 @@ from app.services.formatting import season_text
 from app.services.predictions import MatchForecast
 from app.services.teams import RatingSeason, SeasonGroups, TeamOverview
 from app.statistics.team_statistics import TeamStatistics
-from app.ui.brand import paint_pitch, team_badge
+from app.ui.brand import team_badge
 from app.ui.context import AppContext, LeagueServices
 from app.ui.match_widgets import MatchRow
-from app.ui.widgets import ChartView, FormStrip, PageTabs, StatTile, card, label
+from app.ui.widgets import (
+    ChartView,
+    FormStrip,
+    PageTabs,
+    StatTile,
+    card,
+    label,
+    paint_league_card,
+)
 from app.visualization.charts import elo_history_chart, team_groups_chart
-from app.visualization.palette import BLAU, GRANA, NIGHT, TEXT
 
 CREST_SIZE = 120
 CHART_HEIGHT = 540  # room for the names of twenty teams on the groups chart
@@ -68,7 +75,7 @@ def record_text(record: TeamStatistics) -> str:
 
 
 class TeamHeader(QFrame):
-    """The crest and the name in large capitals on a blaugrana band."""
+    """The crest and the name in large capitals on a band in the league's colours."""
 
     def __init__(self) -> None:
         super().__init__()
@@ -92,19 +99,7 @@ class TeamHeader(QFrame):
 
     def paintEvent(self, event) -> None:  # noqa: N802 (Qt's name)
         painter = QPainter(self)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        area = QRectF(self.rect())
-        path = QPainterPath()
-        path.addRoundedRect(area, 16, 16)
-        gradient = QLinearGradient(QPointF(0, 0), QPointF(area.width(), area.height()))
-        gradient.setColorAt(0, QColor(BLAU))
-        gradient.setColorAt(0.6, QColor(NIGHT))
-        gradient.setColorAt(1, QColor(GRANA))
-        painter.fillPath(path, QBrush(gradient))
-        painter.setClipPath(path)
-        lines = QColor(TEXT)
-        lines.setAlpha(26)
-        paint_pitch(painter, area.adjusted(0, -20, 0, 20), lines)
+        paint_league_card(painter, QRectF(self.rect()))
         painter.end()
 
 

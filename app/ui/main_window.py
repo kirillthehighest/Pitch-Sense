@@ -1,5 +1,9 @@
 """The main window: the top bar with the four screens (Meciuri, Clasament, Echipe, Analiză),
-the leagues on the left, the hero banner and the screens.
+the leagues on the left, the hero banner and the screens, over the league's backdrop.
+
+Choosing a league repaints the whole window in its palette (``themes.py``), revealed by a circle
+from the top-left corner (``transition.py``). A narrow window keeps only the flags in the side
+panel and only the mark of the logo in the top bar.
 
 The application entry point (``main``) also lives here.
 """
@@ -47,11 +51,17 @@ from app.ui.context import AppContext, default_context
 from app.ui.matches import MatchesPage
 from app.ui.standings import StandingsPage
 from app.ui.team_page import TeamPage
-from app.ui.theme import apply_theme
-from app.ui.widgets import BrandStripe, HeroBanner, LeagueButton, label
+from app.ui.theme import apply_theme, apply_window_theme
+from app.ui.themes import current_theme, theme_for
+from app.ui.transition import ThemeReveal
+from app.ui.widgets import Backdrop, BrandStripe, ChartView, HeroBanner, LeagueButton, label
 
 WINDOW_TITLE = "PitchSense – analiza și predicția meciurilor de fotbal"
 SIDE_PANEL_WIDTH = 248
+COMPACT_SIDE_PANEL_WIDTH = 76
+COMPACT_WIDTH = 1280  # narrower windows keep only the flags in the side panel...
+COMPACT_LOGO_WIDTH = 1180  # ...and, narrower still, only the mark of the logo
+MINIMUM_SIZE = (1024, 700)
 NO_FAVOURITE = "Alege echipa ta"
 UPDATE = "Actualizează datele"
 UPDATE_TIP = (
@@ -138,10 +148,11 @@ class MainWindow(QMainWindow):
         self._league_code: str | None = None
         self._reported_problems: set[str] = set()
         self._preparing: set[str] = set()
+        self._styled = False
+        self.reveal: ThemeReveal | None = None
+        self.animate = True  # reveal the colours of a new league with a circle
         self.setWindowTitle(WINDOW_TITLE)
         self.setWindowIcon(app_icon())
-        self.resize(1400, 900)
-        self.setMinimumSize(1180, 740)
 
         self.matches = MatchesPage(
             context, self.open_standings, self.open_team, self.open_favourite_dialog
@@ -166,25 +177,26 @@ class MainWindow(QMainWindow):
         self.page_title = self.hero.title_label
         self.page_subtitle = self.hero.subtitle_label
 
-        central = QWidget()
+        central = Backdrop()
         layout = QVBoxLayout(central)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
         layout.addWidget(self._top_bar())
-        layout.addWidget(BrandStripe())
+        layout.addWidget(BrandStripe(2))
         body = QHBoxLayout()
         body.setSpacing(0)
         body.addWidget(self._side_panel())
         main = QVBoxLayout()
-        main.setSpacing(0)
+        main.setContentsMargins(24, 20, 24, 0)
+        main.setSpacing(18)
         main.addWidget(self.hero)
-        pages = QVBoxLayout()
-        pages.setContentsMargins(28, 22, 28, 8)
-        pages.addWidget(self.stack)
-        main.addLayout(pages, stretch=1)
+        main.addWidget(self.stack, stretch=1)
         body.addLayout(main, stretch=1)
         layout.addLayout(body, stretch=1)
         self.setCentralWidget(central)
+        self.setMinimumSize(*MINIMUM_SIZE)
+        self.resize(1400, 900)
+        self.fit_width(1400)
 
         self.show_favourite()
         self.show_league(context.first_league)
@@ -207,10 +219,12 @@ class MainWindow(QMainWindow):
             page.refresh()  # a log or a league's predictions may be ready since
 
     def show_league(self, code: str) -> None:
-        """Show every screen for one league and prepare its predictions in the background."""
+        """Show every screen for one league, in its colours, and prepare its predictions in the
+        background."""
         if code == self._league_code:
             return
         self._league_code = code
+        self._restyle(code)
         self.league_buttons[code].setChecked(True)
         league = self._context.league(code)
         self._context.preferences.set_competition(code)
@@ -235,6 +249,52 @@ class MainWindow(QMainWindow):
                 f"descărcați din nou.\n\nDetalii: {catalog.live_problem}"
             )
         self._prepare(code)
+
+    def _restyle(self, code: str) -> None:
+        """Repaint the window in the league's palette; a window on screen changes behind a
+        picture of itself, which a circle from the top-left corner then opens."""
+        theme = theme_for(code)
+        if theme == current_theme() and self.reveal is None and self._styled:
+            return
+        self._styled = True
+        old = self.grab() if self.animate and self.isVisible() else None
+        if self.reveal is not None:
+            self.reveal.finish()
+            self.reveal = None
+        apply_window_theme(self, theme)
+        icon = app_icon(theme)
+        QApplication.instance().setWindowIcon(icon)
+        self.setWindowIcon(icon)
+        for chart in self.findChildren(ChartView):
+            chart.restyle()
+        for widget in self.findChildren(QWidget):
+            widget.update()  # the painted widgets read the palette when they paint
+        if old is not None:
+            reveal = ThemeReveal(self, old, theme.accent)
+            reveal.ended.connect(lambda: self._revealed(reveal))
+            self.reveal = reveal
+            reveal.start()
+
+    def _revealed(self, reveal: ThemeReveal) -> None:
+        if self.reveal is reveal:
+            self.reveal = None
+
+    def resizeEvent(self, event) -> None:  # noqa: N802 (Qt's name)
+        self.fit_width(event.size().width())
+        if self.reveal is not None:
+            self.reveal.setGeometry(self.rect())
+        super().resizeEvent(event)
+
+    def fit_width(self, width: int) -> None:
+        """Keep only the flags in the side panel, and only the mark in the top bar, when the
+        window is narrow."""
+        compact = width < COMPACT_WIDTH
+        self.side_panel.setFixedWidth(COMPACT_SIDE_PANEL_WIDTH if compact else SIDE_PANEL_WIDTH)
+        self.side_heading.setVisible(not compact)
+        self.version_note.setVisible(not compact)
+        for button in self.league_buttons.values():
+            button.set_compact(compact)
+        self.lockup.set_compact(width < COMPACT_LOGO_WIDTH)
 
     def open_standings(self, code: str) -> None:
         self.show_league(code)
@@ -350,8 +410,9 @@ class MainWindow(QMainWindow):
         layout = QHBoxLayout(bar)
         layout.setContentsMargins(24, 0, 24, 0)
         layout.setSpacing(4)
-        layout.addWidget(Lockup(40))
-        layout.addSpacing(36)
+        self.lockup = Lockup(40)
+        layout.addWidget(self.lockup)
+        layout.addSpacing(32)
         group = QButtonGroup(self)
         group.setExclusive(True)
         self.nav_buttons: list[QPushButton] = []
@@ -382,11 +443,13 @@ class MainWindow(QMainWindow):
         panel = QFrame()
         panel.setObjectName("sidepanel")
         panel.setFixedWidth(SIDE_PANEL_WIDTH)
+        self.side_panel = panel
         layout = QVBoxLayout(panel)
         layout.setContentsMargins(0, 22, 0, 18)
         layout.setSpacing(2)
         heading = label("COMPETIȚII", "overline")
         heading.setContentsMargins(22, 0, 0, 8)
+        self.side_heading = heading
         layout.addWidget(heading)
         group = QButtonGroup(self)
         group.setExclusive(True)
