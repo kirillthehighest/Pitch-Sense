@@ -807,7 +807,7 @@ Rulări din 2026-10-15:
   - fila Sezonul curent și serviciile `on_day`, `team_matches`, `season_check` și `rating_before`.
 - **Autoverificarea** pe datele reale: 23 din 23. Noile verificări: stemele și fotografia ligii sunt în aplicație, predicțiile tuturor celor cinci ligi, lista meciurilor și pagina unui meci, clasamentul și pagina echipei. Aplicația pornește (`python -m app`) și rulează fără erori.
 - **Verificare vizuală.** Toate ecranele și filele au fost desenate cu datele reale, la 1440 × 960, și verificate: Meciuri (zi viitoare și zi jucată), pagina meciului, Clasament, Echipe, cele cinci file ale Analizei și antetul fiecărei ligi.
-- **Pachete.** macOS: `.dmg` de 80 MB (stemele și fotografiile adaugă circa 6 MB), autoverificarea din `dist/` trece 23 din 23. Windows: WINDOWS_RESULT
+- **Pachete.** macOS: `.dmg` de 80 MB (stemele și fotografiile adaugă circa 6 MB), autoverificarea din `dist/` trece 23 din 23. Windows (GitHub Actions): toate cele 767 de teste trec, `.zip` de 94 MB, autoverificarea trece 23 din 23 (Premier League, 320 de meciuri programate).
 
 ### 16.8. Limitări
 
