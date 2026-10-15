@@ -10,12 +10,17 @@ match played so far, whatever its date: nothing newer is known.
 
 The matches screen (Phase 19) reads the cache day by day (``on_day``) and team by team
 (``team_matches``); ``season_check`` scores the predictions of a season's matches played so far.
+
+The slow step can run anywhere: ``preparation`` gives it as a job that can be sent to another
+process (Phase 21: the window computes in a separate process, so the work never slows it), and
+``install`` takes the job's result.
 """
 
 from collections import defaultdict
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, replace
 from datetime import date, time, timedelta
+from functools import partial
 
 import numpy as np
 
@@ -134,6 +139,27 @@ class SeasonCheck:
     models: tuple[ModelCheck, ...]
 
 
+@dataclass(frozen=True, slots=True)
+class PreparedPredictions:
+    """The result of the slow step: every real match's predictions and every fixture's."""
+
+    results: tuple[MatchPredictions, ...]
+    upcoming: tuple[UpcomingPrediction, ...]
+
+
+def compute_predictions(
+    matches: Sequence[Match], fixtures: Sequence[Fixture], min_training_matches: int
+) -> PreparedPredictions:
+    """Predict every real match and every fixture (about 7 s for a league's 20 seasons)."""
+    if fixtures:
+        results, upcoming = predict_season(
+            matches, fixtures, min_training_matches=min_training_matches
+        )
+        return PreparedPredictions(tuple(results), tuple(upcoming))
+    results = predict_history(matches, min_training_matches=min_training_matches)
+    return PreparedPredictions(tuple(results), ())
+
+
 def _forecast_order(forecast: MatchForecast) -> tuple[date, time, str]:
     return forecast.match_date, forecast.kickoff_time or time.min, forecast.home_team
 
@@ -165,22 +191,25 @@ class PredictionService:
     def prepare(self) -> None:
         """Predict every real match and every fixture once (the slow step); later calls do
         nothing."""
+        if self._history is None:
+            self.install(self.preparation()())
+
+    def preparation(self) -> Callable[[], PreparedPredictions]:
+        """The slow step as a job that can run in another process (its arguments are plain
+        data, and it calls a module-level function)."""
+        return partial(
+            compute_predictions, self._matches, self._fixtures, self._min_training_matches
+        )
+
+    def install(self, prepared: PreparedPredictions) -> None:
+        """Answer from ``prepared`` from now on (a second result is ignored)."""
         if self._history is not None:
             return
-        if self._fixtures:
-            results, upcoming = predict_season(
-                self._matches, self._fixtures, min_training_matches=self._min_training_matches
-            )
-            self._upcoming = {
-                (prediction.fixture.home_team, prediction.fixture.away_team): prediction
-                for prediction in upcoming
-            }
-        else:
-            results = predict_history(
-                self._matches, min_training_matches=self._min_training_matches
-            )
-            self._upcoming = {}
-        history = {result.match: result for result in results}
+        self._upcoming = {
+            (prediction.fixture.home_team, prediction.fixture.away_team): prediction
+            for prediction in prepared.upcoming
+        }
+        history = {result.match: result for result in prepared.results}
         days: dict[date, list[MatchForecast]] = defaultdict(list)
         for match, result in history.items():
             days[match.match_date].append(self._played_forecast(match, result.predictions))

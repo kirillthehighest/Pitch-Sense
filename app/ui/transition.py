@@ -12,7 +12,8 @@ only two pictures of the window, so the animation runs at the screen's frame rat
 
 import math
 
-from PySide6.QtCore import QEasingCurve, QPointF, Qt, QVariantAnimation, Signal
+import numpy as np
+from PySide6.QtCore import QEasingCurve, QPointF, QRect, Qt, QVariantAnimation, Signal
 from PySide6.QtGui import (
     QBrush,
     QColor,
@@ -21,6 +22,7 @@ from PySide6.QtGui import (
     QPen,
     QPixmap,
     QPolygonF,
+    QRegion,
 )
 from PySide6.QtWidgets import QWidget
 
@@ -28,8 +30,10 @@ DURATION_MS = 800
 WAVELENGTH = 120.0  # pixels along the edge between two crests of the main wave
 AMPLITUDE = 18.0  # the waves' height when the circle starts, in pixels...
 CALM_AMPLITUDE = 4.0  # ...and when it has passed every corner
-STEP = 6.0  # pixels along the edge between two points of its outline
+STEP = 8.0  # pixels along the edge between two points of its outline
 RIPPLES = ((20.0, 0.4), (44.0, 0.2))  # (distance behind the edge, opacity)
+GLOW_WIDTH = 9.0  # the soft light along the edge
+BAND_ROW = 16  # the height of the strips a frame repaints around the moving edge
 
 
 def reveal_radius(progress: float, width: float, height: float) -> float:
@@ -55,18 +59,41 @@ def wave_offset(arc: float, progress: float, amplitude: float) -> float:
 def wave_edge(radius: float, progress: float, amplitude: float | None = None) -> list[QPointF]:
     """The wavy edge of the circle around the top-left corner, from the top edge of the window
     (angle 0) to its left edge (angle 90°), as points."""
-    if amplitude is None:
-        amplitude = wave_amplitude(progress)
+    xs, ys = _edge_arrays(
+        radius, progress, wave_amplitude(progress) if amplitude is None else amplitude
+    )
+    return [QPointF(x, y) for x, y in zip(xs.tolist(), ys.tolist(), strict=True)]
+
+
+def _edge_arrays(radius: float, progress: float, amplitude: float) -> tuple[np.ndarray, np.ndarray]:
+    """``wave_edge`` as two arrays of coordinates, computed at once (a frame needs it fast)."""
     if radius <= 0:
-        return [QPointF(0, 0)]
-    count = max(24, min(800, math.ceil(radius * math.pi / 2 / STEP)))
-    points = []
-    for index in range(count + 1):
-        angle = math.pi / 2 * index / count
-        arc = radius * angle
-        reach = max(0.0, radius + wave_offset(arc, progress, amplitude))
-        points.append(QPointF(reach * math.cos(angle), reach * math.sin(angle)))
-    return points
+        return np.zeros(1), np.zeros(1)
+    count = max(24, min(600, math.ceil(radius * math.pi / 2 / STEP)))
+    angles = np.linspace(0.0, math.pi / 2, count + 1)
+    arc = radius * angles
+    phase = progress * 4 * math.pi
+    offset = amplitude * (
+        0.65 * np.sin(2 * math.pi * arc / WAVELENGTH + phase)
+        + 0.35 * np.sin(2 * math.pi * arc / (WAVELENGTH * 0.57) - 1.6 * phase)
+    )  # wave_offset, for every point at once
+    reach = np.maximum(0.0, radius + offset)
+    return reach * np.cos(angles), reach * np.sin(angles)
+
+
+def band(inner: float, outer: float, width: int, height: int) -> QRegion:
+    """The part of a ``width`` × ``height`` window between two circles around its top-left
+    corner, as strips: all a frame has to repaint when the edge moves from one to the other."""
+    region = QRegion()
+    inner, outer = max(0.0, inner), max(0.0, outer)
+    for top in range(0, min(height, math.ceil(outer)), BAND_ROW):
+        bottom = top + BAND_ROW
+        left = math.sqrt(max(inner * inner - bottom * bottom, 0.0))
+        right = math.sqrt(max(outer * outer - top * top, 0.0))
+        left, right = max(0, math.floor(left)), min(width, math.ceil(right))
+        if right > left:
+            region += QRect(left, top, right - left, BAND_ROW)
+    return region
 
 
 class ThemeReveal(QWidget):
@@ -89,6 +116,7 @@ class ThemeReveal(QWidget):
         self.new = new
         self.edge = QColor(edge)
         self.progress = 0.0
+        self._painted_radius = 0.0  # the radius of the frame last painted
         self._old_brush = _picture_brush(old)
         self.setGeometry(parent.rect())
         self.animation = QVariantAnimation(self)
@@ -115,10 +143,11 @@ class ThemeReveal(QWidget):
     def radius(self) -> float:
         return reveal_radius(self.progress, self.width(), self.height())
 
-    def cover(self) -> QPainterPath:
+    def cover(self, edge: list[QPointF] | None = None) -> QPainterPath:
         """The part of the window still showing the old picture: outside the wavy circle."""
         width, height = float(self.width()), float(self.height())
-        edge = wave_edge(self.radius, self.progress)
+        if edge is None:
+            edge = wave_edge(self.radius, self.progress)
         start, end = edge[0], edge[-1]  # on the top edge and on the left edge
         outline = [
             QPointF(start.x(), 0),
@@ -134,27 +163,35 @@ class ThemeReveal(QWidget):
         return path
 
     def _advance(self, value: float) -> None:
+        """Move the edge, repainting only the strips it crosses, with its glow and ripples."""
+        before = self.radius
         self.progress = float(value)
-        self.update()
+        reach = AMPLITUDE + GLOW_WIDTH
+        inner = min(before, self._painted_radius) - reach - RIPPLES[-1][0]
+        self.update(band(inner, self.radius + reach, self.width(), self.height()))
 
     def paintEvent(self, event) -> None:  # noqa: N802 (Qt's name)
+        # Qt limits the painting to the strips ``_advance`` asked for
         painter = QPainter(self)
         painter.drawPixmap(self.rect(), self.new)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         painter.setPen(Qt.PenStyle.NoPen)
-        painter.fillPath(self.cover(), self._old_brush)  # no clip mask: one pass over the pixels
         radius = self.radius
+        amplitude = wave_amplitude(self.progress)
+        edge = wave_edge(radius, self.progress, amplitude)
+        painter.fillPath(self.cover(edge), self._old_brush)  # no clip mask: one pass
         if radius > 0:
-            self._paint_ripples(painter, radius)
+            self._paint_ripples(painter, radius, QPolygonF(edge), amplitude)
+        self._painted_radius = radius
         painter.end()
 
-    def _paint_ripples(self, painter: QPainter, radius: float) -> None:
+    def _paint_ripples(
+        self, painter: QPainter, radius: float, edge: QPolygonF, amplitude: float
+    ) -> None:
         """A soft glow and a bright line along the edge, and fainter waves behind it."""
         fade = 1 - self.progress * 0.7
-        amplitude = wave_amplitude(self.progress)
-        edge = QPolygonF(wave_edge(radius, self.progress, amplitude))
         painter.setBrush(Qt.BrushStyle.NoBrush)
-        for width, alpha in ((9.0, 0.14), (2.5, 0.95)):
+        for width, alpha in ((GLOW_WIDTH, 0.14), (2.5, 0.95)):
             colour = QColor(self.edge)
             colour.setAlphaF(alpha * fade)
             pen = QPen(colour, width)

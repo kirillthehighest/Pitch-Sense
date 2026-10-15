@@ -6,6 +6,7 @@ as the window's "Actualizează datele" button does, and exits with 0 when it wor
 ``app/data/update.py``); a package then keeps the files in the user's folder.
 """
 
+import multiprocessing
 import sys
 
 from app.data.paths import use_persistent_matplotlib_cache
@@ -28,4 +29,7 @@ def run(arguments: list[str]) -> int:
 
 
 if __name__ == "__main__":
+    # The window computes predictions in a separate process; in a package, that process starts
+    # this program again, and freeze_support turns it into the worker before anything else runs.
+    multiprocessing.freeze_support()
     raise SystemExit(run(sys.argv[1:]))

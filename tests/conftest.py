@@ -242,7 +242,7 @@ def make_app_context(application, tmp_path: Path, errors: list[str]):
     from app.services.preferences import Preferences
     from app.services.teams import TeamService
     from app.ui.context import AppContext, LeagueServices
-    from app.ui.worker import run_now
+    from app.ui.worker import compute_here, run_now
 
     results_dir = tmp_path / "results"
 
@@ -289,6 +289,7 @@ def make_app_context(application, tmp_path: Path, errors: list[str]):
             preferences=Preferences(tmp_path / "preferences.json"),
             update_data=update_data,
             run_task=run_now,
+            compute=compute_here,
             report_error=errors.append,
         )
 

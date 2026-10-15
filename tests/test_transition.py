@@ -5,15 +5,17 @@ import math
 from itertools import pairwise
 
 import pytest
-from PySide6.QtCore import QPointF, Qt
+from PySide6.QtCore import QPoint, QPointF, Qt
 from PySide6.QtGui import QColor, QPixmap
 from PySide6.QtWidgets import QWidget
 
 from app.ui.transition import (
     AMPLITUDE,
     CALM_AMPLITUDE,
+    STEP,
     WAVELENGTH,
     ThemeReveal,
+    band,
     reveal_radius,
     wave_amplitude,
     wave_edge,
@@ -67,7 +69,7 @@ def test_the_edge_runs_from_the_top_edge_to_the_left_edge_near_the_circle():
     assert all(radius - amplitude - 1e-6 <= d <= radius + amplitude + 1e-6 for d in distances)
     assert max(distances) - min(distances) > amplitude  # it is wavy, not round
     gaps = [math.dist((a.x(), a.y()), (b.x(), b.y())) for a, b in pairwise(edge)]
-    assert max(gaps) < 10  # smooth
+    assert max(gaps) < 1.5 * STEP  # smooth: points every few pixels, waves included
 
 
 def test_the_cover_shrinks_from_the_whole_window_to_nothing(reveal):
@@ -102,3 +104,14 @@ def test_a_reveal_lets_clicks_through_and_removes_itself_when_finished(reveal):
 
     reveal.finish()
     assert ended == [True] and reveal.isHidden()
+
+
+def test_a_frame_repaints_only_the_band_the_edge_crossed():
+    region = band(300, 360, WIDTH, HEIGHT)
+
+    assert not region.contains(QPoint(5, 5))  # deep inside the circle: already new
+    assert not region.contains(QPoint(WIDTH - 5, HEIGHT - 5))  # far outside: still old
+    assert region.contains(QPoint(330, 5)) and region.contains(QPoint(5, 330))
+    assert region.contains(QPoint(round(330 / 2**0.5), round(330 / 2**0.5)))
+    area = sum(rect.width() * rect.height() for rect in region)
+    assert area < WIDTH * HEIGHT / 3

@@ -8,10 +8,11 @@ panel and only the mark of the logo in the top bar.
 The application entry point (``main``) also lives here.
 """
 
+import pickle
 import sys
 from datetime import datetime
 
-from PySide6.QtCore import QSize, Qt
+from PySide6.QtCore import QSize, Qt, QTimer
 from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
@@ -49,7 +50,7 @@ from app.ui.brand import (
     photo_top,
     team_badge,
 )
-from app.ui.context import AppContext, default_context
+from app.ui.context import AppContext, LeagueServices, default_context
 from app.ui.matches import MatchesPage
 from app.ui.standings import StandingsPage
 from app.ui.team_page import TeamPage
@@ -57,6 +58,7 @@ from app.ui.theme import apply_theme, apply_window_theme
 from app.ui.themes import current_theme, theme_for
 from app.ui.transition import ThemeReveal
 from app.ui.widgets import Backdrop, ChartView, HeroBanner, LeagueButton, label
+from app.ui.worker import stop_processes
 
 WINDOW_TITLE = "PitchSense – analiza și predicția meciurilor de fotbal"
 SIDE_PANEL_WIDTH = 248
@@ -151,6 +153,8 @@ class MainWindow(QMainWindow):
         self._reported_problems: set[str] = set()
         self._preparing: set[str] = set()
         self._styled = False
+        self._computed_later: list[tuple[str, LeagueServices, bytes]] = []
+        self._stale_pages: list[QWidget] = []  # screens still showing the previous league
         self.reveal: ThemeReveal | None = None
         self.animate = True  # reveal the colours of a new league with a circle
         self.setWindowTitle(WINDOW_TITLE)
@@ -211,6 +215,9 @@ class MainWindow(QMainWindow):
     def show_page(self, index: int) -> None:
         """Bring a screen to the front; screens that read results re-read them."""
         page = self.pages[index]
+        if page in self._stale_pages:  # opened before the end of a change of league
+            self._stale_pages.remove(page)
+            page.show_league(self._context.league(self._league_code))
         self.stack.setCurrentIndex(index)
         self.nav_buttons[index].setChecked(True)
         self.hero.show_page(page.title, page.subtitle)
@@ -241,8 +248,13 @@ class MainWindow(QMainWindow):
             photo_top(code),
         )
         self.version_note.setText(self._note(catalog.updated_at))
-        for page in self.pages:
-            page.show_league(league)
+        # The screen on show changes now; with the colours being revealed, the hidden screens
+        # change after the animation (or when opened), so nothing delays it.
+        shown = self.pages[self.stack.currentIndex()]
+        shown.show_league(league)
+        self._stale_pages = [page for page in self.pages if page is not shown]
+        if old is None:
+            self._refresh_stale_pages()
         if catalog.live_problem and catalog.live_problem not in self._reported_problems:
             self._reported_problems.add(catalog.live_problem)
             self._context.report_error(
@@ -293,6 +305,23 @@ class MainWindow(QMainWindow):
     def _revealed(self, reveal: ThemeReveal) -> None:
         if self.reveal is reveal:
             self.reveal = None
+            QTimer.singleShot(0, self._after_reveal)
+
+    def _after_reveal(self) -> None:
+        """The work kept back while the colours changed: the hidden screens, the predictions
+        that arrived meanwhile."""
+        if self.reveal is not None:
+            return  # another change began meanwhile; its end will call this again
+        self._refresh_stale_pages()
+        waiting, self._computed_later = self._computed_later, []
+        for code, league, result in waiting:
+            self._computed(code, league, result)
+
+    def _refresh_stale_pages(self) -> None:
+        stale, self._stale_pages = self._stale_pages, []
+        league = self._context.league(self._league_code)
+        for page in stale:
+            page.show_league(league)
 
     def resizeEvent(self, event) -> None:  # noqa: N802 (Qt's name)
         self.fit_width(event.size().width())
@@ -382,18 +411,31 @@ class MainWindow(QMainWindow):
                 page.show_league(self._context.league(self.current_league))
 
     def _prepare(self, code: str) -> None:
-        """Predict a league's matches in the background, once."""
+        """Predict a league's matches once, in the worker process (``context.compute``), so the
+        window never waits for the computation."""
         league = self._context.league(code)
         if league.predictions.is_prepared or code in self._preparing:
             return
         self._preparing.add(code)
         if code == self._league_code:
             self.statusBar().showMessage(f"Se pregătesc predicțiile pentru {league.name}…")
+        job, compute = league.predictions.preparation(), self._context.compute
         self._context.run_task(
-            league.predictions.prepare,
-            lambda _: self._prepared(code),
+            lambda: compute(job),
+            lambda result: self._computed(code, league, result),
             lambda message: self._prepare_failed(code, message),
         )
+
+    def _computed(self, code: str, league: LeagueServices, result: bytes) -> None:
+        """Install a league's predictions; while the colours change, after the animation (the
+        unpickling takes a moment that would show as a jolt)."""
+        if self.reveal is not None:
+            self._computed_later.append((code, league, result))
+            return
+        if self._context.league(code) is not league:
+            return  # the data was reloaded meanwhile: a newer computation is on its way
+        league.predictions.install(pickle.loads(result))
+        self._prepared(code)
 
     def _prepared(self, code: str) -> None:
         self._preparing.discard(code)
@@ -532,4 +574,7 @@ def main() -> int:
         return 1
     window = MainWindow(context)
     window.show()
-    return application.exec()
+    try:
+        return application.exec()
+    finally:
+        stop_processes()  # a computation still running is not waited for
