@@ -302,6 +302,15 @@ def test_a_damaged_description_is_refused(live_dir):
         load_live_league("SP1", live_dir)
 
 
+def test_the_time_of_an_update_needs_its_time_zone(live_dir):
+    manifest = read_manifest(live_dir)
+    manifest["updated_at"] = "2008-09-10T12:00:00"
+    (live_dir / MANIFEST).write_text(json.dumps(manifest), encoding="utf-8")
+
+    with pytest.raises(DataValidationError, match="time zone"):
+        read_manifest(live_dir)
+
+
 def test_results_that_cannot_be_a_season_in_progress_are_refused(live_dir):
     rows = (live_dir / "SP1.csv").read_text(encoding="utf-8").splitlines()
     repeated = rows[1].replace("01/09/08", "20/09/08")  # Alpha hosts Bravo a second time
@@ -382,11 +391,11 @@ def test_a_newer_download_of_the_user_is_kept(live_dir, tmp_path):
     target = tmp_path / "user" / "live"
     copy_bundled_live(live_dir, target)
     manifest = read_manifest(target)
-    manifest["updated_at"] = "2099-01-01T00:00:00+00:00"
+    manifest["updated_at"] = "2099-01-01T02:00:00+02:00"  # compared as times, not as text
     (target / MANIFEST).write_text(json.dumps(manifest), encoding="utf-8")
 
     assert copy_bundled_live(live_dir, target) is False
-    assert read_manifest(target)["updated_at"] == "2099-01-01T00:00:00+00:00"
+    assert read_manifest(target)["updated_at"] == "2099-01-01T02:00:00+02:00"
 
 
 def test_an_older_or_damaged_copy_is_replaced(live_dir, tmp_path):

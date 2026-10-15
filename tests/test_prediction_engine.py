@@ -110,6 +110,22 @@ def fixture_numbers(predictions):
     }
 
 
+# Logistic regression predicts the matches of a day with one matrix product. A day with another
+# number of matches may be summed in another order by the linear-algebra library (OpenBLAS on
+# Windows), which can change the last binary digit; any real influence would be far larger.
+ROUNDING = 1e-12
+
+
+def assert_same_numbers(first, second):
+    """Equal predictions, up to the rounding of a matrix product of another size."""
+    assert first.keys() == second.keys()
+    for model in first:
+        assert first[model].probabilities.as_tuple() == pytest.approx(
+            second[model].probabilities.as_tuple(), abs=ROUNDING
+        )
+        assert first[model].expected_goals == second[model].expected_goals
+
+
 def test_a_played_fixture_gets_exactly_its_history_prediction(two_seasons):
     history = {r.match: r for r in predict_history(two_seasons, min_training_matches=3)}
 
@@ -236,11 +252,10 @@ def test_fixtures_never_influence_one_another(season_in_progress):
 
     for fixture, prediction in zip(fixtures, together, strict=True):
         _, alone = predict_season(matches, [fixture], min_training_matches=3)
-        assert fixture_numbers(alone[0].predictions) == fixture_numbers(prediction.predictions)
+        assert_same_numbers(alone[0].predictions, prediction.predictions)
     _, reversed_order = predict_season(matches, fixtures[::-1], min_training_matches=3)
-    assert [fixture_numbers(u.predictions) for u in reversed_order[::-1]] == [
-        fixture_numbers(u.predictions) for u in together
-    ]
+    for backwards, forwards in zip(reversed_order[::-1], together, strict=True):
+        assert_same_numbers(backwards.predictions, forwards.predictions)
 
 
 def test_a_fixture_gets_what_predict_fixture_gives_on_the_day_after_the_last_match(

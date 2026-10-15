@@ -484,7 +484,11 @@ def test_a_scheduled_match_gives_the_same_numbers_before_and_after_preparing(
     as_of = catalog.matches[-1].match_date + timedelta(days=1)
     assert from_cache.played is None
     assert from_cache.as_of == before_preparing.as_of == as_of
-    assert numbers(from_cache) == numbers(before_preparing)
+    # Alone, or with every scheduled match: the same numbers up to the rounding of a matrix
+    # product of another size (tests/test_prediction_engine.py, ROUNDING).
+    assert numbers(from_cache).keys() == numbers(before_preparing).keys()
+    for model, probabilities in numbers(from_cache).items():
+        assert probabilities == pytest.approx(numbers(before_preparing)[model], abs=1e-12)
     assert numbers(from_cache) == numbers(service.upcoming()[2])
 
 

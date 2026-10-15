@@ -267,7 +267,8 @@ def read_manifest(folder: Path) -> dict | None:
     try:
         manifest = json.loads(path.read_text(encoding="utf-8"))
         parse_season_label(manifest["season"])
-        datetime.fromisoformat(manifest["updated_at"])
+        if datetime.fromisoformat(manifest["updated_at"]).tzinfo is None:
+            raise ValueError("updated_at needs its time zone")
         if not isinstance(manifest["leagues"], list):
             raise TypeError("leagues must be a list")
     except (ValueError, KeyError, TypeError) as error:
@@ -295,8 +296,7 @@ def load_live_league(
     if problems:
         raise DataValidationError(_report(source, problems))
     calendar = parse_calendar((folder / f"{code}.json").read_bytes(), season, f"{source} calendar")
-    updated_at = datetime.fromisoformat(manifest["updated_at"])
-    return build_live_league(code, season, matches, calendar, updated_at)
+    return build_live_league(code, season, matches, calendar, _updated_at(manifest))
 
 
 def update_live_data(
@@ -354,7 +354,7 @@ def copy_bundled_live(source: Path = BUNDLED_LIVE_DIR, target: Path = LIVE_DIR) 
         present = read_manifest(target) if target.is_dir() else None
     except DataValidationError:
         present = None  # a damaged folder is replaced
-    if present is not None and present["updated_at"] >= shipped["updated_at"]:
+    if present is not None and _updated_at(present) >= _updated_at(shipped):
         return False
     staging = target.with_name(target.name + ".download")
     shutil.rmtree(staging, ignore_errors=True)
@@ -364,6 +364,10 @@ def copy_bundled_live(source: Path = BUNDLED_LIVE_DIR, target: Path = LIVE_DIR) 
     finally:
         shutil.rmtree(staging, ignore_errors=True)
     return True
+
+
+def _updated_at(manifest: dict) -> datetime:
+    return datetime.fromisoformat(manifest["updated_at"])
 
 
 def _replace_folder(new: Path, target: Path) -> None:
