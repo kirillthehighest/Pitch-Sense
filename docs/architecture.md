@@ -726,7 +726,7 @@ Rulări din 2026-10-15:
   Fiecare ligă are exact numărul de meciuri al unui sezon, iar toate echipele au fost potrivite.
 - **Ecranele** Predicție și Echipe au fost desenate fără fereastră, cu datele reale, și verificate vizual.
 - **Autoverificarea** pe datele reale: 21 din 21 (verificarea nouă: sezonul în desfășurare se citește fără erori; La Liga are 302 meciuri programate). Pentru graficul grupurilor, autoverificarea alege acum ultimul sezon încheiat, pentru că sezonul în desfășurare nu are grupuri. Aplicația pornește (`python -m app`) și rulează fără erori.
-- **Pachete.** macOS: `python packaging/build.py` descarcă sezonul în timpul construcției; `.dmg` de 74 MB; autoverificarea din `dist/` trece 21 din 21, iar instantaneul sezonului este copiat în folderul utilizatorului la prima pornire. Windows: WINDOWS_RESULT
+- **Pachete.** macOS: `python packaging/build.py` descarcă sezonul în timpul construcției; `.dmg` de 74 MB; autoverificarea din `dist/` trece 21 din 21, iar instantaneul sezonului este copiat în folderul utilizatorului la prima pornire. Windows (GitHub Actions): toate cele 745 de teste trec, descărcarea sezonului reușește cu certificatele sistemului, `.zip` de 89 MB, autoverificarea trece 21 din 21 (Premier League, 320 de meciuri programate). Actualizarea apăsată în fereastra unei aplicații împachetate nu a fost încercată pe internet; aceeași funcție de descărcare a rulat din comandă pe ambele sisteme.
 
 ### 15.7. Limitări
 
