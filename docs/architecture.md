@@ -573,7 +573,7 @@ Verificare (2026-10-15):
   - Autoverificarea a trecut, 23 din 23, atât din `dist/`, cât și din imaginea `.dmg` montată doar pentru citire.
   - Folderul utilizatorului de pe Mac-ul de test avea jurnalele și `VERSION` ale lui 0.2.0 și un instantaneu al sezonului mai vechi decât cel din pachet. Prima pornire a lui 0.3.0 a înlocuit jurnalele, a scris `VERSION` 0.3.0 și a copiat instantaneul nou.
   - `PitchSense --update`, rulat din pachet, a descărcat sezonul 2026/27 cu certificatele sistemului: 60, 78, 60, 45 și 54 de meciuri jucate, 320, 302, 320, 261 și 252 programate. Este prima încercare a actualizării dintr-o aplicație împachetată; în Faza 18 fusese încercată doar din codul sursă.
-- **Windows** (fluxul „Windows package”, ramura `phase-20`): WINDOWS_RESULT
+- **Windows** (fluxul „Windows package”, ramura `phase-20`): toate cele 771 de teste și verificarea codului au trecut, pachetul `.zip` are 93 MB, `PitchSense.exe --update` a descărcat sezonul 2026/27 în `%LOCALAPPDATA%\PitchSense\live`, iar autoverificarea pachetului a trecut (23 din 23).
 
 ## 13. Cinci ligi (Faza 15)
 
