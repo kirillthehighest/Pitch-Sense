@@ -4,6 +4,7 @@ The application entry point (``main``) also lives here.
 """
 
 import sys
+from datetime import datetime
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
@@ -25,10 +26,12 @@ from PySide6.QtWidgets import (
 
 from app import __version__
 from app.data.competitions import competition
+from app.data.live import UpdateSummary, copy_bundled_live
 from app.data.paths import copy_bundled_results
 from app.services.formatting import season_text
 from app.services.labels import country_label
 from app.services.preferences import FavouriteTeam
+from app.services.updates import summary_text, updated_text
 from app.ui.algorithm_comparison import AlgorithmComparisonTab
 from app.ui.brand import Lockup, app_icon, flag_pixmap
 from app.ui.context import AppContext, default_context
@@ -42,6 +45,11 @@ from app.ui.widgets import BrandStripe, HeroBanner, LeagueButton, label
 WINDOW_TITLE = "PitchSense – analiza și predicția meciurilor de fotbal"
 SIDE_PANEL_WIDTH = 248
 NO_FAVOURITE = "Alege echipa ta"
+UPDATE = "Actualizează datele"
+UPDATE_TIP = (
+    "Descarcă rezultatele sezonului în desfășurare (Football-Data.co.uk) și calendarul "
+    "meciurilor rămase (openfootball). Restul aplicației funcționează fără internet."
+)
 
 
 class FavouriteDialog(QDialog):
@@ -119,6 +127,7 @@ class MainWindow(QMainWindow):
         super().__init__()
         self._context = context
         self._league_code: str | None = None
+        self._reported_problems: set[str] = set()
         self.setWindowTitle(WINDOW_TITLE)
         self.setWindowIcon(app_icon())
         self.resize(1400, 900)
@@ -195,14 +204,23 @@ class MainWindow(QMainWindow):
         self.league_buttons[code].setChecked(True)
         league = self._context.league(code)
         self._context.preferences.set_competition(code)
-        seasons = league.catalog.seasons()
+        catalog = league.catalog
+        seasons = catalog.seasons()
         self.hero.show_league(
             f"{league.name} · {country_label(code)} · "
             f"{season_text(seasons[0])}–{season_text(seasons[-1])}",
             flag_pixmap(code, 18),
         )
+        self.version_note.setText(self._note(catalog.updated_at))
         for page in self.pages:
             page.show_league(league)
+        if catalog.live_problem and catalog.live_problem not in self._reported_problems:
+            self._reported_problems.add(catalog.live_problem)
+            self._context.report_error(
+                f"Sezonul în desfășurare pentru {league.name} nu a putut fi citit, așa că sunt "
+                "arătate doar sezoanele încheiate. Apăsați „Actualizează datele” ca să-l "
+                f"descărcați din nou.\n\nDetalii: {catalog.live_problem}"
+            )
         predictions = league.predictions
         if predictions.is_prepared:
             self.statusBar().showMessage(f"Predicțiile pentru {league.name} sunt gata")
@@ -213,6 +231,34 @@ class MainWindow(QMainWindow):
             lambda _: self._predictions_ready(league.name),
             self._failed,
         )
+
+    def update_data(self) -> None:
+        """Download the season in progress in the background, then show it in every screen."""
+        self.update_button.setEnabled(False)
+        self.update_button.setText("Se actualizează…")
+        self.statusBar().showMessage(
+            "Se descarcă rezultatele și calendarul sezonului în desfășurare…"
+        )
+        self._context.run_task(self._context.update_data, self._updated, self._update_failed)
+
+    def _updated(self, summary: UpdateSummary) -> None:
+        self._reset_update_button()
+        self._context.reload()
+        code, self._league_code = self._league_code, None
+        self.show_league(code)
+        self.statusBar().showMessage(f"Date actualizate. {summary_text(summary)}", 15000)
+
+    def _update_failed(self, message: str) -> None:
+        self._reset_update_button()
+        self.statusBar().clearMessage()
+        self._context.report_error(
+            "Datele nu au putut fi actualizate; au rămas cele de până acum. Verificați conexiunea "
+            f"la internet și încercați din nou.\n\nDetalii: {message}"
+        )
+
+    def _reset_update_button(self) -> None:
+        self.update_button.setEnabled(True)
+        self.update_button.setText(UPDATE)
 
     def open_favourite_dialog(self) -> FavouriteDialog:
         """Open the dialog to choose "your team"; returns it (it is not modal for the code)."""
@@ -263,6 +309,12 @@ class MainWindow(QMainWindow):
             layout.addWidget(button)
             self.nav_buttons.append(button)
         layout.addStretch()
+        self.update_button = QPushButton(UPDATE)
+        self.update_button.setToolTip(UPDATE_TIP)
+        self.update_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.update_button.clicked.connect(self.update_data)
+        layout.addWidget(self.update_button)
+        layout.addSpacing(10)
         self.favourite_button = QPushButton()
         self.favourite_button.setProperty("role", "favourite")
         self.favourite_button.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -292,15 +344,21 @@ class MainWindow(QMainWindow):
             layout.addWidget(button)
             self.league_buttons[code] = button
         layout.addStretch()
-        note = label(
-            f"PitchSense {__version__}\nDate: Football-Data.co.uk\n5 ligi · 2006/07–2025/26\n"
-            "UTM · APA · TI-251",
-            "sidebar-note",
-        )
+        note = label(self._note(None), "sidebar-note")
+        note.setWordWrap(True)
         self.version_note = note
         note.setContentsMargins(22, 0, 12, 0)
         layout.addWidget(note)
         return panel
+
+    @staticmethod
+    def _note(updated_at: datetime | None) -> str:
+        """The side panel's note: the version, the sources and the last update."""
+        update = f"Actualizat: {updated_text(updated_at)}" if updated_at else "Sezonul curent: —"
+        return (
+            f"PitchSense {__version__}\nRezultate: Football-Data.co.uk\n"
+            f"Calendar: openfootball (CC0)\n{update}\nUTM · APA · TI-251"
+        )
 
 
 def main() -> int:
@@ -314,6 +372,12 @@ def main() -> int:
     except OSError as error:  # without the copy the logs can still be rebuilt in the window
         QMessageBox.warning(
             None, "PitchSense", f"Jurnalele predicțiilor nu au putut fi copiate: {error}"
+        )
+    try:
+        copy_bundled_live()  # and a snapshot of the season in progress
+    except (OSError, ValueError) as error:  # it can be downloaded again in the window
+        QMessageBox.warning(
+            None, "PitchSense", f"Datele sezonului în desfășurare nu au putut fi copiate: {error}"
         )
     try:
         context = default_context()

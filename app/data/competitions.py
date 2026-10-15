@@ -19,6 +19,7 @@ class Competition:
     teams: int  # in every season not listed in team_changes
     team_changes: Mapping[str, int] = field(default_factory=dict)  # season -> teams
     stopped_early: Mapping[str, int] = field(default_factory=dict)  # season -> matches played
+    calendar: str = ""  # the league's file in the openfootball calendar (Phase 18), e.g. "es.1"
 
     def __post_init__(self) -> None:
         if self.teams < 2 or any(count < 2 for count in self.team_changes.values()):
@@ -41,16 +42,18 @@ class Competition:
 COMPETITIONS: Mapping[str, Competition] = {
     competition.code: competition
     for competition in (
-        Competition("E0", "Premier League", 20),
-        Competition("SP1", "La Liga", 20),
-        Competition("I1", "Serie A", 20),
-        Competition("D1", "Bundesliga", 18),
+        Competition("E0", "Premier League", 20, calendar="en.1"),
+        Competition("SP1", "La Liga", 20, calendar="es.1"),
+        Competition("I1", "Serie A", 20, calendar="it.1"),
+        Competition("D1", "Bundesliga", 18, calendar="de.1"),
         Competition(
             "F1",
             "Ligue 1",
             20,
-            team_changes={"2023-24": 18, "2024-25": 18, "2025-26": 18},
+            # The usual size stays 20: the models' "one season" windows were calibrated on it.
+            team_changes={"2023-24": 18, "2024-25": 18, "2025-26": 18, "2026-27": 18},
             stopped_early={"2019-20": 279},
+            calendar="fr.1",
         ),
     )
 }

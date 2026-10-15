@@ -1,8 +1,10 @@
 """Team analysis for the user interface: a team's record, form and profile, and league tables.
 
 Everything is computed "as of" a date from the matches before it. Without a date, the whole
-season is used. The league table orders teams by points, then goal difference, then goals
-scored; La Liga breaks ties by head-to-head results first, which is not modelled here.
+season is used (for the season in progress: every match played so far). The league table orders
+teams by points, then goal difference, then goals scored; La Liga breaks ties by head-to-head
+results first, which is not modelled here. The season in progress is never profiled or grouped by
+K-Means, because a profile describes a completed season.
 """
 
 from collections.abc import Iterable
@@ -76,6 +78,7 @@ class TeamOverview:
     pre_season_group: str  # point-in-time group from the previous season (Phase 6, use 2)
     season_profile: TeamSeasonProfile | None  # whole-season profile, only for a finished season
     season_group: str | None  # descriptive group of that whole-season profile
+    in_progress: bool = False  # the season is still being played
 
 
 @dataclass(frozen=True, slots=True)
@@ -121,9 +124,12 @@ class SeasonGroups:
 class TeamService:
     """Team statistics, league tables and profiles for one competition."""
 
-    def __init__(self, matches: Iterable[Match]) -> None:
+    def __init__(self, matches: Iterable[Match], *, in_progress: str | None = None) -> None:
         self._history = MatchHistory(matches)
         self._seasons = seasons_in(self._history)
+        if in_progress is not None and in_progress != self._seasons[-1]:
+            raise ValueError(f"the season in progress must be the latest, not {in_progress}")
+        self.in_progress = in_progress
         self._clusters: ProfileClusters | None = None
         self._groups: dict[str, dict[str, int | None]] = {}
         self._elo: EloRun | None = None
@@ -153,7 +159,7 @@ class TeamService:
         if team not in {row.team for row in self.standings(season, end)}:
             raise ValueError(f"{team!r} did not play in season {season}")
         position = next(row.position for row in self.standings(season, before) if row.team == team)
-        finished = before >= end
+        finished = before >= end and season != self.in_progress
         profile = None
         season_group = None
         if finished and not has_shot_statistics(self._history, season):
@@ -174,6 +180,7 @@ class TeamService:
             pre_season_group=self._pre_season_group(season, team),
             season_profile=profile,
             season_group=season_group,
+            in_progress=season == self.in_progress,
         )
 
     def elo_history(self, team: str) -> tuple[RatingSeason, ...]:
@@ -202,6 +209,8 @@ class TeamService:
     def season_groups(self, season: str) -> SeasonGroups:
         """Every team of a season placed in its descriptive group, as in ``overview``."""
         self._season_matches(season)  # an unknown season is an error
+        if season == self.in_progress:
+            raise ValueError(f"season {season} is in progress, so its teams have no groups yet")
         if not has_shot_statistics(self._history, season):
             raise ValueError(f"season {season} has no shot statistics, so its teams have no groups")
         clusters = self._descriptive()
@@ -246,7 +255,7 @@ class TeamService:
 
     def _descriptive(self) -> ProfileClusters:
         if self._clusters is None:
-            seasons = profiled_seasons(self._history)
+            seasons = [s for s in profiled_seasons(self._history) if s != self.in_progress]
             self._clusters = descriptive_clusters(self._history, seasons, CLUSTER_COUNT)
         return self._clusters
 

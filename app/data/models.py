@@ -1,4 +1,4 @@
-"""Domain records for historical football matches."""
+"""Domain records: matches already played and matches still to play."""
 
 from dataclasses import dataclass, fields
 from datetime import date, time
@@ -77,3 +77,26 @@ class Match:
             raise ValueError(
                 f"result {self.result} does not match score {self.home_goals}-{self.away_goals}"
             )
+
+
+@dataclass(frozen=True, slots=True)
+class Fixture:
+    """A match scheduled but not played yet: its teams, its date and, when known, its kickoff.
+
+    It has no score and no statistics, so nothing about the match itself can reach a prediction.
+    """
+
+    competition: str
+    season: str
+    match_date: date
+    home_team: str
+    away_team: str
+    kickoff_time: time | None = None
+
+    def __post_init__(self) -> None:
+        if not self.competition or not self.season:
+            raise ValueError("competition and season cannot be empty")
+        if not self.home_team or not self.away_team:
+            raise ValueError("team names cannot be empty")
+        if self.home_team == self.away_team:
+            raise ValueError(f"a team cannot play itself: {self.home_team!r}")

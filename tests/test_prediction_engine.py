@@ -1,14 +1,18 @@
 from dataclasses import replace
-from datetime import date
+from datetime import date, timedelta
 
 import pytest
 
-from app.data.models import Outcome
+from app.data.models import Fixture, Outcome
 from app.prediction.elo_predictions import elo_outcome_predictions, run_elo
 from app.prediction.logistic_predictions import run_logistic_regression
 from app.prediction.outputs import ModelName
 from app.prediction.poisson_predictions import run_poisson
-from app.prediction.prediction_engine import predict_fixture, predict_history
+from app.prediction.prediction_engine import (
+    predict_fixture,
+    predict_history,
+    predict_season,
+)
 
 ELO, POISSON, LOGISTIC = ModelName.ELO, ModelName.POISSON, ModelName.LOGISTIC_REGRESSION
 
@@ -182,3 +186,124 @@ def test_invalid_fixtures_are_rejected(
 ):
     with pytest.raises(ValueError, match=message):
         predict_fixture(two_seasons, season, home_team, away_team, match_date)
+
+
+# --- the season in progress (Phase 18) ---
+
+
+@pytest.fixture
+def season_in_progress(two_seasons, season_matches):
+    """2008-09 after 7 of its 12 matches, and its other 5 matches as fixtures."""
+    third = [
+        replace(m, season="2008-09", match_date=m.match_date.replace(year=2008))
+        for m in season_matches
+    ]
+    fixtures = [
+        Fixture("SP1", "2008-09", m.match_date, m.home_team, m.away_team) for m in third[7:]
+    ]
+    return [*two_seasons, *third[:7]], fixtures
+
+
+def test_the_played_matches_keep_their_history_predictions(season_in_progress):
+    matches, fixtures = season_in_progress
+
+    history, _ = predict_season(matches, fixtures, min_training_matches=3)
+
+    expected = predict_history(matches, min_training_matches=3)
+    assert [r.match for r in history] == [r.match for r in expected]
+    for got, want in zip(history, expected, strict=True):
+        assert fixture_numbers(got.predictions) == fixture_numbers(want.predictions)
+
+
+def test_fixtures_are_predicted_from_every_match_played_so_far(season_in_progress):
+    matches, fixtures = season_in_progress
+
+    _, upcoming = predict_season(matches, fixtures, min_training_matches=3)
+
+    assert [u.fixture for u in upcoming] == fixtures
+    assert {u.as_of for u in upcoming} == {matches[-1].match_date + timedelta(days=1)}
+    for prediction in upcoming:
+        assert tuple(prediction.predictions) == (ELO, POISSON, LOGISTIC)
+        for model in prediction.predictions.values():
+            assert sum(model.probabilities.as_tuple()) == pytest.approx(1, abs=1e-9)
+            assert min(model.probabilities.as_tuple()) >= 0
+
+
+def test_fixtures_never_influence_one_another(season_in_progress):
+    matches, fixtures = season_in_progress
+
+    _, together = predict_season(matches, fixtures, min_training_matches=3)
+
+    for fixture, prediction in zip(fixtures, together, strict=True):
+        _, alone = predict_season(matches, [fixture], min_training_matches=3)
+        assert fixture_numbers(alone[0].predictions) == fixture_numbers(prediction.predictions)
+    _, reversed_order = predict_season(matches, fixtures[::-1], min_training_matches=3)
+    assert [fixture_numbers(u.predictions) for u in reversed_order[::-1]] == [
+        fixture_numbers(u.predictions) for u in together
+    ]
+
+
+def test_a_fixture_gets_what_predict_fixture_gives_on_the_day_after_the_last_match(
+    season_in_progress,
+):
+    matches, fixtures = season_in_progress
+    fixture = fixtures[0]
+
+    _, upcoming = predict_season(matches, [fixture], min_training_matches=3)
+    single = predict_fixture(
+        matches,
+        "2008-09",
+        fixture.home_team,
+        fixture.away_team,
+        upcoming[0].as_of,
+        min_training_matches=3,
+    )
+
+    assert fixture_numbers(single.predictions) == fixture_numbers(upcoming[0].predictions)
+    assert single.as_of == upcoming[0].as_of
+
+
+def test_a_played_result_changes_the_fixtures_after_it(season_in_progress):
+    matches, fixtures = season_in_progress
+    last = matches[-1]
+    changed = replace(
+        last,
+        home_goals=last.away_goals + 3,
+        result=Outcome.HOME_WIN,
+        statistics=None,
+    )
+
+    _, before = predict_season(matches, fixtures, min_training_matches=3)
+    _, after = predict_season([*matches[:-1], changed], fixtures, min_training_matches=3)
+
+    assert fixture_numbers(before[0].predictions) != fixture_numbers(after[0].predictions)
+
+
+@pytest.mark.parametrize(
+    ("fixture", "message"),
+    [
+        (Fixture("SP1", "2007-08", date(2008, 9, 9), "Alpha", "Bravo"), "season 2008-09"),
+        (Fixture("E0", "2008-09", date(2008, 9, 9), "Alpha", "Bravo"), "not a SP1 match"),
+        (Fixture("SP1", "2008-09", date(2008, 9, 9), "Alpha", "Echo"), "has not played"),
+        (Fixture("SP1", "2008-09", date(2008, 9, 9), "Alpha", "Bravo"), "already played"),
+    ],
+)
+def test_invalid_fixtures_of_the_season_in_progress_are_rejected(
+    season_in_progress, fixture, message
+):
+    matches, _ = season_in_progress
+
+    with pytest.raises(ValueError, match=message):
+        predict_season(matches, [fixture], min_training_matches=3)
+
+
+def test_a_fixture_cannot_be_listed_twice(season_in_progress):
+    matches, fixtures = season_in_progress
+
+    with pytest.raises(ValueError, match="listed twice"):
+        predict_season(matches, [fixtures[0], fixtures[0]], min_training_matches=3)
+
+
+def test_the_season_in_progress_needs_played_matches():
+    with pytest.raises(ValueError, match="at least one played match"):
+        predict_season([], [])

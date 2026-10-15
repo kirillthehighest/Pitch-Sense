@@ -30,6 +30,17 @@ def test_ligue_1_changed_size_and_stopped_2019_20_early():
     assert ligue_1.season_length == 380  # model windows use the usual size
 
 
+def test_every_league_has_its_calendar_and_ligue_1_keeps_18_teams_in_2026_27():
+    assert {code: league.calendar for code, league in COMPETITIONS.items()} == {
+        "E0": "en.1",
+        "SP1": "es.1",
+        "I1": "it.1",
+        "D1": "de.1",
+        "F1": "fr.1",
+    }
+    assert competition("F1").teams_in("2026-27") == 18
+
+
 def test_an_unknown_code_is_an_error():
     with pytest.raises(ValueError, match="unknown competition 'XX'"):
         competition("XX")

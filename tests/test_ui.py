@@ -10,11 +10,12 @@ from PySide6.QtCore import QCoreApplication, QDate, Qt, QThread
 from PySide6.QtGui import QColor
 
 from app import __version__
+from app.data.live import update_live_data
 from app.services.preferences import FavouriteTeam, Preferences
 from app.ui.brand import flag_pixmap
-from app.ui.main_window import MainWindow
+from app.ui.main_window import UPDATE, MainWindow
 from app.ui.match_prediction import SAME_TEAM
-from app.ui.team_analysis import GROUPS_NEED_WHOLE_SEASON, SEASON_NOT_FINISHED
+from app.ui.team_analysis import GROUPS_IN_PROGRESS, GROUPS_NEED_WHOLE_SEASON, SEASON_NOT_FINISHED
 from app.ui.widgets import (
     BarRow,
     ChartView,
@@ -28,6 +29,7 @@ from app.ui.widgets import (
 )
 from app.ui.worker import run_in_background, run_now
 from app.visualization.palette import GOLD_TINT
+from tests.conftest import LIVE_TODAY
 
 PAGE_TITLES = ["ACASĂ", "PREDICȚIE", "ECHIPE", "MODELE", "LIGI"]
 MODEL_NAMES = [
@@ -310,7 +312,9 @@ def test_predicting_a_hypothetical_fixture(window):
 
     tab.predict_button.click()
 
-    assert tab.result_label.text() == "Meci nejucat: o predicție ipotetică."
+    assert tab.result_label.text() == (
+        "Meci ipotetic: predicția folosește meciurile jucate înainte de 05.09.2007."
+    )
     assert tab.probability_table.rowCount() == 3
     assert tab.fixture_label.text() == "LA LIGA · 2007/08 · 05.09.2007"
     assert tab.score_label.text() == "VS"
@@ -387,6 +391,110 @@ def test_team_analysis_as_of_a_date(window):
     assert chart_legend(tab.elo_chart) == ["2006/07", "Meciuri până la 04.09.2006"]
     assert tab.groups_chart.figure is None
     assert tab.groups_chart.message_label.text() == GROUPS_NEED_WHOLE_SEASON
+
+
+# --- the season in progress (Phase 18) ---
+
+
+@pytest.fixture
+def live_window(make_app_context, database, live_dir):
+    main_window = MainWindow(make_app_context(database, live_dir=live_dir))
+    yield main_window
+    main_window.close()
+
+
+def test_the_season_in_progress_starts_from_its_scheduled_matches(live_window):
+    tab = live_window.match_prediction
+    assert tab.season_box.currentText() == "2008/09"
+    assert tab.scheduled_button.isChecked()
+    assert not tab.scheduled_button.isHidden()
+    assert tab.scheduled_box.count() == 5
+    assert tab.scheduled_box.itemText(0) == "08.09.2008, 18:30   Charlie – Bravo"
+    assert "Actualizat:" in live_window.version_note.text()
+
+    tab.predict_button.click()
+
+    assert tab.result_label.text() == (
+        "Meci programat. Predicția folosește toate meciurile jucate până acum (ultimele pe "
+        "07.09.2008)."
+    )
+    assert tab.fixture_label.text() == "LA LIGA · 2008/09 · 08.09.2008, 18:30"
+    assert tab.score_label.text() == "VS"
+    assert cells(tab.probability_table, 0) == ["Elo", "Poisson", "Regresie logistică"]
+    assert tab.scores_table.rowCount() == 5
+
+
+def test_completed_seasons_have_no_scheduled_matches(live_window):
+    tab = live_window.match_prediction
+
+    tab.season_box.setCurrentText("2007/08")
+
+    assert tab.scheduled_button.isHidden()
+    assert tab.played_button.isChecked()
+    assert tab.scheduled_box.count() == 0
+
+
+def test_team_analysis_of_the_season_in_progress(live_window):
+    tab = live_window.team_analysis
+    assert tab.season_box.currentText() == "2008/09"
+    tab.team_box.setCurrentText("Alpha")
+
+    tab.show_button.click()
+
+    assert tab.overview_labels["Poziție"].text().startswith("locul ")
+    assert "înainte de" not in tab.overview_labels["Poziție"].text()
+    assert tab.overview_labels["Grupul sezonului"].text() == SEASON_NOT_FINISHED
+    assert tab.groups_chart.message_label.text() == GROUPS_IN_PROGRESS
+
+
+def test_the_update_button_brings_the_season_in_progress(
+    make_app_context, database, tmp_path, fake_fetch, four_team_league, errors
+):
+    target = tmp_path / "downloaded"
+
+    def update():
+        return update_live_data(
+            target, ("SP1",), today=LIVE_TODAY, fetch=fake_fetch, competitions=four_team_league
+        )
+
+    window = MainWindow(make_app_context(database, live_dir=target, update_data=update))
+    assert window.match_prediction.season_box.currentText() == "2007/08"
+    assert "Sezonul curent: —" in window.version_note.text()
+
+    window.update_button.click()
+
+    assert errors == []
+    assert window.match_prediction.season_box.currentText() == "2008/09"
+    assert window.match_prediction.scheduled_box.count() == 5
+    assert window.statusBar().currentMessage() == (
+        "Date actualizate. Sezonul 2008/09: 7 meciuri jucate și 5 meciuri programate în 1 ligă."
+    )
+    assert "Actualizat:" in window.version_note.text()
+    assert window.update_button.isEnabled()
+    assert window.update_button.text() == UPDATE
+    window.close()
+
+
+def test_a_failed_update_is_reported_and_keeps_the_data(window, errors):
+    window.update_button.click()
+
+    assert len(errors) == 1
+    assert errors[0].startswith("Datele nu au putut fi actualizate; au rămas cele de până acum.")
+    assert errors[0].endswith("tests never use the network>")
+    assert window.match_prediction.season_box.currentText() == "2007/08"
+    assert window.update_button.isEnabled()
+
+
+def test_a_damaged_season_in_progress_is_reported(make_app_context, database, live_dir, errors):
+    (live_dir / "SP1.json").write_text("<html>", encoding="utf-8")
+
+    window = MainWindow(make_app_context(database, live_dir=live_dir))
+
+    assert len(errors) == 1
+    assert errors[0].startswith("Sezonul în desfășurare pentru La Liga nu a putut fi citit")
+    assert "not a calendar" in errors[0]
+    assert window.match_prediction.season_box.currentText() == "2007/08"
+    window.close()
 
 
 # --- Modele ---

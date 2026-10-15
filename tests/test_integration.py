@@ -9,6 +9,7 @@ import pytest
 
 from app.evaluation.backtesting import read_log
 from app.evaluation.evaluator import evaluate
+from app.prediction.prediction_engine import predict_season
 from app.services.catalog import DataCatalog
 from app.services.formatting import number, percent, season_text
 from app.services.labels import model_label, outcome_label
@@ -214,4 +215,32 @@ def test_a_backtest_that_fails_is_reported_and_the_window_keeps_working(
     window.team_analysis.show_button.click()  # the loaded data still works
     assert window.team_analysis.standings_table.rowCount() == 4
     assert len(errors) == 1
+    window.close()
+
+
+def test_every_scheduled_match_shows_the_engines_forecast_from_the_downloads(
+    make_app_context, database, live_dir, errors
+):
+    # raw files -> database, downloads -> season in progress -> engine and window agree
+    catalog = DataCatalog.load(database, competition="SP1", live_dir=live_dir)
+    _, upcoming = predict_season(catalog.matches, catalog.fixtures, min_training_matches=3)
+    window = MainWindow(make_app_context(database, live_dir=live_dir))
+    tab = window.match_prediction
+
+    for index, expected in enumerate(upcoming):
+        tab.scheduled_box.setCurrentIndex(index)
+        assert tab.scheduled_box.currentData() == expected.fixture
+        tab.predict_button.click()
+
+        assert table_rows(tab.probability_table) == [
+            [
+                model_label(str(model)),
+                percent(prediction.probabilities.home_win),
+                percent(prediction.probabilities.draw),
+                percent(prediction.probabilities.away_win),
+                outcome_label(prediction.probabilities.most_likely.value),
+            ]
+            for model, prediction in expected.predictions.items()
+        ]
+    assert errors == []
     window.close()

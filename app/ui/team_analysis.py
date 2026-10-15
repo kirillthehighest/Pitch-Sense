@@ -48,6 +48,11 @@ OVERVIEW_ROWS = (
 GROUPS_NEED_WHOLE_SEASON = (
     "Grupurile descriu un sezon încheiat. Bifează „Tot sezonul” ca să le vezi."
 )
+GROUPS_IN_PROGRESS = (
+    "Sezonul este în desfășurare. Grupurile K‑Means descriu sezoane încheiate, așa că apar după "
+    "ultimul meci al sezonului."
+)
+GROUPS_NO_STATISTICS = "Sezonul nu are statistici de șuturi, deci echipele nu pot fi grupate."
 SEASON_NOT_FINISHED = "Sezonul nu este încheiat la această dată"
 FORM = "Ultimele 5"
 BADGE_SIZE = 64
@@ -62,8 +67,9 @@ class TeamAnswer:
     standings: list[StandingRow]
     overview: TeamOverview
     elo_history: tuple[RatingSeason, ...]
-    groups: SeasonGroups | None  # only for the whole season
-    groups_problem: str | None  # why there are no groups, when the season has none
+    whole_season: bool  # every match of the season (so far, for the season in progress)
+    groups: SeasonGroups | None  # only for the whole of a completed season
+    groups_problem: str | None  # why there are no groups for the whole season
 
 
 def record_text(record: TeamStatistics) -> str:
@@ -190,12 +196,15 @@ class TeamAnalysisTab(QWidget):
 
         def answer() -> TeamAnswer:
             groups, problem = None, None
-            if before is None:
+            if before is None and season == teams.in_progress:
+                problem = GROUPS_IN_PROGRESS
+            elif before is None:
                 try:
                     groups = teams.season_groups(season)
-                except ValueError as error:  # a season without shot statistics has no groups
-                    problem = str(error)
+                except ValueError:  # a season without shot statistics has no groups
+                    problem = GROUPS_NO_STATISTICS
             return TeamAnswer(
+                whole_season=before is None,
                 standings=teams.standings(season, before),
                 overview=teams.overview(season, team, before),
                 elo_history=teams.elo_history(team),
@@ -243,7 +252,7 @@ class TeamAnalysisTab(QWidget):
             icon_column=1,
         )
         shots = overview.match_statistics
-        whole = answer.groups is not None or answer.groups_problem is not None
+        whole = answer.whole_season
         self.team_label.setText(overview.team.upper())
         self.team_badge.setPixmap(
             team_badge(overview.team, BADGE_SIZE, highlighted=overview.team == favourite)
@@ -275,9 +284,7 @@ class TeamAnalysisTab(QWidget):
         if answer.groups is not None:
             self.groups_chart.show_figure(team_groups_chart(answer.groups, team=overview.team))
         elif answer.groups_problem is not None:
-            self.groups_chart.show_message(
-                "Sezonul nu are statistici de șuturi, deci echipele nu pot fi grupate."
-            )
+            self.groups_chart.show_message(answer.groups_problem)
         else:
             self.groups_chart.show_message(GROUPS_NEED_WHOLE_SEASON)
 

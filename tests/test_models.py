@@ -1,9 +1,9 @@
 from dataclasses import FrozenInstanceError, replace
-from datetime import date
+from datetime import date, time
 
 import pytest
 
-from app.data.models import Match, MatchStatistics, Outcome
+from app.data.models import Fixture, Match, MatchStatistics, Outcome
 
 
 def valid_match() -> Match:
@@ -77,3 +77,28 @@ def test_statistics_reject_negative_values():
 
     with pytest.raises(ValueError, match="away_corners"):
         MatchStatistics(**values)
+
+
+def test_a_fixture_has_teams_a_date_and_maybe_a_kickoff():
+    fixture = Fixture("SP1", "2026-27", date(2026, 10, 17), "Betis", "Barcelona", time(18, 30))
+
+    assert (fixture.home_team, fixture.away_team, fixture.kickoff_time) == (
+        "Betis",
+        "Barcelona",
+        time(18, 30),
+    )
+    assert Fixture("SP1", "2026-27", date(2026, 10, 17), "A", "B").kickoff_time is None
+
+
+@pytest.mark.parametrize(
+    ("competition", "season", "home_team", "away_team", "message"),
+    [
+        ("", "2026-27", "A", "B", "competition and season"),
+        ("SP1", "", "A", "B", "competition and season"),
+        ("SP1", "2026-27", "", "B", "team names"),
+        ("SP1", "2026-27", "A", "A", "itself"),
+    ],
+)
+def test_a_fixture_rejects_inconsistent_values(competition, season, home_team, away_team, message):
+    with pytest.raises(ValueError, match=message):
+        Fixture(competition, season, date(2026, 10, 17), home_team, away_team)

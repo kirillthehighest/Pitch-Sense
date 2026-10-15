@@ -1,7 +1,8 @@
 """Build the PitchSense package for this operating system: ``python packaging/build.py``.
 
-1. Rebuild the database and the prediction log of every league from ``data/raw``; they ship
-   inside the package.
+1. Rebuild the database and the prediction log of every league from ``data/raw``, and download
+   the season in progress (``data/live``); they ship inside the package, which copies the season
+   in progress to the user's folder, where the window can update it.
 2. Draw the app icon files from the logo (``packaging/icons.py``).
 3. Run PyInstaller with ``packaging/pitchsense.spec``.
 4. Pack the result in ``dist/``: a ``.dmg`` disk image on macOS, a ``.zip`` folder on Windows.
@@ -48,6 +49,7 @@ def main() -> int:
     python = sys.executable
     run(python, "-m", "app.data.build_database")
     run(python, "-m", "app.evaluation.backtesting")
+    run(python, "-m", "app.data.update")
     run(python, str(ROOT / "packaging" / "icons.py"), str(BUILD / "icons"))
     run(python, "-m", "PyInstaller", "--noconfirm", "--clean", "--distpath", str(DIST),
         "--workpath", str(BUILD), str(ROOT / "packaging" / "pitchsense.spec"))  # fmt: skip

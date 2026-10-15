@@ -1,22 +1,26 @@
+import json
 from dataclasses import replace
-from datetime import date
+from datetime import UTC, date, datetime, timedelta
 
 import numpy as np
 import pytest
 
 from app.algorithms.elo import DEFAULT_INITIAL_RATING
-from app.data.models import Outcome
+from app.data.live import MANIFEST, LiveLeague, UpdateSummary
+from app.data.models import Fixture, Outcome
 from app.evaluation.backtesting import log_path, read_log
 from app.prediction.elo_predictions import run_elo
 from app.prediction.outputs import ModelName
-from app.prediction.prediction_engine import predict_fixture
+from app.prediction.prediction_engine import predict_fixture, predict_season
 from app.services.catalog import DataCatalog, available_competitions
 from app.services.evaluation import EvaluationService
 from app.services.leagues import LeagueComparisonService
 from app.services.predictions import PredictionService, summarize
 from app.services.preferences import FavouriteTeam, Preferences
 from app.services.teams import FIRST_SEASON_NAME, GROUP_NAMES, NO_STATISTICS_NAME, TeamService
+from app.services.updates import summary_text, unmatched_text, updated_text
 from app.statistics.team_statistics import TeamResult
+from tests.conftest import LIVE_PLAYED, LIVE_SEASON
 
 W, D, L = TeamResult.WIN, TeamResult.DRAW, TeamResult.LOSS
 
@@ -389,3 +393,154 @@ def test_a_choice_that_cannot_be_saved_lasts_until_the_application_closes(tmp_pa
 
     assert not preferences.set_favourite(FavouriteTeam("E0", "Arsenal"))
     assert preferences.favourite == FavouriteTeam("E0", "Arsenal")
+
+
+# --- the season in progress (Phase 18) ---
+
+
+def test_the_catalog_adds_the_season_in_progress(database, live_dir):
+    catalog = DataCatalog.load(database, competition="SP1", live_dir=live_dir)
+
+    assert catalog.seasons() == ["2006-07", "2007-08", LIVE_SEASON]
+    assert catalog.current_season == LIVE_SEASON
+    assert len(catalog.season_matches(LIVE_SEASON)) == LIVE_PLAYED
+    assert len(catalog.fixtures) == 12 - LIVE_PLAYED
+    assert catalog.teams(LIVE_SEASON) == ["Alpha", "Bravo", "Charlie", "Delta"]
+    assert catalog.updated_at.tzinfo is not None
+    assert catalog.live_problem is None
+
+
+def test_without_a_download_the_catalog_has_the_completed_seasons(database, tmp_path):
+    for live_dir in (None, tmp_path / "never"):
+        catalog = DataCatalog.load(database, competition="SP1", live_dir=live_dir)
+
+        assert catalog.seasons() == ["2006-07", "2007-08"]
+        assert (catalog.current_season, catalog.fixtures, catalog.live_problem) == (None, (), None)
+
+
+def test_a_damaged_download_leaves_the_completed_seasons(database, live_dir):
+    (live_dir / "SP1.json").write_text("<html>", encoding="utf-8")
+
+    catalog = DataCatalog.load(database, competition="SP1", live_dir=live_dir)
+
+    assert catalog.seasons() == ["2006-07", "2007-08"]
+    assert catalog.fixtures == ()
+    assert "not a calendar" in catalog.live_problem
+
+
+def test_a_downloaded_season_already_in_the_database_is_ignored(database, live_dir):
+    manifest = json.loads((live_dir / MANIFEST).read_text(encoding="utf-8"))
+    manifest["season"] = "2007-08"
+    (live_dir / MANIFEST).write_text(json.dumps(manifest), encoding="utf-8")
+    for name in ("SP1.csv", "SP1.json"):  # the same rows, one year earlier
+        path = live_dir / name
+        text = path.read_text(encoding="utf-8")
+        path.write_text(text.replace("/08,", "/07,").replace("2008-09-", "2007-09-"), "utf-8")
+
+    catalog = DataCatalog.load(database, competition="SP1", live_dir=live_dir)
+
+    assert catalog.seasons() == ["2006-07", "2007-08"]
+    assert len(catalog.matches) == 24
+
+
+def test_fixtures_need_their_season(two_seasons):
+    fixture = Fixture("SP1", "2008-09", date(2008, 9, 1), "Alpha", "Bravo")
+
+    with pytest.raises(ValueError, match="season in progress"):
+        DataCatalog("SP1", two_seasons, (fixture,))
+    with pytest.raises(ValueError, match="2007-08"):
+        DataCatalog("SP1", two_seasons, (fixture,), current_season="2007-08")
+
+
+@pytest.fixture
+def catalog_in_progress(database, live_dir):
+    return DataCatalog.load(database, competition="SP1", live_dir=live_dir)
+
+
+def test_scheduled_matches_are_predicted_once_from_every_match_played(catalog_in_progress):
+    catalog = catalog_in_progress
+    service = PredictionService(catalog.matches, catalog.fixtures, min_training_matches=3)
+
+    upcoming = service.upcoming()
+
+    assert service.is_prepared
+    _, expected = predict_season(catalog.matches, catalog.fixtures, min_training_matches=3)
+    assert [u.fixture for u in upcoming] == list(catalog.fixtures)
+    assert [numbers(u) for u in upcoming] == [numbers(u) for u in expected]
+
+
+def test_a_scheduled_match_gives_the_same_numbers_before_and_after_preparing(
+    catalog_in_progress,
+):
+    catalog = catalog_in_progress
+    fixture = catalog.fixtures[2]
+    service = PredictionService(catalog.matches, catalog.fixtures, min_training_matches=3)
+    ask = (LIVE_SEASON, fixture.home_team, fixture.away_team, fixture.match_date)
+
+    before_preparing = service.predict(*ask)
+    service.prepare()
+    from_cache = service.predict(*ask)
+
+    as_of = catalog.matches[-1].match_date + timedelta(days=1)
+    assert from_cache.played is None
+    assert from_cache.as_of == before_preparing.as_of == as_of
+    assert numbers(from_cache) == numbers(before_preparing)
+    assert numbers(from_cache) == numbers(service.upcoming()[2])
+
+
+def test_any_later_date_of_the_season_uses_every_match_played(catalog_in_progress):
+    catalog = catalog_in_progress
+    service = PredictionService(catalog.matches, catalog.fixtures, min_training_matches=3)
+    fixture = catalog.fixtures[0]
+    service.prepare()
+
+    later = service.predict(LIVE_SEASON, fixture.home_team, fixture.away_team, date(2009, 3, 1))
+    played_pair = service.predict(LIVE_SEASON, "Alpha", "Bravo", date(2009, 3, 1))
+
+    assert later.match_date == date(2009, 3, 1)
+    assert numbers(later) == numbers(service.upcoming()[0])
+    assert played_pair.as_of == later.as_of
+    assert set(played_pair.predictions) == set(ModelName)
+
+
+def test_the_season_in_progress_is_never_grouped(catalog_in_progress, two_seasons):
+    catalog = catalog_in_progress
+    teams = TeamService(catalog.matches, in_progress=LIVE_SEASON)
+
+    overview = teams.overview(LIVE_SEASON, "Alpha")
+
+    assert overview.in_progress
+    assert overview.record.played == 5  # A-B, A-C, A-D, B-A and C-A, the first 7 matches
+    assert (overview.season_profile, overview.season_group) == (None, None)
+    assert overview.pre_season_group in GROUP_NAMES.values()
+    with pytest.raises(ValueError, match="in progress"):
+        teams.season_groups(LIVE_SEASON)
+    completed = TeamService(two_seasons).season_groups("2007-08")
+    assert teams.season_groups("2007-08") == completed  # the partial season changes nothing
+
+
+def test_only_the_latest_season_can_be_in_progress(two_seasons):
+    with pytest.raises(ValueError, match="must be the latest"):
+        TeamService(two_seasons, in_progress="2006-07")
+
+
+def test_an_update_is_described_in_romanian():
+    league = LiveLeague(
+        "SP1", "2026-27", (), tuple(range(302)), ("Real Charlie",), datetime(2026, 10, 15)
+    )
+    other = LiveLeague("E0", "2026-27", (), tuple(range(320)), (), datetime(2026, 10, 15))
+    summary = UpdateSummary("2026-27", datetime(2026, 10, 15, tzinfo=UTC), (league, other))
+
+    assert summary_text(summary) == (
+        "Sezonul 2026/27: 0 meciuri jucate și 622 de meciuri programate în 2 ligi. Echipe din "
+        "calendar care nu au putut fi recunoscute, cu meciurile lor lăsate deoparte: La Liga "
+        "(Real Charlie)."
+    )
+    assert unmatched_text(("A", "B")).endswith("potrivite cu siguranță: A, B.")
+
+
+def test_the_time_of_an_update_is_shown_in_the_local_time_zone():
+    moment = datetime(2026, 10, 15, 13, 5, tzinfo=UTC)
+    local = moment.astimezone()
+
+    assert updated_text(moment) == f"{local:%d.%m.%Y}, {local:%H:%M}"

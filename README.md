@@ -5,7 +5,7 @@ Aplicație desktop pentru analiza datelor istorice din fotbal și estimarea rezu
 Proiect de an la disciplina *Analiza și Proiectarea Algoritmilor* (APA), Universitatea Tehnică a Moldovei, Departamentul Ingineria Software și Automatică.
 Echipa (grupa TI-251): Goroșevschi Chiril, Cuzmici Nicolae, Păstru Alina.
 
-**Stadiu:** toate etapele (0–17) sunt încheiate; versiunea curentă este 0.2.0. Fazele 0–12 (planificare și arhitectură, prelucrarea datelor istorice, statisticile echipelor, ratingul Elo, modelul Poisson, regresia logistică, K-Means, motorul de predicție, backtesting cronologic, metricile de evaluare, compararea algoritmilor, interfața grafică, vizualizarea) au fost încheiate pe 2026-10-04, fazele 13 (testare de integrare și finisare), 14 (pachete de instalare pentru macOS și Windows), 15 (cinci ligi) și 16 (identitate vizuală și interfață nouă, în limba română) pe 2026-10-05, iar faza 17 (pachete și versiunea 0.2.0) pe 2026-10-06. Aplicația se pornește cu `python -m app` sau din pachetele de instalare.
+**Stadiu:** etapele 0–17 sunt încheiate; versiunea curentă este 0.2.0. Etapele 18 (sezonul în desfășurare) și 19 (interfață centrată pe meciuri) au fost adăugate de echipă pe 2026-10-15; etapa 18 este în lucru. Fazele 0–12 (planificare și arhitectură, prelucrarea datelor istorice, statisticile echipelor, ratingul Elo, modelul Poisson, regresia logistică, K-Means, motorul de predicție, backtesting cronologic, metricile de evaluare, compararea algoritmilor, interfața grafică, vizualizarea) au fost încheiate pe 2026-10-04, fazele 13 (testare de integrare și finisare), 14 (pachete de instalare pentru macOS și Windows), 15 (cinci ligi) și 16 (identitate vizuală și interfață nouă, în limba română) pe 2026-10-05, iar faza 17 (pachete și versiunea 0.2.0) pe 2026-10-06. Aplicația se pornește cu `python -m app` sau din pachetele de instalare.
 
 ## Aplicația gata de instalat
 
@@ -65,6 +65,16 @@ Testele folosesc doar date sintetice. `tests/test_integration.py` rulează tot l
 
 Meciurile din cinci ligi, sezoanele 2006/07–2025/26 (36.197 de meciuri), preluate de pe [Football-Data.co.uk](https://www.football-data.co.uk): Premier League (`E0`), La Liga (`SP1`), Serie A (`I1`), Bundesliga (`D1`) și Ligue 1 (`F1`). Fișierele originale se află în `data/raw/<cod>/`. Sursa și verificările făcute la descărcare sunt descrise în [`data/raw/README.md`](data/raw/README.md).
 
+### Sezonul în desfășurare
+
+Pentru meciurile care urmează, aplicația descarcă sezonul în desfășurare (acum 2026/27): rezultatele de până acum de la Football-Data.co.uk și calendarul întregului sezon de la [openfootball/football.json](https://github.com/openfootball/football.json) (domeniu public, CC0). Descărcarea are loc doar la cerere, cu butonul **Actualizează datele** din aplicație sau cu comanda:
+
+```bash
+python -m app.data.update
+```
+
+Fișierele sunt verificate înainte să le înlocuiască pe cele vechi și sunt păstrate în `data/live/` (nu sunt incluse în git). Fără ele, aplicația arată doar sezoanele încheiate. Detalii: [`docs/architecture.md`](docs/architecture.md), secțiunea 15.
+
 ## Baza de date
 
 Construiește (sau reconstruiește) baza de date `data/pitchsense.db` din fișierele brute:
@@ -86,12 +96,14 @@ python -m app
 Liga se alege din panoul din stânga (sau dintr-un card al ecranului Ligi); prima dată când o ligă este afișată, aplicația îi calculează toate predicțiile istorice (aproximativ 7 secunde; bara de stare arată „Predicțiile pentru … sunt gata”). Ultima ligă afișată este redeschisă la următoarea pornire. Ecranele, din bara de sus:
 
 - **Acasă:** liga pe scurt, modelul cu cel mai mic scor Brier (și dacă avantajul lui este real), echipa ta și rezultatele modelelor;
-- **Predicție:** predicția unui meci jucat sau a oricăror două echipe dintr-un sezon, la o anumită dată, cu graficul probabilităților scorurilor (Poisson);
+- **Predicție:** predicția meciurilor programate ale sezonului în desfășurare (din tot ce s-a jucat până acum), a unui meci jucat sau a oricăror două echipe dintr-un sezon, la o anumită dată, cu graficul probabilităților scorurilor (Poisson);
 - **Echipe:** clasamentul și profilul unei echipe, la final de sezon sau la o anumită dată, evoluția ratingului ei Elo și grupurile K-Means ale sezonului;
 - **Modele:** compararea modelelor ligii, în tabele și în grafice (calibrarea și matricea de confuzie);
 - **Ligi:** cele cinci ligi comparate: caracterul fiecăreia și cât de bine prezic modelele în fiecare.
 
 Butonul auriu **Echipa ta** din dreapta sus păstrează echipa pe care o urmăriți: este evidențiată în clasamente și aleasă din start în ecranele Predicție și Echipe.
+
+Butonul **Actualizează datele** descarcă rezultatele și calendarul sezonului în desfășurare (câteva secunde, cu internet); restul aplicației funcționează fără internet. Panoul din stânga arată când au fost actualizate datele ultima dată.
 
 Dacă jurnalul predicțiilor unei ligi lipsește sau nu poate fi citit, butonul **Rulează backtestul** îl construiește din nou (aproximativ 8–10 secunde pe ligă).
 
@@ -103,7 +115,7 @@ Dacă jurnalul predicțiilor unei ligi lipsește sau nu poate fi citit, butonul 
 python packaging/build.py
 ```
 
-Comanda reconstruiește baza de date și jurnalele predicțiilor celor cinci ligi, care intră în pachet, desenează iconița aplicației din siglă și produce `dist/PitchSense-0.2.0-macOS-arm64.dmg`. Versiunea este scrisă într-un singur loc, `app/__init__.py`.
+Comanda reconstruiește baza de date și jurnalele predicțiilor celor cinci ligi, descarcă sezonul în desfășurare (cu internet), toate intrând în pachet, desenează iconița aplicației din siglă și produce `dist/PitchSense-0.2.0-macOS-arm64.dmg`. Versiunea este scrisă într-un singur loc, `app/__init__.py`.
 
 **Windows:** pachetul se construiește pe GitHub, cu fluxul „Windows package” (`.github/workflows/package.yml`): pe pagina *Actions* a depozitului, *Windows package → Run workflow*. Fluxul rulează toate testele pe Windows, construiește pachetul, îl verifică și îl păstrează 30 de zile ca *artifact* (`PitchSense-Windows`). Pe un calculator cu Windows se poate folosi și `python packaging/build.py`.
 
@@ -176,3 +188,5 @@ python -m app.evaluation.leagues
 15. Cinci ligi: date, calibrare, evaluare și comparația ligilor
 16. Identitate vizuală și interfață nouă, în limba română
 17. Pachete și versiunea 0.2.0
+18. Sezonul în desfășurare: meciurile programate, prezise de modele, și actualizarea datelor din aplicație
+19. Interfață centrată pe meciuri: meciurile pe zile, clasamentul, pagina echipei și analiza modelelor

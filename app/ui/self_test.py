@@ -13,6 +13,7 @@ from collections.abc import Callable
 from PySide6.QtGui import QImageReader
 from PySide6.QtWidgets import QApplication
 
+from app.data.live import copy_bundled_live
 from app.data.paths import copy_bundled_results, user_data_dir
 from app.ui.context import AppContext, default_context
 from app.ui.main_window import MainWindow
@@ -26,6 +27,7 @@ def run_self_test(load_context: Callable[[], AppContext] = default_context) -> i
     application = QApplication.instance() or QApplication(sys.argv)
     typeface = apply_theme(application)  # the bundled fonts must load from a package too
     copy_bundled_results()
+    copy_bundled_live()
     try:
         context = load_context()
     except FileNotFoundError as error:
@@ -42,6 +44,10 @@ def run_self_test(load_context: Callable[[], AppContext] = default_context) -> i
         "typeface": typeface,
         "SVG icons": b"svg" in QImageReader.supportedImageFormats(),  # the style sheet's icons
         f"historical predictions ({league.code})": league.predictions.is_prepared,
+        # readable when shipped or downloaded; before a season starts it has no fixtures yet
+        f"season in progress ({len(league.catalog.fixtures)} scheduled matches)": (
+            league.catalog.live_problem is None
+        ),
     }
     home = window.home
     if not league.evaluation.has_log:
@@ -49,9 +55,11 @@ def run_self_test(load_context: Callable[[], AppContext] = default_context) -> i
     window.show_page(window.pages.index(home))
     checks["home"] = home.results_table.rowCount() > 0
     prediction = window.match_prediction
-    prediction.predict_button.click()
+    prediction.predict_button.click()  # the first scheduled match, when there is one
     checks["match prediction"] = prediction.probability_table.rowCount() > 0
     team = window.team_analysis
+    completed = [s for s in league.catalog.seasons() if s != league.catalog.current_season]
+    team.season_box.setCurrentIndex(team.season_box.findData(completed[-1]))  # it has groups
     team.show_button.click()
     checks["team analysis"] = team.standings_table.rowCount() > 0
     comparison = window.algorithm_comparison

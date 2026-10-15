@@ -8,13 +8,18 @@ logistic regression all three results), Poisson needs league goals at home and a
 ``predict_fixture`` answers a single question (season, home team, away team, date) with the same
 code. A match that was not played is added as a placeholder whose score is never used for its own
 prediction, because no model looks at results from the day it predicts.
+
+``predict_season`` also predicts the matches still to be played of the season in progress
+(Phase 18). They are all predicted from the same knowledge, every match played so far: each one is
+added as a placeholder dated the day after the last match played, so no placeholder can reach the
+prediction of another.
 """
 
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, timedelta
 
-from app.data.models import Match, Outcome
+from app.data.models import Fixture, Match, Outcome
 from app.data.preprocessing import season_date_window, sort_chronologically
 from app.prediction.elo_predictions import elo_outcome_predictions, run_elo
 from app.prediction.logistic_predictions import MIN_TRAINING_MATCHES, run_logistic_regression
@@ -90,6 +95,7 @@ class FixturePrediction:
     away_team: str
     played: Match | None
     predictions: Mapping[ModelName, ModelPrediction]
+    as_of: date | None = None  # for a match not played: the predictions use the matches before it
 
     def of(self, model: ModelName) -> ModelPrediction | None:
         return self.predictions.get(model)
@@ -158,4 +164,86 @@ def predict_fixture(
         away_team=away_team,
         played=played,
         predictions=predictions,
+        as_of=None if played else match_date,
+    )
+
+
+@dataclass(frozen=True, eq=False)
+class UpcomingPrediction:
+    """Every available model's prediction for a match still to be played.
+
+    ``as_of`` is the day whose knowledge it uses: every match played before that day.
+    """
+
+    fixture: Fixture
+    as_of: date
+    predictions: Mapping[ModelName, ModelPrediction]
+
+    def of(self, model: ModelName) -> ModelPrediction | None:
+        return self.predictions.get(model)
+
+
+def predict_season(
+    matches: Iterable[Match],
+    fixtures: Sequence[Fixture],
+    *,
+    settings: ModelSettings | None = None,
+    min_training_matches: int = MIN_TRAINING_MATCHES,
+) -> tuple[list[MatchPredictions], list[UpcomingPrediction]]:
+    """Predict every played match, as ``predict_history`` does, and every fixture still to play.
+
+    Each fixture becomes a placeholder match dated the day after the last match played (its own
+    date is kept for display). No model uses results from the day it predicts and nothing comes
+    after that day, so a placeholder's made-up score never reaches any prediction, and every
+    fixture gets the same predictions as it would alone. The fixtures must belong to the season
+    of the last match played, be between teams that played in it, and not repeat a match played
+    or another fixture.
+    Returns the predictions of the played matches and of the fixtures, in the fixtures' order.
+    """
+    ordered = sort_chronologically(matches)
+    if not ordered:
+        raise ValueError("need at least one played match")
+    season = ordered[-1].season
+    as_of = ordered[-1].match_date + timedelta(days=1)
+    teams = {team for m in ordered if m.season == season for team in (m.home_team, m.away_team)}
+    played = {(m.home_team, m.away_team) for m in ordered if m.season == season}
+    listed: set[tuple[str, str]] = set()
+    placeholders = []
+    for fixture in fixtures:
+        if fixture.season != season or fixture.competition != ordered[-1].competition:
+            raise ValueError(
+                f"{fixture.home_team} - {fixture.away_team} is not a {ordered[-1].competition} "
+                f"match of season {season}, the season in progress"
+            )
+        for team in (fixture.home_team, fixture.away_team):
+            if team not in teams:
+                raise ValueError(f"{team!r} has not played in season {season} yet")
+        pair = (fixture.home_team, fixture.away_team)
+        if pair in played:
+            raise ValueError(f"{fixture.home_team} - {fixture.away_team} was already played")
+        if pair in listed:
+            raise ValueError(f"{fixture.home_team} - {fixture.away_team} is listed twice")
+        listed.add(pair)
+        placeholders.append(
+            Match(
+                competition=fixture.competition,
+                season=season,
+                match_date=as_of,
+                home_team=fixture.home_team,
+                away_team=fixture.away_team,
+                home_goals=0,
+                away_goals=0,
+                result=Outcome.DRAW,  # placeholder: never used by any prediction
+            )
+        )
+    results = predict_history(
+        [*ordered, *placeholders], settings=settings, min_training_matches=min_training_matches
+    )
+    by_match = {result.match: result for result in results}
+    return (
+        [by_match[match] for match in ordered],
+        [
+            UpcomingPrediction(fixture, as_of, by_match[placeholder].predictions)
+            for fixture, placeholder in zip(fixtures, placeholders, strict=True)
+        ],
     )

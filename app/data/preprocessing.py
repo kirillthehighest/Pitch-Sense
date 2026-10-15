@@ -154,6 +154,40 @@ def season_structure_problems(
     return problems
 
 
+def in_progress_season_problems(matches: Iterable[Match], team_count: int) -> list[str]:
+    """List the ways a season still being played departs from a double round-robin so far.
+
+    No team may play more than a full season, no team may host another twice, and the season may
+    not have more teams than the league. An empty list means the season can still be completed
+    as a double round-robin between ``team_count`` teams.
+    """
+    if team_count < 2:
+        raise ValueError(f"team_count must be at least 2, got {team_count}")
+    matches = list(matches)
+    problems = []
+    seasons = sorted({match.season for match in matches})
+    if len(seasons) > 1:
+        problems.append(f"matches come from several seasons: {', '.join(seasons)}")
+    appearances = Counter(team for match in matches for team in (match.home_team, match.away_team))
+    if len(appearances) > team_count:
+        problems.append(f"expected at most {team_count} teams, found {len(appearances)}")
+    full_season = 2 * (team_count - 1)
+    for team, played in sorted(appearances.items()):
+        if played > full_season:
+            problems.append(f"{team} played {played} matches, more than a season ({full_season})")
+    fixtures = Counter((match.home_team, match.away_team) for match in matches)
+    for (home_team, away_team), hosted in sorted(fixtures.items()):
+        if hosted > 1:
+            problems.append(f"{home_team} hosted {away_team} {hosted} times")
+    return problems
+
+
+def season_of(day: date) -> str:
+    """The season a day belongs to; seasons start on 1 July: 2026-10-15 -> "2026-27"."""
+    start_year = day.year if day.month >= 7 else day.year - 1
+    return f"{start_year}-{(start_year + 1) % 100:02d}"
+
+
 def sort_chronologically(matches: Iterable[Match]) -> list[Match]:
     """Return the matches ordered by date, then kickoff time (unknown first), then home team."""
     return sorted(

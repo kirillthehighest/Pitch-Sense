@@ -1,6 +1,6 @@
 # Arhitectura aplicației PitchSense
 
-Acest document descrie structura aplicației, fluxul datelor și deciziile tehnice luate până acum (fazele 0–17). Se actualizează ori de câte ori structura se schimbă.
+Acest document descrie structura aplicației, fluxul datelor și deciziile tehnice luate până acum (fazele 0–18). Se actualizează ori de câte ori structura se schimbă.
 
 ## 1. Principii
 
@@ -68,6 +68,7 @@ app/visualization → app/ui    grafice și interfața grafică
 | `repository.py` | Stochează și interoghează meciurile în SQLite. |
 | `competitions.py` | Ligile cunoscute: numele, numărul de echipe pe sezon și sezoanele oprite mai devreme (secțiunea 13.1). |
 | `build_database.py` | Comanda care reconstruiește baza de date din fișierele brute. |
+| `live.py`, `update.py` | Sezonul în desfășurare: descărcarea, verificarea, potrivirea numelor echipelor și citirea meciurilor programate (`Fixture` în `models.py`); comanda `python -m app.data.update` (secțiunea 15). |
 | `paths.py` | Locul unic în care sunt definite căile către fișierele de date, din codul sursă și dintr-un pachet de instalare (secțiunea 12.2). |
 
 ### 5.2. Înregistrarea unui meci (`Match`)
@@ -642,9 +643,102 @@ Rulări din 2026-10-05:
 - Echipele au ecusoane cu inițiale, nu stemele lor (stemele sunt mărci înregistrate).
 - Pachetele de instalare nu au fost reconstruite în această fază: fonturile, iconițele, iconița aplicației și jurnalele celor cinci ligi trebuie incluse în pachete (Faza 17). Pachetul Windows nu a fost încercat cu noua interfață.
 
-## 15. Setul de date și perioadele
+## 15. Sezonul în desfășurare și meciurile care urmează (Faza 18)
 
-Sursa datelor este Football-Data.co.uk: cinci ligi (Premier League, La Liga, Serie A, Bundesliga, Ligue 1), fiecare cu 20 de sezoane încheiate, 2006/07–2025/26 (36.197 de meciuri). Perioadele sunt aceleași pentru toate ligile.
+Până în Faza 17, aplicația prezicea meciuri deja jucate (pentru evaluare) și meciuri ipotetice. Datele istorice servesc statisticilor și calibrării; o predicție are sens pentru un meci care nu s-a jucat încă. Faza 18 adaugă sezonul în desfășurare: rezultatele de până acum și meciurile programate, prezise de cele trei modele.
+
+### 15.1. Sursele
+
+| Ce | Sursa | Fișierul păstrat |
+|---|---|---|
+| Rezultatele sezonului de până acum | Football-Data.co.uk, aceeași sursă și același format ca `data/raw` (`https://www.football-data.co.uk/mmz4281/2627/<cod>.csv`) | `<cod>.csv` |
+| Calendarul întregului sezon | openfootball/football.json, domeniu public (CC0 1.0): `https://raw.githubusercontent.com/openfootball/football.json/master/2026-27/<fișier>.json`, cu fișierele `en.1`, `es.1`, `it.1`, `de.1`, `fr.1` (câmpul `calendar` din `competitions.py`) | `<cod>.json` |
+| Descrierea descărcării | scrisă de aplicație: sezonul, ora (UTC), adresa și amprenta SHA-256 a fiecărui fișier, versiunea aplicației | `update.json` |
+
+Rezultatele vin doar de la Football-Data. Calendarul primește scorurile mai târziu (pe 15.10.2026, ultimul scor din calendar era din 20.09.2026, iar Football-Data avea meciurile până pe 12.10.2026), așa că din el se folosesc doar meciurile nejucate. Fișierele sunt păstrate nemodificate în `data/live/`, care nu este inclus în git, ca baza de date.
+
+### 15.2. Actualizarea
+
+- Butonul **Actualizează datele** din bara de sus sau comanda `python -m app.data.update`. Este singurul acces la internet al aplicației și are loc doar la cererea utilizatorului; fără el, aplicația funcționează cu ultimele date descărcate.
+- Sezonul este dedus din data zilei: sezoanele încep la 1 iulie (`season_of` în `preprocessing.py`).
+- Fișierele sunt descărcate într-un folder temporar și verificate:
+  - rezultatele, cu aceleași reguli ca fișierele brute (coloane, date, scoruri, duplicate);
+  - în plus, sezonul trebuie să poată deveni un tur-retur complet: cel mult $t$ echipe, nicio echipă cu mai mult de $2(t-1)$ meciuri, nicio gazdă care primește de două ori aceeași echipă (`in_progress_season_problems`);
+  - calendarul: JSON valid, toate datele în fereastra sezonului, nicio pereche gazdă–oaspete de două ori.
+
+  Doar după toate verificările, folderul nou îl înlocuiește pe cel vechi. O descărcare eșuată sau un fișier deteriorat lasă datele anterioare neschimbate, iar fereastra spune ce s-a întâmplat.
+- Conexiunea este HTTPS, verificată cu certificatele sistemului. Python de pe python.org nu are certificate proprii pe macOS, așa că aplicația le citește din `/etc/ssl/cert.pem`; pe Windows, Python folosește depozitul sistemului. Nu a fost nevoie de o bibliotecă nouă.
+- Un fișier mai mare de 5 MB este refuzat (un sezon are circa 0,2 MB). Un fișier care nu există încă (HTTP 404, vara, înainte de noul sezon) este explicat ca atare.
+- Dintr-un pachet de instalare, descărcarea se face în folderul utilizatorului (`~/Library/Application Support/PitchSense/live`, `%LOCALAPPDATA%\PitchSense\live`). Pachetul livrează instantaneul de la construcție, copiat la pornire doar dacă este mai nou decât ce are utilizatorul (`copy_bundled_live`).
+
+### 15.3. Potrivirea numelor echipelor
+
+Cele două surse scriu numele diferit („Club Atlético de Madrid” și „Ath Madrid”, „RC Deportivo La Coruña” și „La Coruna”). Potrivirea nu este un tabel scris de mână, ci este dedusă din date (`match_team_names`):
+
+1. Fiecare meci cu scor din calendar este pus în pereche cu meciul Football-Data din aceeași zi și cu același scor (sau din ziua de dinainte ori de după, dacă sursele nu au aceeași dată), dar doar dacă există exact un astfel de meci.
+2. Fiecare pereche este un vot pentru două potriviri: gazdele între ele și oaspeții între ei.
+3. Un nume din calendar primește numele Football-Data cu cel puțin 2 voturi și cel puțin 75% din voturile lui. Două nume din calendar nu pot primi același nume.
+
+O echipă care nu poate fi potrivită sigur este raportată, iar meciurile ei programate sunt lăsate deoparte: nu sunt ghicite. Pe 15.10.2026, toate cele 96 de echipe ale celor cinci ligi au fost potrivite.
+
+### 15.4. Predicția meciurilor programate
+
+`predict_season` (`app/prediction/prediction_engine.py`) prezice, într-o singură rulare, toate meciurile jucate (exact ca `predict_history`) și toate meciurile programate. Fiecare meci programat intră ca meci înlocuitor (scor 0–0, nefolosit), datat **în ziua de după ultimul meci jucat** (`as_of`); data reală rămâne pentru afișare.
+
+- Niciun model nu folosește rezultatele zilei pe care o prezice, iar după `as_of` nu mai urmează nimic. Astfel, scorul inventat al unui înlocuitor nu ajunge în nicio predicție, iar un meci programat primește aceleași probabilități ca atunci când este prezis singur (testat).
+- Un înlocuitor pus la data lui reală ar fi intrat, cu scorul inventat, în istoricul meciurilor programate de după el. Toate meciurile programate sunt prezise din tot ce se știe azi: nimic mai nou nu este cunoscut.
+- Meciurile jucate își păstrează exact predicțiile din `predict_history` (testat; pe datele reale, toate cele 7.678 de meciuri ale La Liga au aceleași probabilități).
+- Regresia logistică și modelul egalurilor din Elo folosesc ultima reantrenare de luni de dinainte de `as_of`, pe meciurile de dinaintea acelei zile de luni, ca în backtest.
+- Un meci programat trebuie să fie din sezonul ultimului meci jucat, între echipe care au jucat în acest sezon, și să nu repete un meci jucat sau alt meci programat.
+- Un meci cu data din calendar trecută, dar fără rezultat (amânat sau încă neînregistrat; pe 15.10.2026: Vallecano – Ath Bilbao, programat pe 10.10.2026) este prezis la fel și marcat pe ecran.
+- O ligă cu meciurile ei programate se prezice în același timp ca istoricul (circa 7 s).
+- În modul „Orice meci”, o dată de după ultimul meci jucat al sezonului în desfășurare folosește tot ziua `as_of`, pentru că informația este aceeași. O pereche programată primește exact predicția din lista meciurilor programate.
+
+### 15.5. Serviciile și ecranele
+
+- `DataCatalog.load(..., live_dir)` adaugă sezonul în desfășurare la sezoanele din baza de date, dacă este mai nou decât ultimul dintre ele și are meciuri jucate: `fixtures`, `current_season`, `updated_at`, `unmatched_teams`. Fișierele deteriorate nu împiedică deschiderea ligii: sunt arătate sezoanele încheiate, iar `live_problem` spune ce nu a mers (fereastra îl arată o dată).
+- `PredictionService(matches, fixtures)` prezice ambele în `prepare`; `upcoming()` întoarce meciurile programate, iar `predict` răspunde din memorie pentru un meci programat.
+- `TeamService(..., in_progress=...)`: sezonul în desfășurare nu este niciodată „încheiat”, deci nu are profil și grup al sezonului. Grupurile K-Means descriptive sunt calculate doar pe sezoanele încheiate, cu aceleași rezultate ca înainte; grupul de dinaintea sezonului se calculează ca pentru orice sezon.
+- **Predicție**: modul „Programat” (ales din start când există meciuri programate) arată data, ora locală și ce meciuri folosește predicția; „Jucat” și „Orice meci” au rămas. **Echipe**: clasamentul sezonului în desfășurare de până acum. Panoul din stânga arată sursele și ora ultimei actualizări.
+- **Evaluarea nu se schimbă.** Backtestul, jurnalele, calibrările și comparațiile folosesc doar sezoanele încheiate din baza de date. Sezonul în desfășurare nu face parte din evaluarea raportată.
+
+### 15.6. Verificare
+
+Rulări din 2026-10-15:
+
+- **Teste.** Toate cele 744 de teste trec; `ruff check` și `ruff format --check` nu găsesc nimic. Teste noi:
+  - `tests/test_live.py`: calendarul, potrivirea numelor, descărcarea printr-o sursă falsă, înlocuirea folderului doar după verificare, păstrarea datelor la o eroare, copierea instantaneului și comanda;
+  - verificările sezonului în desfășurare, `Fixture` și `calendar`;
+  - `predict_season`: istoricul neschimbat, meciurile programate care nu se influențează între ele, egalitatea cu `predict_fixture` la `as_of`, un rezultat jucat care schimbă meciurile de după el, meciurile programate invalide;
+  - serviciile, ecranele (butonul de actualizare reușit și eșuat, datele deteriorate), testul de la un capăt la altul (fișiere brute → bază de date → descărcare → fereastră, cu aceleași cifre ca motorul) și autoverificarea.
+
+  Testele nu folosesc rețeaua.
+- **Pe datele reale**, actualizarea din 15.10.2026:
+
+  | Liga | Echipe | Meciuri jucate | Meciuri programate | Total |
+  |---|---|---|---|---|
+  | Premier League | 20 | 60 | 320 | 380 |
+  | La Liga | 20 | 78 | 302 | 380 |
+  | Serie A | 20 | 60 | 320 | 380 |
+  | Bundesliga | 18 | 45 | 261 | 306 |
+  | Ligue 1 | 18 | 54 | 252 | 306 |
+
+  Fiecare ligă are exact numărul de meciuri al unui sezon, iar toate echipele au fost potrivite.
+- **Ecranele** Predicție și Echipe au fost desenate fără fereastră, cu datele reale, și verificate vizual.
+- **Autoverificarea** pe datele reale: 21 din 21 (verificarea nouă: sezonul în desfășurare se citește fără erori; La Liga are 302 meciuri programate). Pentru graficul grupurilor, autoverificarea alege acum ultimul sezon încheiat, pentru că sezonul în desfășurare nu are grupuri. Aplicația pornește (`python -m app`) și rulează fără erori.
+- **Pachete.** macOS: `python packaging/build.py` descarcă sezonul în timpul construcției; `.dmg` de 74 MB; autoverificarea din `dist/` trece 21 din 21, iar instantaneul sezonului este copiat în folderul utilizatorului la prima pornire. Windows: WINDOWS_RESULT
+
+### 15.7. Limitări
+
+- Orele de începere sunt cele locale din calendar.
+- La începutul sezonului, numele unei echipe poate fi potrivit abia după ce echipa a jucat două meciuri. Până atunci, meciurile ei programate lipsesc, iar aplicația spune de ce.
+- După 1 iulie, actualizarea trece la sezonul nou. Ca sezonul încheiat să rămână în aplicație, fișierul lui trebuie adăugat în `data/raw/` și baza de date reconstruită (`python -m app.data.build_database`).
+- O schimbare a calendarului (un meci mutat) apare doar după o actualizare.
+- Clasamentele nu includ deducerile de puncte, ca până acum.
+
+## 16. Setul de date și perioadele
+
+Sursa datelor este Football-Data.co.uk: cinci ligi (Premier League, La Liga, Serie A, Bundesliga, Ligue 1), fiecare cu 20 de sezoane încheiate, 2006/07–2025/26 (36.197 de meciuri). Perioadele sunt aceleași pentru toate ligile. Sezonul în desfășurare (2026/27) este descărcat separat și nu face parte din evaluare (secțiunea 15).
 
 | Perioadă | Rol |
 |---|---|
@@ -652,7 +746,7 @@ Sursa datelor este Football-Data.co.uk: cinci ligi (Premier League, La Liga, Ser
 | 2007/08–2009/10 | Calibrare: se aleg hiperparametrii; rezultatele nu sunt raportate. |
 | 2010/11–2025/26 | Evaluarea raportată: 16 sezoane; 6.080 de meciuri în fiecare ligă cu 20 de echipe, 4.896 în Bundesliga, 5.757 în Ligue 1; 28.893 în total. |
 
-## 16. Tehnologii
+## 17. Tehnologii
 
 | Componentă | Versiune | Rol |
 |---|---|---|
@@ -668,7 +762,7 @@ Sursa datelor este Football-Data.co.uk: cinci ligi (Premier League, La Liga, Ser
 | Libre Franklin (font, SIL Open Font License 1.1) | cinci grosimi statice | textul interfeței și al graficelor, inclus în `app/ui/assets/fonts/` |
 | Barlow Condensed (font, SIL Open Font License 1.1) | patru grosimi statice | titlurile, cifrele mari, scorul și navigarea, inclus în `app/ui/assets/fonts/` |
 
-## 17. Decizii tehnice
+## 18. Decizii tehnice
 
 | Decizie | Motiv |
 |---|---|
@@ -732,3 +826,10 @@ Sursa datelor este Football-Data.co.uk: cinci ligi (Premier League, La Liga, Ser
 | Versiunea este scrisă doar în `app/__init__.py` | Pachetele, `pyproject.toml` și fereastra arată mereu aceeași versiune. |
 | Iconițele pachetelor (`.icns`, `.ico`) sunt scrise de noi, cu imagini PNG desenate din siglă | Iconița urmează mereu sigla și nu este nevoie de o bibliotecă de imagini nouă. |
 | Un fișier `VERSION` în folderul jurnalelor; o actualizare înlocuiește jurnalele vechi | Jurnalele calculate de modele mai vechi nu mai pot ajunge în aplicația nouă; în aceeași versiune, jurnalele reconstruite rămân. |
+| Sezonul în desfășurare este descărcat doar când utilizatorul apasă „Actualizează datele” | Aplicația rămâne utilizabilă fără internet; datele unei predicții se știu mereu (ora ultimei actualizări este afișată). |
+| Rezultatele de la Football-Data, calendarul de la openfootball (CC0) | Rezultatele vin din aceeași sursă ca istoricul; fișierul cu meciurile viitoare de la Football-Data acoperă doar câteva zile și este gol în pauzele competiționale, pe când calendarul openfootball are tot sezonul și poate fi folosit liber. |
+| Numele echipelor din calendar sunt potrivite din meciurile jucate în ambele surse, nu dintr-un tabel scris de mână | Funcționează pentru orice ligă și sezon, fără întreținere; o echipă nesigură este raportată, nu ghicită. |
+| Toate meciurile programate sunt prezise din ziua de după ultimul meci jucat | Scorurile inventate ale înlocuitorilor nu pot influența nicio predicție, iar predicția folosește tot ce se știe în acel moment. |
+| Fișierele noi înlocuiesc folderul vechi doar după ce au trecut toate verificările | O descărcare eșuată sau un fișier deteriorat nu poate lăsa aplicația fără date. |
+| Certificatele sistemului pentru HTTPS, fără o bibliotecă nouă | Python de pe python.org nu are certificate proprii pe macOS; cele ale sistemului sunt verificate de sistem. |
+| Pachetul livrează instantaneul sezonului în desfășurare de la construcție | Aplicația instalată are meciurile programate și fără o primă actualizare. |

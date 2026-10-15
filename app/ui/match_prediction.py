@@ -1,5 +1,7 @@
-"""Predicție: every model's forecast for a played match or any fixture of a season, shown as a
-match card with one probability bar per model."""
+"""Predicție: every model's forecast for a match still to be played, a played match or any
+fixture of a season, shown as a match card with one probability bar per model."""
+
+from datetime import timedelta
 
 from PySide6.QtCore import QDate, Qt
 from PySide6.QtWidgets import (
@@ -18,7 +20,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from app.data.models import Match
+from app.data.models import Fixture, Match
 from app.data.preprocessing import season_date_window
 from app.prediction.prediction_engine import FixturePrediction
 from app.services.formatting import date_text, number, percent, season_text
@@ -41,6 +43,7 @@ from app.visualization.palette import LINE
 NO_SCORES = "Probabilitățile scorurilor (modelul Poisson) apar aici după predicție."
 NO_MATCH = "Alege un meci și apasă „Calculează predicția”."
 SAME_TEAM = "Alege două echipe diferite."
+NO_FIXTURES = "Nu există meciuri programate."
 BADGE_SIZE = 76
 CHOICE_WIDTH = 400
 
@@ -52,12 +55,23 @@ def match_label(match: Match) -> str:
     )
 
 
+def kickoff_text(fixture: Fixture) -> str:
+    """The date and, when known, the local kickoff time: 17.10.2026, 18:30."""
+    kickoff = fixture.kickoff_time
+    return date_text(fixture.match_date) + (f", {kickoff:%H:%M}" if kickoff else "")
+
+
+def fixture_label(fixture: Fixture) -> str:
+    return f"{kickoff_text(fixture)}   {fixture.home_team} – {fixture.away_team}"
+
+
 class MatchPredictionTab(QWidget):
     """Choose a fixture, predict it and show each model's probabilities."""
 
     title = "Predicție"
     subtitle = (
-        "Probabilitățile fiecărui model pentru un meci, calculate doar din meciurile anterioare."
+        "Probabilitățile fiecărui model pentru meciurile care urmează, calculate doar din "
+        "meciurile jucate până acum."
     )
 
     def __init__(self, context: AppContext) -> None:
@@ -67,13 +81,15 @@ class MatchPredictionTab(QWidget):
 
         self.season_box = QComboBox()
         self.season_box.currentIndexChanged.connect(self._season_changed)
-        self.played_button = QRadioButton("Meci jucat")
+        self.scheduled_button = QRadioButton("Programat")
+        self.played_button = QRadioButton("Jucat")
         self.fixture_button = QRadioButton("Orice meci")
         self.played_button.setChecked(True)
         mode = QButtonGroup(self)
-        mode.addButton(self.played_button)
-        mode.addButton(self.fixture_button)
-        self.played_button.toggled.connect(self._mode_changed)
+        for button in (self.scheduled_button, self.played_button, self.fixture_button):
+            mode.addButton(button)
+            button.toggled.connect(self._mode_changed)
+        self.scheduled_box = QComboBox()
         self.match_box = QComboBox()
         self.home_box = QComboBox()
         self.away_box = QComboBox()
@@ -92,10 +108,12 @@ class MatchPredictionTab(QWidget):
         choice.addRow("Sezon", self.season_box)
         modes = QHBoxLayout()
         modes.setSpacing(16)
+        modes.addWidget(self.scheduled_button)
         modes.addWidget(self.played_button)
         modes.addWidget(self.fixture_button)
         modes.addStretch()
         choice.addRow("Tip", modes)
+        choice.addRow("Meci", self.scheduled_box)
         choice.addRow("Meci", self.match_box)
         choice.addRow("Gazde", self.home_box)
         choice.addRow("Oaspeți", self.away_box)
@@ -179,20 +197,31 @@ class MatchPredictionTab(QWidget):
         return match_card
 
     def show_league(self, league: LeagueServices) -> None:
-        """Offer the league's seasons, latest first, and start from "your team" when it plays."""
+        """Offer the league's seasons, latest first, and start from "your team" when it plays.
+
+        When the season in progress has matches still to be played, the screen starts from them.
+        """
         self._league = league
         self.season_box.blockSignals(True)
         self.season_box.clear()
         for season in reversed(league.catalog.seasons()):
             self.season_box.addItem(season_text(season), season)
         self.season_box.blockSignals(False)
+        if league.catalog.fixtures:
+            self.scheduled_button.setChecked(True)
         self._season_changed()
         self._clear()
 
     def predict(self) -> None:
         """Predict the chosen fixture in the background."""
         season = self.season_box.currentData()
-        if self.played_button.isChecked():
+        if self.scheduled_button.isChecked():
+            fixture: Fixture | None = self.scheduled_box.currentData()
+            if fixture is None:
+                self.status_label.setText(NO_FIXTURES)
+                return
+            home, away, day = fixture.home_team, fixture.away_team, fixture.match_date
+        elif self.played_button.isChecked():
             match: Match = self.match_box.currentData()
             home, away, day = match.home_team, match.away_team, match.match_date
         else:
@@ -225,9 +254,10 @@ class MatchPredictionTab(QWidget):
     def _show(self, fixture: FixturePrediction) -> None:
         self.predict_button.setEnabled(True)
         self.status_label.setText("")
+        scheduled = self._scheduled(fixture)
+        day = kickoff_text(scheduled) if scheduled else date_text(fixture.match_date)
         self.fixture_label.setText(
-            f"{self._league.name} · {season_text(fixture.season)} · "
-            f"{date_text(fixture.match_date)}".upper()
+            f"{self._league.name} · {season_text(fixture.season)} · {day}".upper()
         )
         favourite = self._favourite_in([fixture.home_team, fixture.away_team])
         for badge, name, team in (
@@ -238,7 +268,7 @@ class MatchPredictionTab(QWidget):
             name.setText(team.upper())
         if fixture.played is None:
             self.score_label.setText("VS")
-            result = "Meci nejucat: o predicție ipotetică."
+            result = self._knowledge_text(fixture, scheduled)
         else:
             played = fixture.played
             self.score_label.setText(f"{played.home_goals} – {played.away_goals}")
@@ -290,6 +320,40 @@ class MatchPredictionTab(QWidget):
             score_heatmap(fixture.home_team, fixture.away_team, poisson.score_probabilities)
         )
 
+    def _scheduled(self, fixture: FixturePrediction) -> Fixture | None:
+        """The match of the calendar the prediction is for, if it is one."""
+        if fixture.played is not None:
+            return None
+        return next(
+            (
+                f
+                for f in self._league.catalog.fixtures
+                if (f.season, f.home_team, f.away_team, f.match_date)
+                == (fixture.season, fixture.home_team, fixture.away_team, fixture.match_date)
+            ),
+            None,
+        )
+
+    @staticmethod
+    def _knowledge_text(fixture: FixturePrediction, scheduled: Fixture | None) -> str:
+        """Which matches a prediction of a match not played uses."""
+        as_of = fixture.as_of or fixture.match_date
+        if scheduled is None:
+            return (
+                "Meci ipotetic: predicția folosește meciurile jucate înainte de "
+                f"{date_text(as_of)}."
+            )
+        text = (
+            "Meci programat. Predicția folosește toate meciurile jucate până acum (ultimele pe "
+            f"{date_text(as_of - timedelta(days=1))})."
+        )
+        if scheduled.match_date < as_of:
+            text += (
+                " Data din calendar a trecut, dar rezultatul lipsește: meci amânat sau încă "
+                "neînregistrat."
+            )
+        return text
+
     def _failed(self, message: str) -> None:
         self.predict_button.setEnabled(True)
         self.status_label.setText("")
@@ -300,6 +364,13 @@ class MatchPredictionTab(QWidget):
         if season is None or self._league is None:
             return
         catalog = self._league.catalog
+        fixtures = catalog.fixtures if season == catalog.current_season else ()
+        self.scheduled_box.clear()
+        for fixture in fixtures:
+            self.scheduled_box.addItem(fixture_label(fixture), fixture)
+        self.scheduled_button.setVisible(bool(fixtures))
+        if not fixtures and self.scheduled_button.isChecked():
+            self.played_button.setChecked(True)
         matches = catalog.season_matches(season)
         self.match_box.clear()
         for match in matches:
@@ -317,10 +388,17 @@ class MatchPredictionTab(QWidget):
             )
             if last is not None:
                 self.match_box.setCurrentIndex(last)
+            following = next(
+                (i for i, f in enumerate(fixtures) if favourite in (f.home_team, f.away_team)),
+                None,
+            )
+            if following is not None:
+                self.scheduled_box.setCurrentIndex(following)
             self.home_box.setCurrentText(favourite)
         first_day, last_day = season_date_window(season)
         self.date_edit.setDateRange(_qdate(first_day), _qdate(last_day))
-        self.date_edit.setDate(_qdate(matches[len(matches) // 2].match_date))
+        middle = matches[len(matches) // 2].match_date
+        self.date_edit.setDate(_qdate(fixtures[0].match_date if fixtures else middle))
 
     def _favourite_in(self, teams: list[str]) -> str | None:
         favourite = self._context.preferences.favourite
@@ -330,10 +408,10 @@ class MatchPredictionTab(QWidget):
 
     def _mode_changed(self) -> None:
         """Show only the fields of the chosen mode."""
-        played = self.played_button.isChecked()
-        self._choice.setRowVisible(self.match_box, played)
+        self._choice.setRowVisible(self.scheduled_box, self.scheduled_button.isChecked())
+        self._choice.setRowVisible(self.match_box, self.played_button.isChecked())
         for widget in (self.home_box, self.away_box, self.date_edit):
-            self._choice.setRowVisible(widget, not played)
+            self._choice.setRowVisible(widget, self.fixture_button.isChecked())
 
 
 def _qdate(day) -> QDate:

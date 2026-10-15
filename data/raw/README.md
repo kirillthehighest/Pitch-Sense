@@ -2,6 +2,8 @@
 
 Acestea sunt fișierele originale, nemodificate. Nu se editează manual; corecțiile se fac în etapa de prelucrare a datelor (`app/data/`).
 
+Aici stau doar sezoanele încheiate. Sezonul în desfășurare este descărcat separat, la cerere, în `data/live/` (`python -m app.data.update`; `docs/architecture.md`, secțiunea 15).
+
 | | |
 |---|---|
 | Sursa | Football-Data.co.uk, https://www.football-data.co.uk/data.php |

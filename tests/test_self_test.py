@@ -24,8 +24,9 @@ def test_every_check_passes_on_working_data(make_app_context, three_seasons, cap
     assert run_self_test(lambda: app_context) == 0
 
     lines = capsys.readouterr().out.splitlines()
-    assert len(lines) == 20
+    assert len(lines) == 21
     assert all(line.startswith("ok") for line in lines)
+    assert "ok      season in progress (0 scheduled matches)" in lines
     for check in (
         "typeface",
         "SVG icons",
@@ -37,6 +38,23 @@ def test_every_check_passes_on_working_data(make_app_context, three_seasons, cap
     # The missing logs were built by the test.
     assert app_context.league("SP1").evaluation.has_log
     assert app_context.comparison.missing() == []
+
+
+def test_the_season_in_progress_is_checked(make_app_context, database, live_dir, capsys):
+    # Two completed seasons are too few for the leagues' home advantage chart, so only the
+    # lines about the season in progress and the screens that show it are read here.
+    run_self_test(lambda: make_app_context(database, live_dir=live_dir))
+    lines = capsys.readouterr().out.splitlines()
+    for check in ("season in progress (5 scheduled matches)", "match prediction"):
+        assert f"ok      {check}" in lines
+    assert "ok      team groups chart" in lines  # drawn for the latest completed season
+
+    (live_dir / "SP1.json").write_text("<html>", encoding="utf-8")
+
+    assert run_self_test(lambda: make_app_context(database, live_dir=live_dir)) == 1
+    report = capsys.readouterr().out
+    assert "FAILED  season in progress (0 scheduled matches)" in report
+    assert "not a calendar" in report
 
 
 def test_missing_data_fails_with_the_reason(application, capsys):

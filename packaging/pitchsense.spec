@@ -1,7 +1,7 @@
 # PyInstaller build of PitchSense (one folder; on macOS also PitchSense.app).
 # Run it through packaging/build.py, which first rebuilds the database and the prediction logs
-# that the package ships with and draws the icon files. PyInstaller provides Analysis, PYZ, EXE,
-# COLLECT, BUNDLE and SPECPATH when it reads this file.
+# that the package ships with, downloads the season in progress and draws the icon files.
+# PyInstaller provides Analysis, PYZ, EXE, COLLECT, BUNDLE and SPECPATH when it reads this file.
 import sys
 from pathlib import Path
 
@@ -23,6 +23,8 @@ analysis = Analysis(
             (str(ROOT / "data" / "results" / f"backtest_{code}.csv"), "data/results")
             for code in COMPETITIONS
         ),
+        # The season in progress, downloaded by the build (python -m app.data.update).
+        (str(ROOT / "data" / "live"), "data/live"),
         # The typefaces and the icons of the style sheet.
         (str(ROOT / "app" / "ui" / "assets"), "app/ui/assets"),
     ],

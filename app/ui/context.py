@@ -1,12 +1,15 @@
 """What every screen needs: the services of each league, the comparison of the leagues, the
-user's preferences, a task runner and a way to report errors."""
+user's preferences, the update of the season in progress, a task runner and a way to report
+errors."""
 
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from typing import Any
 
 from PySide6.QtWidgets import QMessageBox
 
 from app.data.competitions import competition
+from app.data.paths import LIVE_DIR
 from app.evaluation.backtesting import log_path
 from app.services.catalog import DataCatalog, available_competitions
 from app.services.evaluation import EvaluationService
@@ -14,6 +17,7 @@ from app.services.leagues import LeagueComparisonService
 from app.services.predictions import PredictionService
 from app.services.preferences import Preferences
 from app.services.teams import TeamService
+from app.services.updates import update_season
 from app.ui.worker import Runner, run_in_background
 
 
@@ -37,13 +41,15 @@ class LeagueServices:
 class AppContext:
     """The services shared by the screens. Tests pass a synchronous runner and collect errors.
 
-    A league's services are opened the first time the league is shown and then kept.
+    A league's services are opened the first time the league is shown and then kept, until
+    ``reload`` drops them after an update of the season in progress.
     """
 
     competitions: tuple[str, ...]
     open_league: Callable[[str], LeagueServices]
     comparison: LeagueComparisonService
     preferences: Preferences
+    update_data: Callable[[], Any] = update_season  # downloads; returns an UpdateSummary
     run_task: Runner = run_in_background
     report_error: Callable[[str], None] = field(default=show_error_dialog)
     _leagues: dict[str, LeagueServices] = field(default_factory=dict, init=False, repr=False)
@@ -55,6 +61,10 @@ class AppContext:
             self._leagues[code] = self.open_league(code)
         return self._leagues[code]
 
+    def reload(self) -> None:
+        """Forget the opened leagues, so that they are read again with the new data."""
+        self._leagues.clear()
+
     @property
     def first_league(self) -> str:
         """The league to show at start: the one shown last time, or else the first one."""
@@ -63,14 +73,14 @@ class AppContext:
 
 
 def open_league(code: str) -> LeagueServices:
-    """Load one league from the real database."""
-    catalog = DataCatalog.load(competition=code)
+    """Load one league from the real database and its season in progress, when downloaded."""
+    catalog = DataCatalog.load(competition=code, live_dir=LIVE_DIR)
     return LeagueServices(
         code=code,
         name=competition(code).name,
         catalog=catalog,
-        predictions=PredictionService(catalog.matches),
-        teams=TeamService(catalog.matches),
+        predictions=PredictionService(catalog.matches, catalog.fixtures),
+        teams=TeamService(catalog.matches, in_progress=catalog.current_season),
         evaluation=EvaluationService(log_path(code), competition=code),
     )
 

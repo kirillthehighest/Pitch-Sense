@@ -2,8 +2,12 @@
 services and Qt application that the GUI and end-to-end tests run on (off-screen)."""
 
 import csv
+import io
+import json
 import os
+import urllib.error
 from collections.abc import Callable
+from datetime import date
 from itertools import permutations
 from pathlib import Path
 
@@ -12,6 +16,7 @@ import pytest
 
 from app.data.build_database import build_database
 from app.data.competitions import Competition
+from app.data.live import CALENDAR_URL, RESULTS_URL, update_live_data
 from app.data.models import Match
 from app.data.preprocessing import matches_from_frame
 
@@ -93,7 +98,7 @@ def next_season_matches(next_season_rows: list[dict[str, str]]) -> list[Match]:
     )
 
 
-FOUR_TEAM_LEAGUE = {"SP1": Competition("SP1", "La Liga", teams=4)}
+FOUR_TEAM_LEAGUE = {"SP1": Competition("SP1", "La Liga", teams=4, calendar="es.1")}
 
 
 @pytest.fixture
@@ -131,6 +136,74 @@ def two_league_database(raw_season_rows, next_season_rows, write_season_file, tm
     leagues = {**FOUR_TEAM_LEAGUE, "E0": Competition("E0", "Premier League", teams=4)}
     build_database(raw_dir, path, leagues)
     return path
+
+
+# The season in progress of the fixture league: 2008-09, as the two public sources give it.
+LIVE_SEASON = "2008-09"
+LIVE_TODAY = date(2008, 9, 10)
+LIVE_PLAYED = 7  # Football-Data's results so far: the first 7 matches, 1 to 7 September 2008
+LIVE_SCORED = 6  # the calendar lags: it has the scores of the first 6 only
+CALENDAR_NAMES = {
+    "Alpha": "Alpha CF",
+    "Bravo": "Bravo United",
+    "Charlie": "Real Charlie",
+    "Delta": "Delta FC",
+}
+
+
+@pytest.fixture
+def live_files(raw_season_rows: list[dict[str, str]]) -> dict[str, bytes]:
+    """The downloads of the season in progress: Football-Data's results so far (CSV) and the
+    openfootball calendar of all 12 matches, with its own team names (JSON)."""
+    played = [{**row, "Date": row["Date"].replace("/06", "/08")} for row in raw_season_rows]
+    results = io.StringIO()
+    writer = csv.DictWriter(results, fieldnames=list(played[0]))
+    writer.writeheader()
+    writer.writerows(played[:LIVE_PLAYED])
+    calendar = {
+        "name": "La Liga 2008/09",
+        "matches": [
+            {
+                "round": f"Matchday {number + 1}",
+                "date": f"2008-09-{number + 1:02d}",
+                "time": "18:30",
+                "team1": CALENDAR_NAMES[row["HomeTeam"]],
+                "team2": CALENDAR_NAMES[row["AwayTeam"]],
+                **(
+                    {"score": {"ft": [int(row["FTHG"]), int(row["FTAG"])]}}
+                    if number < LIVE_SCORED
+                    else {}
+                ),
+            }
+            for number, row in enumerate(played)
+        ],
+    }
+    return {
+        RESULTS_URL.format(years="0809", code="SP1"): results.getvalue().encode("utf-8"),
+        CALENDAR_URL.format(season=LIVE_SEASON, calendar="es.1"): json.dumps(calendar).encode(),
+    }
+
+
+@pytest.fixture
+def fake_fetch(live_files: dict[str, bytes]) -> Callable[[str], bytes]:
+    """Serves the downloads of the season in progress; tests never use the network."""
+
+    def fetch(url: str) -> bytes:
+        if url not in live_files:
+            raise urllib.error.URLError(f"no such file: {url}")
+        return live_files[url]
+
+    return fetch
+
+
+@pytest.fixture
+def live_dir(tmp_path: Path, fake_fetch, four_team_league) -> Path:
+    """The season in progress of SP1, downloaded through ``fake_fetch``."""
+    target = tmp_path / "live"
+    update_live_data(
+        target, ("SP1",), today=LIVE_TODAY, fetch=fake_fetch, competitions=four_team_league
+    )
+    return target
 
 
 @pytest.fixture(scope="session")
@@ -173,19 +246,26 @@ def make_app_context(application, tmp_path: Path, errors: list[str]):
 
     results_dir = tmp_path / "results"
 
+    def no_network() -> None:
+        raise urllib.error.URLError("tests never use the network")
+
     def make(
         database: Path,
         competitions: tuple[str, ...] = ("SP1",),
         closed_doors_season: str = CLOSED_DOORS_SEASON,
+        live_dir: Path | None = None,
+        update_data: Callable[[], object] = no_network,
     ) -> AppContext:
         def open_league(code: str) -> LeagueServices:
-            catalog = DataCatalog.load(database, competition=code)
+            catalog = DataCatalog.load(database, competition=code, live_dir=live_dir)
             return LeagueServices(
                 code=code,
                 name=competition(code).name,
                 catalog=catalog,
-                predictions=PredictionService(catalog.matches, min_training_matches=3),
-                teams=TeamService(catalog.matches),
+                predictions=PredictionService(
+                    catalog.matches, catalog.fixtures, min_training_matches=3
+                ),
+                teams=TeamService(catalog.matches, in_progress=catalog.current_season),
                 evaluation=EvaluationService(
                     results_dir / f"backtest_{code}.csv",
                     database,
@@ -207,6 +287,7 @@ def make_app_context(application, tmp_path: Path, errors: list[str]):
                 closed_doors_season=closed_doors_season,
             ),
             preferences=Preferences(tmp_path / "preferences.json"),
+            update_data=update_data,
             run_task=run_now,
             report_error=errors.append,
         )

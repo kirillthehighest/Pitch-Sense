@@ -1,3 +1,4 @@
+from dataclasses import replace
 from datetime import date, time
 
 import pandas as pd
@@ -7,10 +8,12 @@ from app.data.models import Match, MatchStatistics, Outcome
 from app.data.preprocessing import (
     STATISTICS_COLUMNS,
     DataValidationError,
+    in_progress_season_problems,
     matches_from_frame,
     parse_match_date,
     parse_season_label,
     season_date_window,
+    season_of,
     season_structure_problems,
     sort_chronologically,
 )
@@ -233,6 +236,57 @@ def test_a_season_stopped_early_still_rejects_repeated_fixtures(raw_season_rows)
 def test_team_count_must_allow_a_match():
     with pytest.raises(ValueError):
         season_structure_problems([], team_count=1)
+
+
+# --- the season in progress ---
+
+
+def test_a_season_in_progress_may_have_any_matches_so_far(raw_season_rows):
+    assert in_progress_season_problems(parse(raw_season_rows)[:5], team_count=4) == []
+    assert in_progress_season_problems([], team_count=20) == []
+    assert in_progress_season_problems(parse(raw_season_rows), team_count=4) == []
+
+
+def test_a_season_in_progress_cannot_go_beyond_a_double_round_robin(raw_season_rows):
+    matches = parse(raw_season_rows)
+
+    assert in_progress_season_problems(matches, team_count=3) == [
+        "expected at most 3 teams, found 4",
+        "Alpha played 6 matches, more than a season (4)",
+        "Bravo played 6 matches, more than a season (4)",
+        "Charlie played 6 matches, more than a season (4)",
+        "Delta played 6 matches, more than a season (4)",
+    ]
+
+
+def test_a_season_in_progress_rejects_repeated_fixtures_and_mixed_seasons(raw_season_rows):
+    raw_season_rows[5].update(HomeTeam="Alpha", AwayTeam="Bravo")
+    matches = parse(raw_season_rows[:6])
+    later = replace(make_match(date(2007, 9, 1), "Alpha"), season="2007-08")
+
+    assert in_progress_season_problems(matches, team_count=4) == ["Alpha hosted Bravo 2 times"]
+    assert in_progress_season_problems([*matches[:2], later], team_count=4) == [
+        "matches come from several seasons: 2006-07, 2007-08"
+    ]
+
+
+def test_a_season_in_progress_needs_a_league_of_two_teams():
+    with pytest.raises(ValueError):
+        in_progress_season_problems([], team_count=1)
+
+
+@pytest.mark.parametrize(
+    ("day", "season"),
+    [
+        (date(2026, 10, 15), "2026-27"),
+        (date(2026, 7, 1), "2026-27"),
+        (date(2026, 6, 30), "2025-26"),
+        (date(2027, 3, 1), "2026-27"),
+        (date(1999, 8, 1), "1999-00"),
+    ],
+)
+def test_seasons_start_on_the_first_of_july(day, season):
+    assert season_of(day) == season
 
 
 # --- ordering ---

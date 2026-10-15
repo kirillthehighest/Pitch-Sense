@@ -44,6 +44,10 @@ DATABASE_PATH = DATA_DIR / "pitchsense.db"
 BUNDLED_RESULTS_DIR = DATA_DIR / "results"  # in a package: the read-only results shipped in it
 # Generated evaluation outputs, rebuilt by commands or by the application.
 RESULTS_DIR = user_data_dir() / "results" if PACKAGED else BUNDLED_RESULTS_DIR
+# The season in progress (Phase 18): its results and calendar, downloaded on request. A package
+# ships a snapshot read-only and keeps the downloaded files in the user's folder.
+BUNDLED_LIVE_DIR = DATA_DIR / "live"
+LIVE_DIR = user_data_dir() / "live" if PACKAGED else BUNDLED_LIVE_DIR
 # What the user chose in the application (league, "your team"); user state, kept per user.
 PREFERENCES_PATH = user_data_dir() / "preferences.json"
 # Fonts and other files of the interface, shipped with the code (and inside a package).
