@@ -925,7 +925,10 @@ Rulări din 2026-10-15:
   - piesele adaptive și graficul ascuns.
 
   `tests/test_charts.py` verifică trecerea unui grafic pe altă ligă, iar `tests/test_icons.py` culorile iconiței pachetelor.
-- **Autoverificarea** are două verificări noi, culorile ligii și valul: 25 în total.
+- **Autoverificarea** are două verificări noi, culorile ligii și valul: 25 în total. Pe datele reale trece 25 din 25, iar aplicația pornește (`python -m app`) și rulează fără erori.
+- **Pachete.** Versiunea a rămas 0.3.0; o versiune nouă cere o fază de lansare.
+  - macOS: `.dmg` de 79 MB, cu fontul Kanit și iconița nouă. Autoverificarea trece 25 din 25 din `dist/` și din imaginea `.dmg` montată doar pentru citire.
+  - Windows (GitHub Actions): toate cele 806 teste trec, `.zip` de 93 MB. Actualizarea cu `--update` din pachet reușește, iar autoverificarea trece 25 din 25.
 - **Verificare vizuală.** Ecranele au fost desenate cu datele reale:
   - Meciuri în fiecare ligă, la 1440 × 960;
   - fiecare ecran la 1024, 1180, 1280, 1440 și 1920 px, fără bară de derulare orizontală;
