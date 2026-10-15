@@ -40,7 +40,8 @@ def difference_text(difference: PairedDifference) -> str:
 
 
 class LeagueCard(QFrame):
-    """One league in a few numbers; a click opens it. The league on screen has a gold frame."""
+    """One league in a few numbers; a click opens it. The league on screen has a frame in its
+    accent."""
 
     clicked = Signal(str)
 
@@ -73,7 +74,7 @@ class LeagueCard(QFrame):
         layout.addStretch()
 
     def set_current(self, current: bool) -> None:
-        self.setProperty("role", "favourite" if current else "card")
+        self.setProperty("role", "current" if current else "card")
         self.style().unpolish(self)
         self.style().polish(self)
 

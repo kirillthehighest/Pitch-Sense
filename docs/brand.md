@@ -1,11 +1,10 @@
 # Identitatea vizuală PitchSense
 
-Acest document descrie sigla, culorile, literele și regulile interfeței PitchSense și explică de ce a fost ales fiecare element. Identitatea a fost creată în Faza 16 și refăcută în Faza 21. Publicul aplicației sunt colegii și profesorii care urmăresc fotbalul. Aplicația trebuie să arate ca aplicațiile de fotbal pe care le folosesc deja: LiveScore, OneFootball, site-urile ligilor. Asta înseamnă:
+Acest document descrie sigla, culorile, literele și regulile interfeței PitchSense și explică de ce a fost ales fiecare element. Identitatea a fost creată în Faza 16 și refăcută în Faza 21. Publicul aplicației sunt colegii și profesorii care urmăresc fotbalul. Aplicația trebuie să arate ca aplicațiile de fotbal pe care le folosesc deja. Referințele alese de echipă sunt:
 
-- o temă întunecată;
-- titluri condensate, scrise cu majuscule;
-- carduri de meci;
-- un singur accent de culoare care arată unde să te uiți.
+- aplicațiile Sportia, AI Football și o aplicație cu verde-lime;
+- un panou FIFA;
+- LiveScore, OneFootball și site-ul FC Barcelona.
 
 **Faza 16** a trecut prin trei încercări de siglă:
 
@@ -13,11 +12,36 @@ Acest document descrie sigla, culorile, literele și regulile interfeței PitchS
 2. o stemă de club pe o temă întunecată, pe care echipa a găsit-o prea apropiată de stema Barcelonei;
 3. monograma PS albă, geometrică, pe un pătrat albastru–grena.
 
-**Faza 21** a pornit de la cererea echipei de a lucra mai mult la design. Fiecare ligă primește gama ei de culori, iar schimbarea ligii schimbă toate culorile aplicației, cu o animație. Echipa a ales, din variantele propuse:
+**Faza 21** a pornit de la cererea echipei de a lucra mai mult la design: fiecare ligă primește gama ei de culori, iar schimbarea ligii schimbă toate culorile aplicației, cu o animație. Faza a avut două versiuni.
 
-- stilul „sticlă întunecată”, inspirat de aplicațiile Sportia, AI Football și de un panou FIFA;
-- extinderea estompată a imaginilor ligilor;
-- culorile după identitatea fiecărei ligi.
+**Prima versiune** a fost „sticlă întunecată”:
+
+- suprafețele colorate în nuanța fiecărei ligi;
+- lumini difuze în fundal;
+- carduri translucide;
+- o copie estompată a imaginii ligii în antet.
+
+Echipa a respins-o, cu patru motive:
+
+- animația sacada;
+- imaginile își pierduseră calitatea;
+- designul nu arăta ca un produs de calitate, ca în referințe, ci ca unul făcut în grabă;
+- culorile, deși alese bine, păreau toxice în aplicație.
+
+Cauzele au fost găsite și sunt descrise în secțiunile 5.3 și 5.4. Pe scurt:
+
+- suprafețele colorate și luminile;
+- imaginea desenată la jumătate din rezoluție pe ecranele Retina;
+- o animație care redesena toată fereastra la fiecare cadru.
+
+**A doua versiune**, cea de acum, urmează referințele mai îndeaproape:
+
+- suprafețe neutre, aproape negre, aceleași pentru toate ligile;
+- culoarea ligii doar acolo unde contează;
+- carduri plate, cu spații generoase;
+- pastile pentru tot ce se alege;
+- o literă geometrică, scrisă normal, nu cu majuscule peste tot;
+- imaginea ligii la rezoluția ecranului.
 
 Sigla a fost refăcută în mai mulți pași:
 
@@ -32,7 +56,7 @@ Sigla este formată din **literele P și S, înclinate și foarte groase, tăiat
 
 - **Literele înclinate** dau senzația de viteză din grafica sportivă: LiveScore, tricourile și numerele de pe ele.
 - **Tăietura** este gestul semnului: o diagonală ca o pasă sau ca linia unei tactici, care împarte sigla în două, cum se împarte un meci în două reprize.
-- **Cele două culori** leagă sigla de liga afișată. Partea de jos e verde în Premier League, portocalie în La Liga, albastru-cyan în Serie A, roșie în Bundesliga și verde-lime în Ligue 1.
+- **Cele două culori** leagă sigla de liga afișată. Partea de jos e verde în Premier League, portocalie în La Liga, cyan în Serie A, roșie în Bundesliga și verde-lime în Ligue 1.
 
 Din stemele cluburilor sau din siglele ligilor nu apare nimic.
 
@@ -55,11 +79,11 @@ Sigla se desenează cu QPainter (`paint_logo` și `logo_parts` din `app/ui/brand
 
 ### 2.2. Sigla cu numele
 
-Lângă siglă, numele se scrie **PITCHSENSE** cu Kanit ExtraBold Italic, la 62% din înălțimea siglei: „PITCH” alb și „SENSE” în accentul ligii (`Lockup` din `app/ui/brand.py`). Într-o fereastră îngustă (sub 1180 px) rămâne doar sigla, iar numele apare la trecerea mausului. Sub bara de sus se întinde o linie subțire, de la o lumină a ligii la cealaltă.
+Lângă siglă, numele se scrie **PITCHSENSE** cu Kanit ExtraBold Italic, la 62% din înălțimea siglei: „PITCH” alb și „SENSE” în accentul ligii (`Lockup` din `app/ui/brand.py`). Într-o fereastră îngustă (sub 1180 px) rămâne doar sigla, iar numele apare la trecerea mausului.
 
 ### 2.3. Iconița aplicației
 
-Iconița aplicației pune sigla pe un pătrat cu colțurile rotunjite (raza de 23% din latură, ca iconițele macOS). Pătratul are un gradient din noaptea ligii și e luminat din colțul de jos de lumina ei principală (`paint_icon`, `icon_image`). Aplicația are imagini pentru mărimile 16, 24, 32, 48, 64, 128, 256, 512 și 1024 de pixeli (`app_icon`). Când utilizatorul schimbă liga, se schimbă și iconița ferestrei.
+Iconița aplicației pune sigla pe un pătrat aproape negru, cu colțurile rotunjite (raza de 23% din latură, ca iconițele macOS). Pătratul e luminat din colțul de jos de culoarea adâncă a ligii (`paint_icon`, `icon_image`). Aplicația are imagini pentru mărimile 16, 24, 32, 48, 64, 128, 256, 512 și 1024 de pixeli (`app_icon`). Când utilizatorul schimbă liga, se schimbă și iconița ferestrei.
 
 Pentru pachete, `packaging/icons.py` desenează iconița în culorile La Ligii, liga implicită, și o salvează la fiecare construire:
 
@@ -79,156 +103,166 @@ Scriptul se oprește dacă fontul Kanit nu se încarcă, pentru că atunci sigla
 
 ## 3. Culorile
 
-### 3.1. O gamă pentru fiecare ligă
+### 3.1. Suprafețe neutre, un accent pentru fiecare ligă
 
-Fiecare ligă are paleta ei, după identitatea ei vizuală (`app/ui/themes.py`, clasa `Theme`). Toată interfața ia paleta ligii afișate:
+Suprafețele sunt aceleași pentru toate ligile: o noapte neutră, aproape neagră, cu carduri cu o treaptă mai deschise, ca în referințe (`app/ui/themes.py`, clasa `Theme`).
 
-- suprafețele: fundalul, cardurile, bara de sus, panoul ligilor;
-- accentul: ecranul ales, butonul principal, legăturile, echipa ta;
-- luminile din fundal, antetul, sigla și iconița.
+| Nume | Cod | Rol |
+|---|---|---|
+| Noapte | `#0A0A0C` | bara de sus și panoul ligilor |
+| Fundal | `#0E0E11` | fereastra |
+| Card | `#16161A` | cardurile și graficele |
+| Card ridicat | `#1E1E23` | jetoanele, câmpurile, butoanele, scorul |
+| Card de sus | `#28282E` | trecerea cu mausul și butoanele apăsate |
+| Linie | `#2A2A30` | liniile dintre rânduri; marginea cardurilor e albă la 6% |
+| Text | `#F5F5F7` | textul |
+| Text secundar | `#9C9CA6` | explicații, capetele coloanelor |
+| Text șters | `#5E5E68` | doar controalele dezactivate, niciodată text care trebuie citit |
 
-| Ligă | Inspirație | Noapte | Card | Text secundar | Accent | Lumini |
-|---|---|---|---|---|---|---|
-| Premier League | mov, magenta și verdele ligii | `#12051F` | `#231236` | `#BBAAD2` | `#00FF85` | `#E90052`, `#7B2FF7` |
-| La Liga | roșul și portocaliul ligii | `#160705` | `#2A110D` | `#D2B1A7` | `#FF8A3D` | `#FF3B30`, `#FF9500` |
-| Serie A | albastrul ligii | `#040B1D` | `#0C1C3C` | `#A8BADB` | `#3DDCFF` | `#1F5BFF`, `#00C8FF` |
-| Bundesliga | roșul ligii | `#150406` | `#290B0F` | `#D7ACB2` | `#FF5566` | `#D20515`, `#FF7A85` |
-| Ligue 1 | bleumarinul nopții, verdele-lime al ligii | `#05080F` | `#0E1526` | `#AAB5CC` | `#D4FF3D` | `#2A4BFF`, `#00A3FF` |
+**Culoarea ligii.** Culoarea ligii apare doar în câteva locuri, ca să nu coloreze tot ecranul:
 
-Fiecare paletă mai are:
+- **accentul** (`accent`): ecranul ales, liga aleasă, butonul principal, rezultatul cel mai probabil, ora meciurilor care urmează, echipa ta;
+- **textul de pe accent** (`accent_ink`);
+- **accentul scris pe întuneric** (`accent_text`): mai deschis acolo unde accentul plin ar fi prea închis ca să se citească;
+- **culoarea adâncă** (`brand`): în antet, în capul paginii unui meci sau al unei echipe și în iconiță.
 
-- un fundal, între noapte și card;
-- două suprafețe mai deschise (capete de tabele, câmpuri, trecerea cu mausul; butoane apăsate);
-- o culoare de linie;
-- un text aproape alb, cu o urmă din culoarea ligii;
-- un text șters, doar pentru controalele dezactivate;
-- textul de pe accent (noaptea ligii);
-- accentul la trecerea mausului (accentul luminat cu 18%).
+| Ligă | Inspirație | Accent | Text pe accent | Accent ca text | Culoarea adâncă |
+|---|---|---|---|---|---|
+| Premier League | verdele și movul ligii | `#00FF85` | `#0A0A0C` | `#00FF85` | `#37003C` |
+| La Liga | portocaliul și roșul ligii | `#FF7A3D` | `#0A0A0C` | `#FF8B55` | `#6E140E` |
+| Serie A | cyanul și albastrul ligii | `#3DDCFF` | `#0A0A0C` | `#3DDCFF` | `#0B2A6F` |
+| Bundesliga | roșul ligii | `#E2001A` | `#FFFFFF` | `#FF5A6A` | `#7A0410` |
+| Ligue 1 | verdele-lime și bleumarinul ligii | `#D4FF3D` | `#0A0A0C` | `#D4FF3D` | `#0E1D45` |
 
-Rândul echipei tale din tabele are accentul la 16% peste card.
+La trecerea mausului, accentul se luminează cu 12%; în Bundesliga, unde textul de pe accent e alb, se întunecă (`#C70017`). Rândul echipei tale din tabele are accentul la 14% peste card.
 
-**Ce nu se schimbă.** Unele culori rămân aceleași în toate ligile, pentru că au fost validate pentru daltoniști (`app/visualization/palette.py`):
+**De ce așa.** În prima versiune, suprafețele colorate și luminile făceau ca tot ecranul să fie mov, roșu sau albastru. Accentele puternice, scrise subțire pe aceste fonduri, păreau toxice. În referințe, culoarea vie stă pe forme pline (pastile, butoane, un card), pe un fond neutru, și de aceea arată scump. Accentele ligilor au rămas cele alese de echipă; s-a schimbat felul în care sunt folosite.
 
-- culorile rezultatelor: barele de probabilitate (gazde `#2B63D9`, egal `#8790A6`, oaspeți `#C2185B`), pătrățelele de formă, bifa și crucea;
-- culorile modelelor din grafice.
+**Ce nu se schimbă.** Unele culori rămân aceleași în toate ligile (`app/visualization/palette.py`):
 
-**De ce întunecat.** Aplicațiile de fotbal moderne sunt întunecate, iar tema întunecată pune în valoare culorile, imaginile și cifrele mari. Am urmat regulile obișnuite ale unei teme întunecate:
+- pătrățelele de formă (victorie `#157A47`, egal `#5F5F6A`, înfrângere `#C4314B`), bifa și crucea;
+- culorile modelelor din grafice, validate pentru daltoniști.
 
-- o noapte colorată în locul negrului pur;
-- un text aproape alb în locul albului pur, ca textul să nu „ardă”;
-- adâncimea se arată prin suprafețe tot mai deschise, nu prin umbre.
+Barele de probabilitate ale paginii unui meci sunt o singură familie de tonuri:
+
+- victoria gazdelor în accentul ligii;
+- egalul gri închis (`#3A3A42`);
+- victoria oaspeților gri deschis (`#E6E6EB`).
+
+Fiecare segment are procentul scris pe el, iar legenda numește segmentele.
 
 ### 3.2. Contrastul
 
 Raporturile de contrast sunt calculate după WCAG 2.1 și verificate de `tests/test_themes.py` pentru fiecare paletă. Pragurile:
 
 - textul are cel puțin 7 : 1;
-- textul secundar și accentul folosit ca text au cel puțin 4,5 : 1;
-- textul de pe accent are cel puțin 4,5 : 1.
+- textul secundar, accentul folosit ca text și textul de pe accent au cel puțin 4,5 : 1.
 
-Contrastul este verificat pe toate suprafețele, inclusiv pe cardurile de sticlă așezate peste cel mai luminos punct al luminilor din fundal. Tabelul dă cele mai mici valori găsite:
+Pe suprafețele neutre, textul are cel puțin 13,46 : 1, iar textul secundar cel puțin 5,39 : 1. Restul valorilor de mai jos sunt cele mai mici găsite. Ultimele două coloane sunt textul alb:
 
-| Ligă | Text | Text secundar | Accent ca text | Text pe accent | Text pe rândul echipei tale | Alb pe antetul meciului |
-|---|---|---|---|---|---|---|
-| Premier League | 12,33 | 6,39 | 11,66 | 14,66 | 11,12 | 9,66 |
-| La Liga | 12,99 | 7,11 | 6,85 | 8,39 | 12,32 | 5,93 |
-| Serie A | 11,55 | 6,40 | 9,03 | 12,03 | 10,71 | 5,28 |
-| Bundesliga | 13,65 | 7,44 | 5,38 | 6,41 | 13,29 | 6,65 |
-| Ligue 1 | 13,21 | 7,00 | 14,18 | 17,34 | 10,95 | 6,97 |
+- pe capul paginii unui meci sau al unei echipe;
+- pe fondul antetului, adică marginea imaginii ligii amestecată cu culoarea adâncă.
 
-Accentul Bundesligii a fost luminat de la `#FF4255` la `#FF5566`: folosit ca text, avea doar 4,4 : 1. Culorile rezultatelor au aceleași contraste ca în Faza 16, toate peste 4,5 : 1: alb pe gazde, oaspeți, victorie și înfrângere, noapte pe egal.
+| Ligă | Accent ca text | Text pe accent | Text pe rândul echipei tale | Alb pe capul unui meci | Alb pe antet |
+|---|---|---|---|---|---|
+| Premier League | 12,36 | 14,73 | 12,01 | 17,30 | 16,33 |
+| La Liga | 7,17 | 7,63 | 13,44 | 12,47 | 7,17 |
+| Serie A | 10,18 | 12,13 | 12,33 | 13,82 | 10,95 |
+| Bundesliga | 5,47 | 4,94 | 15,44 | 12,03 | 10,93 |
+| Ligue 1 | 14,36 | 17,12 | 11,37 | 16,60 | 17,43 |
+
+Testul verifică și procentele de pe barele de probabilitate, în fiecare ligă, și literele de pe pătrățelele de formă.
 
 ## 4. Literele
 
-- **Kanit** (Cadson Demak, licența SIL Open Font License 1.1) se folosește doar pentru siglă (Black Italic) și pentru numele de lângă ea (ExtraBold Italic). Este o literă geometrică, grea, cu o înclinare ascuțită, ca literele aplicațiilor de scoruri. Am încercat și Unbounded și Chakra Petch; echipa a ales sigla desenată cu Kanit.
-- **Barlow Condensed** (Jeremy Tribby, SIL Open Font License 1.1) se folosește pentru titluri, cifre mari, scor, navigare și sub-file, aproape mereu cu majuscule. Este o literă condensată, ca titlurile din presa sportivă: încape mult text pe puțin loc și se citește dintr-o privire. Aplicația include grosimile 500, 600, 700 și 800.
-- **Libre Franklin** (Impallari Type, SIL Open Font License 1.1) se folosește pentru textul obișnuit, tabele și explicații. Aplicația include grosimile 400, 500, 600, 700 și 800.
+- **Plus Jakarta Sans** (Tokotype, licența SIL Open Font License 1.1) se folosește pentru toată interfața: navigarea, textul, tabelele, butoanele, jetoanele. Este scrisă normal, nu cu majuscule. Este o literă geometrică, ca literele aplicațiilor din referințe, și se citește bine la 11–14 px. Aplicația include grosimile 400, 500, 600, 700 și 800. A înlocuit Libre Franklin, o literă de ziar, în a doua versiune a Fazei 21.
+- **Barlow Condensed** (Jeremy Tribby, SIL Open Font License 1.1) se folosește doar pentru ce se citește dintr-o privire: titlul mare al ecranului, scorurile, cifrele mari, numele echipelor pe pagina unui meci. Aplicația include grosimile 500, 600, 700 și 800.
+- **Kanit** (Cadson Demak, SIL Open Font License 1.1) se folosește doar pentru siglă (Black Italic) și pentru numele de lângă ea (ExtraBold Italic). Am încercat și Unbounded și Chakra Petch; echipa a ales sigla desenată cu Kanit.
 
-Toate trei au diacriticele românești corecte (ș și ț cu virgulă dedesubt). Fișierele și licențele (`OFL-Kanit.txt`, `OFL-BarlowCondensed.txt`, `OFL-LibreFranklin.txt`) sunt în `app/ui/assets/fonts/`. Qt le înregistrează la pornire (`load_fonts` din `app/ui/theme.py`), iar matplotlib la primul grafic. Dacă un font nu se încarcă, aplicația folosește un font al sistemului, iar autoverificarea raportează problema.
+Toate trei au diacriticele românești corecte (ș și ț cu virgulă dedesubt). Fișierele și licențele (`OFL-PlusJakartaSans.txt`, `OFL-BarlowCondensed.txt`, `OFL-Kanit.txt`) sunt în `app/ui/assets/fonts/`. Qt le înregistrează la pornire (`load_fonts` din `app/ui/theme.py`), iar matplotlib la primul grafic. Dacă un font nu se încarcă, aplicația folosește un font al sistemului, iar autoverificarea raportează problema.
 
 | Rol | Literă și mărime |
 |---|---|
-| titlul ecranului | Barlow Condensed, 50 px, 800 |
-| cifrele mari | Barlow Condensed, 46 px, 700 |
-| scorul | Barlow Condensed, 60 px, 800 |
-| numele echipelor din cardul de meci | Barlow Condensed, 26 px, 700 |
-| navigarea | Barlow Condensed, 17 px, 700 |
-| titlurile secțiunilor | Barlow Condensed, 22 px, 700 |
-| textul | Libre Franklin, 14 px |
-| textul secundar | Libre Franklin, 13 px |
-| etichetele scrise cu majuscule | Libre Franklin, 12 px, 700 |
+| titlul ecranului | Barlow Condensed, 56 px, 800, cu majuscule |
+| cifrele mari | Barlow Condensed, 44 px, 700 |
+| scorul pe pagina unui meci | Barlow Condensed, 64 px, 800 |
+| numele echipelor pe pagina unui meci | Barlow Condensed, 24 px, 700, cu majuscule |
+| navigarea | Plus Jakarta Sans, 14 px, 600 |
+| titlurile cardurilor | Plus Jakarta Sans, 18 px, 700 |
+| textul | Plus Jakarta Sans, 14 px |
+| textul secundar | Plus Jakarta Sans, 13 px |
+| etichetele mici | Plus Jakarta Sans, 11–12 px, 600–700 |
 
 ## 5. Interfața
 
-### 5.1. Stilul: sticlă întunecată
+### 5.1. Stilul
 
-Interfața urmează aplicațiile date ca exemplu de echipă (Sportia, AI Football, aplicația cu verde-lime, panoul FIFA):
+Interfața urmează referințele:
 
-- **Fundalul** ferestrei este noaptea ligii, cu cele două lumini ale ei, slabe, în colțul din stânga sus și în cel din dreapta jos (`Backdrop`).
-- **Cardurile** sunt de sticlă: culoarea cardului la 74% opacitate, o margine albă la 8% și colțurile rotunjite cu raza de 20 px.
-- **Butoanele, navigarea, jetoanele zilelor, filtrele și sub-filele** sunt pastile (raza de 18 px). Cea aleasă este plină cu accentul, cu text în noaptea ligii.
-- **Antetul** fiecărui ecran este și el un card rotunjit (230 px înălțime, raza de 22 px), cu marginile ferestrei în jur.
+- **Fundalul** ferestrei este plat, noaptea neutră (`Backdrop`), fără lumini.
+- **Cardurile** sunt plate: culoarea cardului, o margine albă la 6% și colțurile rotunjite cu raza de 20 px. În interior au 22–24 px de spațiu.
+- **Pastilele** (raza de 18 px) sunt folosite pentru navigare, sub-file și filtre. Cea aleasă e plină cu accentul și are textul în noaptea ligii.
+- **Butoanele** au raza de 12 px și fondul cardului ridicat. Butonul principal e plin cu accentul.
+- **Antetul** fiecărui ecran este un card rotunjit (224 px înălțime, raza de 24 px), cu imaginea ligii (secțiunea 5.4).
 
 ### 5.2. Așezarea
 
-- **Bara de sus** are:
+- **Bara de sus** (68 px) are:
   - sigla cu numele;
-  - cele patru ecrane (Meciuri, Clasament, Echipe, Analiză), cel ales ca pastilă în accentul ligii;
-  - în dreapta, butonul „Actualizează datele” și butonul „Echipa ta”, conturat cu accentul.
-
-  Sub bară se întinde linia luminilor ligii.
-- **Panoul din stânga** are titlul „COMPETIȚII” și cele cinci ligi, fiecare cu steagul și țara ei. Liga aleasă este nuanțată cu accentul și are o linie în accent în stânga. Jos sunt versiunea, sursele și data actualizării.
-- **Antetul** pune imaginea ligii în dreapta, clară. Spre stânga, imaginea se topește într-o copie estompată a ei, care umple tot antetul (secțiunea 5.4). Peste imagine apar:
-  - liga (cu steag, în accent, cu majuscule);
-  - titlul ecranului cu litere mari;
-  - o explicație, care rămâne mereu la stânga imaginii clare, ca să nu treacă peste jucători;
-  - sursa imaginii, în colț.
+  - cele patru ecrane (Meciuri, Clasament, Echipe, Analiză), scrise normal, cel ales ca pastilă plină cu accentul;
+  - în dreapta, butonul „Actualizează datele” și butonul echipei tale, cu stema clubului și numele lui, ca profilul utilizatorului din referințe.
+- **Panoul din stânga** are titlul „Competiții” și cele cinci ligi, fiecare cu steagul și țara ei. Liga aleasă e plină cu accentul ei, ca sportul ales din Sportia. Jos sunt versiunea, sursele și data actualizării.
+- **Antetul** e descris în secțiunea 5.4.
 
 | Ecran | Ce arată |
 |---|---|
-| Meciuri | banda de zile (șapte jetoane-pastilă, ziua aleasă plină cu accentul), ziua aleasă, filtrele și modelul. Meciurile zilei sunt grupate pe ligă, fiecare ligă pe un card de sticlă cu steag. Fiecare rând de meci arată ora (sau „Final”, „Amânat”), stemele și numele, scorul pe o pastilă și cele trei probabilități ale modelului ales, tot ca pastile. Cea mai mare probabilitate e plină cu culoarea rezultatului, iar la meciurile jucate poartă bifa sau crucea. În dreapta: cardul echipei tale și începutul clasamentului. |
-| Pagina meciului | cardul meciului în culorile ligii (noaptea ei, cele două lumini, liniile terenului), cu stemele mari, scorul sau „VS” și starea; barele celor trei modele, fiecare cu o frază simplă; cum vin echipele; scorurile probabile și harta lor |
+| Meciuri | Banda de zile: șapte jetoane („Azi / 15 oct.”), ziua aleasă plină cu accentul, săgeți rotunde. Sub ea: ziua, filtrele și modelul. Meciurile zilei sunt grupate pe ligă, fiecare ligă pe un card: steagul, numele ligii, „Spania · 3 meciuri” și legătura „Clasament ›”, apoi rândurile într-un chenar interior. Fiecare rând, ca în Sportia: ora (în accent) sau „Final”, gazdele cu stema în stânga, scorul („2 : 1”) sau „vs” pe o pastilă în mijloc, oaspeții cu stema în dreapta, apoi cele trei probabilități ale modelului ales. Cea mai mare probabilitate e plină cu accentul; la meciurile jucate are bifa sau crucea. În dreapta listei: cardul echipei tale, cu butonul principal „Pagina echipei”, și începutul clasamentului. |
+| Pagina meciului | Capul meciului, luminat de sus de culoarea adâncă a ligii meciului: stemele mari, scorul sau „VS” și starea într-o pastilă de accent. Apoi barele celor trei modele, fiecare cu o frază simplă, cum vin echipele, scorurile probabile și harta lor. |
 | Clasament | tabelul ligii cu stemele și ultimele cinci rezultate |
-| Echipe | banda echipei în culorile ligii, cu stema mare; șase cifre mari; forma; meciurile echipei; profilul K-Means; ratingul Elo și grupurile |
-| Analiză | explicațiile algoritmilor, sezonul curent, măsurile de evaluare, cele cinci carduri de ligă și sursele |
+| Echipe | capul echipei, luminat de culoarea ligii, cu stema mare; șase cifre mari; forma; meciurile echipei; profilul K-Means; ratingul Elo și grupurile |
+| Analiză | explicațiile algoritmilor, sezonul curent, măsurile de evaluare, cele cinci carduri de ligă (liga afișată are o margine în accent) și sursele |
 
-**Colțurile din Meciuri.** În Faza 19, capul fiecărei ligi și fundalul unui rând la trecerea mausului erau dreptunghiuri. Ieșeau din colțurile rotunjite ale cardului, iar ultimul rând își trăgea linia peste ele. Din Faza 21, cardul ligii este desenat, nu stilizat (`LeagueGroup`):
+**Colțurile din Meciuri.** Cardul unei ligi este desenat, nu stilizat (`LeagueGroup`):
 
-- banda capului e tăiată după colțurile cardului;
-- rândul de sub maus are propriul fundal rotunjit, în interiorul cardului;
+- rândul de sub maus are propriul fundal rotunjit, în interiorul chenarului;
 - liniile dintre rânduri nu ating marginile;
 - ultimul rând nu mai are linie.
 
 ### 5.3. Schimbarea ligii
 
-Când utilizatorul alege altă ligă, fereastra trece la paleta ei:
+Când utilizatorul alege altă ligă, fereastra trece la culorile ei:
 
 1. Aplicația păstrează o imagine a ferestrei de dinainte.
-2. Redesenează fereastra în culorile noii ligi.
-3. Acoperă fereastra cu imaginea veche.
-4. Un cerc pornește din colțul din stânga sus și deschide imaginea veche până trece de celelalte trei colțuri, în 0,8 s, cu o mișcare care încetinește spre final (`app/ui/transition.py`).
+2. Trece fereastra la noua ligă: culorile, conținutul ecranelor, antetul.
+3. Păstrează și o imagine a ferestrei noi.
+4. Un cerc pornește din colțul din stânga sus și deschide imaginea veche spre cea nouă până trece de celelalte trei colțuri, în 0,8 s, cu o mișcare care încetinește spre final (`app/ui/transition.py`).
 
-Marginea cercului este făcută din valuri, ca în schimbarea culorilor din Material You („Monet”) de pe Android:
+**Marginea cercului.** Marginea are valuri, ca în schimbarea culorilor din Material You („Monet”) de pe Android:
 
 - sunt două valuri, de lungimi diferite, care se mișcă în sensuri opuse; între două creste ale celui principal sunt 120 px;
 - sunt înalte de 18 px la pornire și se liniștesc la 4 px pe măsură ce cercul crește;
-- în urma marginii vin trei unde mai slabe, în accentul noii ligi.
+- în urma marginii vin două unde mai slabe, în accentul noii ligi.
+
+**De ce sacada prima versiune.** Animația se desena ca un strat transparent peste fereastră. Pentru fiecare cadru, Qt redesena tot ce era sub el: cardurile, rândurile, imaginile, graficele. Acum stratul e opac și desenează doar cele două imagini ale ferestrei și linia valului. Un cadru durează 4–9 ms la rezoluția Retina (pragul pentru 60 de cadre pe secundă este 16,7 ms), măsurat pe datele reale, cu toate ecranele construite. Imaginea veche se desenează printr-o formă plină, nu printr-o mască de tăiere, ca pixelii să fie parcurși o singură dată.
 
 Imaginea veche lasă clicurile să treacă, deci fereastra se poate folosi în timpul animației. O fereastră care nu este pe ecran (testele, autoverificarea) se schimbă fără animație.
 
-Ca schimbarea să înceapă repede, aplicația restilizează doar fereastra, nu toată aplicația. Cu toate ecranele construite, restilizarea durează 0,15–0,3 s în loc de 0,6–0,8 s. Graficele de pe ecranele ascunse se redesenează abia când sunt deschise.
+Ca schimbarea să înceapă repede, aplicația restilizează doar fereastra, nu toată aplicația. Cu toate ecranele construite, schimbarea unei ligi deja încărcate, cu tot cu cele două imagini, durează aproximativ 0,3 s până pornește animația. Graficele de pe ecranele ascunse se redesenează abia când sunt deschise.
 
 ### 5.4. Imaginile ligilor
 
-Imaginile DAZN sunt late și au jucătorii în dreapta. Pe ferestrele late nu acopereau tot antetul. Din Faza 21, antetul se umple astfel, fără inteligență artificială și fără imagini inventate:
+Imaginile DAZN sunt late și au jucătorii în dreapta. Antetul le arată astfel:
 
-1. **Copia estompată.** Imaginea e micșorată la 48 px lățime și mărită înapoi în doi pași, ceea ce o estompează. Copia, la 55% opacitate, acoperă tot antetul.
-2. **Imaginea clară.** Ocupă dreapta antetului: cel mult 60% din lățime și cel mult 820 px, ca o fereastră foarte lată să nu taie capetele. Marginea ei din stânga devine treptat transparentă, pe 38% din lățimea ei, așa că se topește în copia estompată fără o linie vizibilă.
-3. **Voalul.** Un voal din noaptea ligii, dinspre stânga, păstrează titlul lizibil.
+1. **Imaginea** ocupă dreapta antetului: cel mult 62% din lățime și cel mult 860 px, ca o fereastră foarte lată să nu taie capetele. Se desenează direct pe ecran, la rezoluția lui.
+2. **Fondul** din stânga e culoarea marginii imaginii, amestecată pe jumătate cu culoarea adâncă a ligii. Marginea înseamnă media celor 3% din stânga ale fâșiei arătate, întunecată cu 30%.
+3. **Trecerea.** Pe 50% din lățimea imaginii, de la marginea ei, fondul trece treptat în imagine. Pentru că fondul vine chiar din imagine, nu se vede nicio linie de îmbinare: imaginea pare luminată din dreapta.
+4. **Umbra.** O umbră ușoară, dinspre stânga, dă adâncime sub titlu.
+
+**De ce se pierdea calitatea în prima versiune.** Imaginea clară era pregătită într-o imagine intermediară de mărimea antetului în puncte. Pe un ecran Retina, unde un punct are doi pixeli, ea se desena apoi la jumătate din rezoluție. Peste o copie estompată, părea toată neclară. Acum nu mai există nicio imagine intermediară și nicio copie estompată.
 
 ### 5.5. O fereastră de orice lățime
 
-Lățimea minimă a ferestrei a coborât de la 1180 la 1024 px. Niciun ecran nu mai are bară de derulare orizontală, la nicio lățime; verificarea s-a făcut la 1024, 1180, 1280, 1440 și 1920 px.
+Lățimea minimă a ferestrei este 1024 px. Niciun ecran nu are bară de derulare orizontală, la nicio lățime: verificarea s-a făcut la 1024, 1280 și 1440 px în teste și la 1024, 1180, 1280, 1440 și 1920 px pe datele reale.
 
 | Când e mai îngust decât | Ce se schimbă |
 |---|---|
@@ -236,7 +270,7 @@ Lățimea minimă a ferestrei a coborât de la 1180 la 1024 px. Niciun ecran nu 
 | 1180 px (fereastra) | din siglă rămâne doar semnul, fără nume |
 | 980 px (conținutul din Meciuri) | cardul echipei tale și clasamentul trec sub lista meciurilor, pe toată lățimea |
 | 720 px (lista din Meciuri) | alegerea modelului trece sub filtre |
-| 560 px (un rând de meci) | rândul pune echipele pe un rând și probabilitățile dedesubt |
+| 600 px (un rând de meci) | rândul pune gazdele și oaspeții pe două rânduri, cu scorul lângă ele, și probabilitățile dedesubt |
 | 1000 px (conținutul din Echipe) | cardurile Forma, Meciurile echipei și Profilul K-Means trec unul sub altul |
 | lățimea unei coloane | cele șase cifre ale echipei (cel puțin 128 px fiecare) și cele cinci carduri de ligă (cel puțin 210 px) trec pe rândul următor |
 
@@ -247,11 +281,11 @@ Piesele care fac asta sunt în `app/ui/widgets.py`:
 
 ### 5.6. Echipa ta
 
-Butonul „Echipa ta” deschide o fereastră în care utilizatorul alege o ligă și o echipă din ultimul sezon. Alegerea este păstrată între porniri, împreună cu ultima ligă afișată, în `preferences.json`, în folderul utilizatorului (`app/services/preferences.py`). Un fișier lipsă sau deteriorat nu oprește aplicația.
+Butonul echipei tale deschide o fereastră în care utilizatorul alege o ligă și o echipă din ultimul sezon. Alegerea este păstrată între porniri, împreună cu ultima ligă afișată, în `preferences.json`, în folderul utilizatorului (`app/services/preferences.py`). Un fișier lipsă sau deteriorat nu oprește aplicația.
 
 Echipa aleasă:
 
-- are cardul ei pe ecranul Meciuri, conturat cu accentul (forma, următorul meci, ultimul rezultat);
+- are cardul ei pe ecranul Meciuri (forma, următorul meci, ultimul rezultat, butonul „Pagina echipei”);
 - are numele în accent în lista meciurilor, rândul nuanțat în clasamente și inelul în jurul stemei;
 - este aleasă din start pe ecranul Echipe.
 
@@ -259,7 +293,7 @@ Dacă echipa joacă în altă ligă decât cea afișată, aplicația trece la li
 
 ### 5.7. Limba și scrierea numerelor
 
-Interfața este în limba română; codul și comentariile rămân în engleză. Tot textul afișat trece printr-un singur loc (`app/services/formatting.py` și `labels.py`):
+Interfața este în limba română; codul și comentariile rămân în engleză. Textul se scrie normal; doar titlul mare al ecranului și numele echipelor pe pagina unui meci sunt cu majuscule, în litera condensată. Tot textul afișat trece printr-un singur loc (`app/services/formatting.py` și `labels.py`):
 
 - zecimale cu virgulă: 0,5776 și 53,4%;
 - punct între mii: 7.600;
@@ -272,18 +306,16 @@ Mesajele tehnice ale erorilor rămân în engleză, dar sunt precedate de o expl
 
 ### 5.8. Componentele
 
-Componentele folosesc stilul Qt Fusion și o paletă Qt și o foaie de stil generate din paleta ligii (`style_sheet` și `qt_palette` din `app/ui/theme.py`), deci arată la fel pe macOS și pe Windows. Elementele sunt stilizate după rol, nu unul câte unul.
+Componentele folosesc stilul Qt Fusion și o paletă Qt și o foaie de stil generate din paleta ligii (`style_sheet` și `qt_palette` din `app/ui/theme.py`), deci arată la fel pe macOS și pe Windows. Elementele sunt stilizate după rol, nu unul câte unul. Piesele desenate citesc paleta ligii afișate de fiecare dată când se desenează (`current_theme`).
 
-Piesele desenate citesc paleta ligii afișate de fiecare dată când se desenează (`current_theme`): antetul, cardurile de ligă, cardurile meciului și ale echipei, cifrele mari, barele de probabilitate, pătrățelele de formă și butoanele ligilor.
-
-- **Tabelele** nu au linii de grilă și stau direct pe sticla cardului. Au rânduri de 36 px și capete rotunjite. Numerele sunt aliniate la dreapta. Liniuța „–” marchează o valoare care nu există.
+- **Tabelele** nu au linii de grilă: au doar o linie subțire sub fiecare rând și stau direct pe card. Numerele sunt aliniate la dreapta. Liniuța „–” marchează o valoare care nu există.
 - **Pătrățelele de formă** au litera rezultatului (V, E, Î). Culoarea doar o repetă, deci rezultatul se citește și de daltoniști.
 - **Bifa și crucea** de pe meciurile jucate urmează aceeași regulă: forma spune dacă predicția s-a nimerit, culoarea doar o repetă.
 - **Jetoanele zilelor fără meciuri** nu au fundal și au textul secundar: se pot alege și trebuie să se poată citi.
 
 ## 6. Graficele
 
-Graficele au fundal transparent: stau pe sticla cardului, în culorile oricărei ligi (`ChartView` și `on_surface` din `charts.py`). Au text deschis, titluri cu Barlow Condensed și grile subțiri. Fiecare culoare are un singur rol:
+Graficele au fundal transparent: stau pe card, în culorile oricărei ligi (`ChartView` și `on_surface` din `charts.py`). Au text deschis, textul cu Plus Jakarta Sans, titlurile cu Barlow Condensed și grile subțiri. Fiecare culoare are un singur rol:
 
 | Rol | Culori | Regulă |
 |---|---|---|
@@ -293,12 +325,9 @@ Graficele au fundal transparent: stau pe sticla cardului, în culorile oricărei
 | Avantajul gazdelor | celelalte sezoane `#4D8DFF`, 2020/21 `#EF5A6F` | o pereche validată |
 | Evidențierea | accentul ligii | un singur lucru: sezonul ales (Elo), echipa aleasă (grupuri) |
 
-Graficele se construiesc cu auriul Fazei 16 pentru evidențiere și cu culoarea cardului din `palette.py` pentru inelele marcajelor. La afișare, `on_surface` înlocuiește aceste două culori cu accentul și cu cardul ligii afișate. La fiecare schimbare a ligii, le înlocuiește din nou.
+Graficele se construiesc cu un auriu pentru evidențiere și cu culoarea cardului din `palette.py` pentru inelele marcajelor. La afișare, `on_surface` înlocuiește aceste două culori cu accentul și cu cardul ligii afișate. La fiecare schimbare a ligii, le înlocuiește din nou.
 
-**Validarea culorilor modelelor** (rularea din 2026-10-05, în modul întunecat):
-
-- Cele trei culori ale modelelor trec verificările pentru linii care se pot întâlni. Cea mai mică distanță pentru daltonism este 11,3, la perechea Poisson–regresie logistică (pragul este 8).
-- Barele cardului de meci sunt doi poli, albastru și grena, în jurul unui gri neutru; distanța cea mai mică pentru daltonism este 12,9.
+**Validarea culorilor modelelor** (rularea din 2026-10-05, în modul întunecat): cele trei culori ale modelelor trec verificările pentru linii care se pot întâlni. Cea mai mică distanță pentru daltonism este 11,3, la perechea Poisson–regresie logistică (pragul este 8).
 
 **Desen.** Liniile au 2 px, iar marcajele au un inel de culoarea cardului. Celulele hărților de căldură sunt despărțite de spații de 2 px. Gradațiile axelor sunt la distanțe de 1, 2 sau 5 unități, cu virgulă zecimală.
 
@@ -306,14 +335,14 @@ Graficele se construiesc cu auriul Fazei 16 pentru evidențiere și cu culoarea 
 
 | Fișier | Conține |
 |---|---|
-| `app/ui/themes.py` | paletele celor cinci ligi și paleta afișată |
-| `app/visualization/palette.py` | culorile care nu se schimbă (rezultate, modele, grupuri, grafice) |
+| `app/ui/themes.py` | suprafețele comune și accentele celor cinci ligi |
+| `app/visualization/palette.py` | culorile care nu se schimbă (formă, modele, grupuri, grafice) |
 | `app/ui/brand.py` | sigla tăiată, iconița, sigla cu numele, steagurile, ecusoanele, stemele, imaginile ligilor |
 | `app/ui/theme.py` | fonturile, paleta Qt și foaia de stil, generate din paleta unei ligi |
-| `app/ui/transition.py` | schimbarea culorilor: cercul cu valuri |
-| `app/ui/widgets.py` | piesele desenate ale interfeței, fundalul, antetul cu imaginea estompată, `ResponsiveBox`, `ReflowGrid` |
+| `app/ui/transition.py` | schimbarea culorilor: cercul cu valuri peste cele două imagini ale ferestrei |
+| `app/ui/widgets.py` | piesele desenate ale interfeței, antetul cu imaginea ligii, `ResponsiveBox`, `ReflowGrid` |
 | `app/ui/match_widgets.py` | banda de zile, rândul de meci, capetele coloanelor de probabilități, bifa și crucea |
-| `app/ui/assets/fonts/` | Kanit (două grosimi), Barlow Condensed (patru), Libre Franklin (cinci) și licențele |
+| `app/ui/assets/fonts/` | Plus Jakarta Sans (cinci grosimi), Barlow Condensed (patru), Kanit (două) și licențele |
 | `app/ui/assets/crests/`, `app/ui/assets/leagues/` | stemele și imaginile ligilor, cu sursele lor |
 | `app/ui/assets/icons/` | săgeata listelor și bifa |
 
@@ -328,31 +357,36 @@ Graficele se construiesc cu auriul Fazei 16 pentru evidențiere și cu culoarea 
   - steagurile au culorile țărilor, iar inelul echipei tale e în accent;
   - toate cele trei fonturi se încarcă și au diacriticele românești.
 - `tests/test_themes.py` verifică:
-  - că fiecare ligă are paleta ei;
-  - contrastele din secțiunea 3.2, inclusiv sticla peste lumini și antetele meciurilor;
+  - că suprafețele sunt aceleași în toate ligile și că fiecare ligă are accentul ei;
+  - contrastele din secțiunea 3.2, inclusiv antetul cu imaginea reală a fiecărei ligi;
+  - procentele de pe barele de probabilitate și literele de pe pătrățelele de formă;
   - că foaia de stil a fiecărei ligi folosește doar accentul ei.
 - `tests/test_transition.py` verifică:
   - cercul crește până trece de colțul cel mai îndepărtat;
   - valurile se liniștesc, urcă și coboară de-a lungul marginii și se mișcă în timp;
   - marginea merge de la marginea de sus la cea din stânga;
-  - imaginea veche se micșorează de la toată fereastra la nimic;
-  - acoperirea lasă clicurile să treacă și dispare la final.
+  - partea cu imaginea veche se micșorează de la toată fereastra la nimic;
+  - la jumătate, imaginea nouă e în cerc și cea veche în afara lui;
+  - stratul e opac (nimic de sub el nu se redesenează), lasă clicurile să treacă și dispare la final.
 - `tests/test_ui.py` verifică:
-  - schimbarea culorilor ferestrei la alegerea ligii, cu sau fără animație;
-  - o schimbare întreruptă de alta;
+  - schimbarea culorilor ferestrei la alegerea ligii, cu sau fără animație, și o schimbare întreruptă de alta;
   - fereastra îngustă (doar steagurile, doar semnul);
   - că niciun ecran nu se derulează în lateral la 1024, 1280 și 1440 px;
   - `ResponsiveBox`, `ReflowGrid`, rândul de meci îngust și ultimul rând al unei ligi;
-  - explicația antetului, care ocolește imaginea;
+  - antetul: imaginea neatinsă în dreapta, fondul din culoarea marginii ei, explicația la stânga imaginii;
   - graficul ascuns, redesenat la deschidere.
 - `tests/test_charts.py` verifică trecerea unui grafic pe cardul altei ligi.
 - `tests/test_icons.py` verifică faptul că iconița pachetelor este sigla în culorile La Ligii.
 - Autoverificarea (`python -m app --self-test`, 25 de verificări) verifică și culorile ligii, și valul.
-- Pe 2026-10-15, ecranele au fost desenate cu datele reale și verificate vizual: în toate cele cinci ligi, la cinci lățimi, iar animația în mai multe momente ale ei.
+- Pe 2026-10-15, ecranele au fost desenate cu datele reale, la rezoluția Retina (`QT_SCALE_FACTOR=2`), și verificate vizual:
+  - în toate cele cinci ligi;
+  - la 1100 și 1440 px;
+  - animația în patru momente ale ei, cu timpul fiecărui cadru măsurat.
 
 ## 9. Limitări
 
 - Interfața are doar tema întunecată, și când sistemul folosește modul luminos.
 - Pachetele au iconița în culorile La Ligii, pentru că sistemul o citește din pachet înainte ca aplicația să pornească. Fereastra ia apoi culorile ligii afișate.
 - Mesajele de la pornire, afișate înainte să existe fereastra, și indiciile de la trecerea mausului au culorile La Ligii.
+- Animația a fost măsurată pe o fereastră desenată fără ecran, la rezoluția Retina. Fluiditatea pe ecranul real depinde și de placa video și de sistem.
 - Stemele sunt mărci ale cluburilor. Sunt incluse doar în depozitul privat și în pachete, pentru recunoașterea echipelor, și nu trebuie publicate. Imaginile ligilor (DAZN) aparțin deținătorilor lor și, ca stemele, nu se publică.

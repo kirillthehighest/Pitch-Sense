@@ -451,11 +451,11 @@ def test_the_leagues_tab_compares_every_league_after_their_backtests(two_league_
     assert card.value_label.text().endswith("%")
     assert card.goals_label.text().endswith("goluri pe meci")
     assert card.best_label.text() in MODEL_NAMES[:3]
-    assert leagues.cards["E0"].property("role") == "favourite"  # the league on screen
+    assert leagues.cards["E0"].property("role") == "current"  # the league on screen
     card.clicked.emit("SP1")  # a click on a card opens its league
     assert window.current_league == "SP1"
     assert highlighted(leagues.models_table) == [1]
-    assert leagues.cards["SP1"].property("role") == "favourite"
+    assert leagues.cards["SP1"].property("role") == "current"
     assert leagues.cards["E0"].property("role") == "card"
     window.close()
 

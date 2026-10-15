@@ -96,7 +96,12 @@ QLabel[role="status"] {{
 QFrame[role="card"], QFrame[role="favourite"] {{
     background: {t.surface}; border: 1px solid {EDGE}; border-radius: {CARD_RADIUS}px;
 }}
-QFrame[role="card"] QLabel, QFrame[role="favourite"] QLabel {{ border: none; }}
+QFrame[role="current"] {{
+    background: {t.surface}; border: 1px solid {t.accent}; border-radius: {CARD_RADIUS}px;
+}}
+QFrame[role="card"] QLabel, QFrame[role="favourite"] QLabel, QFrame[role="current"] QLabel {{
+    border: none;
+}}
 
 /* Buttons */
 QPushButton {{
@@ -200,7 +205,7 @@ QTabWidget > QStackedWidget > QWidget {{ background: transparent; }}
 QTabBar {{ background: transparent; }}
 QTabBar::tab {{
     font-size: 13px; font-weight: 600; background: {t.surface_high}; color: {t.muted};
-    padding: 8px 16px; margin-right: 8px; border-radius: 16px;
+    padding: 8px 16px; margin-right: 8px; margin-bottom: 14px; border-radius: 16px;
 }}
 QTabBar::tab:selected {{ color: {t.accent_ink}; background: {t.accent}; }}
 QTabBar::tab:hover:!selected {{ color: {t.text}; background: {t.surface_top}; }}

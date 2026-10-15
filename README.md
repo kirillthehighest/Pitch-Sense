@@ -93,7 +93,7 @@ Cu mediul virtual activat și baza de date construită:
 python -m app
 ```
 
-Liga se alege din panoul din stânga; toată aplicația ia culorile ei, iar schimbarea culorilor se face cu un val care pornește din colțul din stânga sus. Fereastra se potrivește oricărei lățimi de la 1024 px în sus. După pornire, aplicația calculează în fundal predicțiile fiecărei ligi, întâi pe cea aleasă (aproximativ 7 secunde pe ligă; bara de stare arată „Predicțiile pentru … sunt gata”). Ultima ligă afișată este redeschisă la următoarea pornire. Ecranele, din bara de sus:
+Liga se alege din panoul din stânga; aplicația ia culoarea ei de accent și imaginea ei, iar schimbarea se face cu un val care pornește din colțul din stânga sus. Fereastra se potrivește oricărei lățimi de la 1024 px în sus. După pornire, aplicația calculează în fundal predicțiile fiecărei ligi, întâi pe cea aleasă (aproximativ 7 secunde pe ligă; bara de stare arată „Predicțiile pentru … sunt gata”). Ultima ligă afișată este redeschisă la următoarea pornire. Ecranele, din bara de sus:
 
 - **Meciuri:** meciurile fiecărei zile, din toate ligile, cu stemele cluburilor și probabilitățile modelului ales (implicit regresia logistică); la meciurile jucate, scorul și dacă modelul a nimerit. Un clic pe un meci deschide pagina lui: toate modelele, scorurile probabile (Poisson) și cum vin echipele. „Alt meci…” prezice oricare două echipe ale unui sezon, la o dată aleasă;
 - **Clasament:** clasamentul unui sezon sau la o anumită dată, cu forma fiecărei echipe; un clic pe o echipă îi deschide pagina;
@@ -194,4 +194,4 @@ Stemele cluburilor vin de pe Wikipedia, la rezoluție mică (`tools/crests.py`, 
 18. Sezonul în desfășurare: meciurile programate, prezise de modele, și actualizarea datelor din aplicație
 19. Interfață centrată pe meciuri: meciurile pe zile, clasamentul, pagina echipei și analiza modelelor
 20. Pachete și versiunea 0.3.0
-21. Design refăcut: culorile fiecărei ligi, cu animația schimbării lor, sigla nouă, stilul „sticlă întunecată”, imaginile ligilor extinse și ecrane pentru orice lățime
+21. Design refăcut: suprafețe neutre cu accentul fiecărei ligi și animația schimbării lui, sigla nouă, o literă nouă, antetul cu imaginea ligii la rezoluția ecranului și ecrane pentru orice lățime
