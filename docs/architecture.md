@@ -934,7 +934,7 @@ Pragurile fiecărui ecran sunt în `docs/brand.md`, secțiunea 5.5.
 
 Rulări din 2026-10-15:
 
-- **Teste.** Toate cele {TESTS} de teste trec; `ruff check` și `ruff format --check` nu găsesc nimic. Fișiere de test noi:
+- **Teste.** Toate cele 809 teste trec; `ruff check` și `ruff format --check` nu găsesc nimic. Fișiere de test noi:
   - `tests/test_themes.py`: suprafețele comune, accentele, contrastele tuturor textelor, inclusiv antetul cu imaginea reală a fiecărei ligi, barele de probabilitate și foaia de stil a fiecărei ligi;
   - `tests/test_transition.py`: cercul, valurile, partea acoperită, cele două imagini, stratul opac, încheierea animației.
 
@@ -943,13 +943,17 @@ Rulări din 2026-10-15:
   - `tests/test_ui.py` verifică schimbarea culorilor ferestrei (cu și fără animație, inclusiv o schimbare întreruptă), fereastra îngustă, lipsa barei orizontale la 1024, 1280 și 1440 px, piesele adaptive, antetul și graficul ascuns;
   - `tests/test_charts.py` verifică trecerea unui grafic pe altă ligă;
   - `tests/test_icons.py` verifică culorile iconiței pachetelor.
-- **Autoverificarea** are două verificări noi, culorile ligii și valul: 25 în total. {SELFTEST}
+- **Autoverificarea** are două verificări noi, culorile ligii și valul: 25 în total. Pe datele reale trece 25 din 25, iar aplicația pornește (`python -m app`) și rulează fără erori.
 - **Verificare vizuală.** Ecranele au fost desenate cu datele reale, la rezoluția Retina (`QT_SCALE_FACTOR=2`), și verificate:
   - Meciuri în fiecare ligă;
   - pagina meciului, Clasament, Echipe și Analiză;
   - fereastra la 1100 și 1440 px;
   - animația în patru momente ale ei.
-{PACKAGES}
+
+  Pe datele reale, niciun ecran nu se derulează în lateral la 1024, 1180, 1280, 1440 și 1920 px.
+- **Pachete.** Versiunea a rămas 0.3.0; o versiune nouă cere o fază de lansare.
+  - macOS: `.dmg` de 79 MB, cu fontul Plus Jakarta Sans și iconița nouă. Autoverificarea trece 25 din 25 din `dist/` și din imaginea `.dmg` montată doar pentru citire.
+  - Windows (GitHub Actions): toate cele 809 teste trec, `.zip` de 93 MB. Actualizarea cu `--update` din pachet reușește, iar autoverificarea trece 25 din 25.
 
 ### 17.7. Limitări
 
