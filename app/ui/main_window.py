@@ -35,7 +35,14 @@ from app.services.predictions import MatchForecast
 from app.services.preferences import FavouriteTeam
 from app.services.updates import summary_text, updated_text
 from app.ui.analysis import AnalysisPage
-from app.ui.brand import Lockup, app_icon, flag_pixmap, league_photo, photo_credit
+from app.ui.brand import (
+    Lockup,
+    app_icon,
+    flag_pixmap,
+    league_photo,
+    photo_credit,
+    photo_top,
+)
 from app.ui.context import AppContext, default_context
 from app.ui.matches import MatchesPage
 from app.ui.standings import StandingsPage
@@ -215,6 +222,7 @@ class MainWindow(QMainWindow):
             flag_pixmap(code, 18),
             league_photo(code),
             photo_credit(code),
+            photo_top(code),
         )
         self.version_note.setText(self._note(catalog.updated_at))
         for page in self.pages:

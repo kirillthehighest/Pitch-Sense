@@ -95,18 +95,14 @@ def interval_text(value: float, standard_error: float | None, digits: int) -> st
 
 
 def photo_credits() -> list[str]:
-    """One line per league photo: the league, the author, the licence and the file."""
+    """One line per league image: the league and where the image comes from."""
     path = LEAGUE_PHOTOS_DIR / "sources.json"
     if not path.is_file():
         return []
-    lines = []
-    for entry in json.loads(path.read_text(encoding="utf-8")):
-        lines.append(
-            f"{competition(entry['competition']).name}: {entry['title']}, fotografie de "
-            f"{entry['author']}, {entry['licence']} ({entry['page']}); redimensionată, decupată "
-            "și estompată în aplicație."
-        )
-    return lines
+    return [
+        f"{competition(entry['competition']).name}: imagine promoțională, sursa {entry['source']}."
+        for entry in json.loads(path.read_text(encoding="utf-8"))
+    ]
 
 
 class AnalysisPage(QWidget):
@@ -237,9 +233,18 @@ class AnalysisPage(QWidget):
             frame_layout.addWidget(label(text, wrap=True))
             if title == "Stemele cluburilor":
                 frame_layout.addWidget(label(f"{crests} în aplicație.", "caption"))
-        frame_layout.addWidget(label("FOTOGRAFIILE LIGILOR", "overline"))
-        for line in photo_credits() or ["Nicio fotografie inclusă."]:
+        frame_layout.addWidget(label("IMAGINILE LIGILOR", "overline"))
+        for line in photo_credits() or ["Nicio imagine inclusă."]:
             frame_layout.addWidget(label(line, wrap=True))
+        frame_layout.addWidget(
+            label(
+                "Imaginile au fost alese de echipă. Drepturile asupra lor, ale jucătorilor, "
+                "siglelor și sponsorilor aparțin deținătorilor lor; sunt folosite doar în acest "
+                "proiect universitar privat și nu se publică.",
+                "caption",
+                wrap=True,
+            )
+        )
         layout.addWidget(frame)
         layout.addStretch()
         return page

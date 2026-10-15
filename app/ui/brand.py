@@ -46,7 +46,8 @@ TILE_RADIUS = 23.0  # rounded corners, as macOS draws its icons
 ICON_SIZES = (16, 24, 32, 48, 64, 128, 256, 512, 1024)
 PIXEL_RATIO = 2  # pixmaps are drawn at twice their size, sharp on high-density screens
 CRESTS_DIR = ASSETS_DIR / "crests"  # <crest_slug(team)>.png, at most 128 pixels
-LEAGUE_PHOTOS_DIR = ASSETS_DIR / "leagues"  # <code>.jpg, freely licensed, see sources.json
+LEAGUE_PHOTOS_DIR = ASSETS_DIR / "leagues"  # <code>.jpg, supplied by the team, see sources.json
+DEFAULT_TOP = 0.1  # where the banner's strip of an image starts, as a share of its height
 # A crest whose pixels are nearly all darker than this luminance vanishes on the dark surfaces
 # (Juventus, Tottenham, Derby...), so it is drawn on a light disc.
 LIGHT_LUMINANCE = 0.25
@@ -237,15 +238,24 @@ def league_photo(code: str) -> QImage | None:
 
 
 @cache
-def photo_credit(code: str) -> str | None:
-    """The author and licence of the league's photo, as the banner shows them."""
+def _photo_sources() -> dict[str, dict]:
     path = LEAGUE_PHOTOS_DIR / "sources.json"
     if not path.is_file():
-        return None
-    for entry in json.loads(path.read_text(encoding="utf-8")):
-        if entry["competition"] == code:
-            return f"Foto: {entry['author']}, {entry['licence']}, Wikimedia Commons"
-    return None
+        return {}
+    return {entry["competition"]: entry for entry in json.loads(path.read_text(encoding="utf-8"))}
+
+
+def photo_credit(code: str) -> str | None:
+    """Where the league's image comes from, as the banner shows it."""
+    entry = _photo_sources().get(code)
+    return f"Imagine: {entry['source']}" if entry else None
+
+
+def photo_top(code: str) -> float:
+    """Where the banner's strip of the league's image starts, as a share of the image's height:
+    just above the highest head, so no window width cuts the faces."""
+    entry = _photo_sources().get(code)
+    return float(entry.get("top", DEFAULT_TOP)) if entry else DEFAULT_TOP
 
 
 def is_dark(image: QImage) -> bool:

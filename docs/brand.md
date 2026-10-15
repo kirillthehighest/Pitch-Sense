@@ -52,7 +52,7 @@ Iconița aplicației este chiar sigla, care umple pătratul (`icon_image`). Apli
 
 - **Ligile** au steagul rotund al țării lor, ca în listele LiveScore și OneFootball: Anglia, Spania, Italia, Germania și Franța (`flag_pixmap`). Steagurile țărilor nu aparțin nimănui. Siglele ligilor sunt mărci înregistrate și nu sunt folosite.
 - **Echipele** au stema clubului, din Faza 19, la decizia echipei. Stemele vin de pe Wikipedia, la cel mult 128 px (`app/ui/assets/crests/`, cu sursa fiecăreia în `sources.json`). Sunt mărci ale cluburilor, folosite doar ca să recunoști echipele, într-un proiect privat. O stemă aproape în întregime întunecată (Juventus, Tottenham, Derby) stă pe un disc deschis (`#E9EDF5`), altfel ar dispărea pe fundalul închis. O echipă fără stemă păstrează ecusonul rotund cu trei litere al Fazei 16 (BAR, RMA, MUN; `team_abbreviation`). Echipa ta are un inel auriu în jurul stemei.
-- **Ligile** au în antet o fotografie liberă a unui stadion care le reprezintă (Anfield, Camp Nou, San Siro, Signal Iduna Park, Parc des Princes), de pe Wikimedia Commons. Autorul și licența sunt scrise în colțul antetului (`docs/architecture.md`, secțiunea 16.5).
+- **Ligile** au în antet o imagine promoțională cu jucătorii lor, aleasă de echipă (sursa: DAZN, scrisă în colțul antetului). Drepturile aparțin deținătorilor; imaginile rămân în proiectul privat (`docs/architecture.md`, secțiunea 16.5).
 
 ## 3. Culorile
 
@@ -127,7 +127,7 @@ Așezarea urmează LiveScore și site-ul Barcelonei:
 
 - **Bara de sus** are sigla cu numele, cele patru ecrane cu majuscule (Meciuri, Clasament, Echipe, Analiză; cel ales are dedesubt o linie aurie) și, în dreapta, butonul „Actualizează datele” și butonul auriu „Echipa ta”. Sub bară se întinde linia albastru–grena.
 - **Panoul din stânga** are titlul „COMPETIȚII” și cele cinci ligi, fiecare cu steagul și țara ei. Liga aleasă are fundalul ridicat și o linie aurie în stânga. Jos sunt sursa datelor și grupa.
-- **Eroul** este capul fiecărui ecran: un gradient de noapte luminat discret în albastru și grena, cu fotografia ligii pe dreapta, estompată spre titlu (fără fotografie, liniile terenului abia vizibile). Peste el apar liga (cu steag, auriu, cu majuscule), titlul ecranului cu litere mari, o explicație și, în colț, autorul fotografiei.
+- **Eroul** este capul fiecărui ecran (236 px): un gradient de noapte luminat discret în albastru și grena, cu imaginea ligii pe dreapta, estompată spre titlu (fără imagine, liniile terenului abia vizibile). Peste el apar liga (cu steag, auriu, cu majuscule), titlul ecranului cu litere mari, o explicație și, în colț, sursa imaginii.
 - **Conținutul** stă în carduri cu colțurile rotunjite (14 px), pe fundalul noapte.
 
 | Ecran | Ce arată |
@@ -209,7 +209,7 @@ Graficele au fundalul cardurilor, text deschis, titluri cu Barlow Condensed și 
 | `app/ui/widgets.py` | piesele desenate ale interfeței |
 | `app/ui/match_widgets.py` | banda de zile, rândul de meci (cu varianta pe două rânduri), capetele coloanelor de probabilități, bifa și crucea |
 | `app/ui/assets/crests/` | stemele cluburilor (`sources.json`: articolul și fișierul fiecăreia) |
-| `app/ui/assets/leagues/` | fotografiile ligilor (`sources.json`: autorul, licența, pagina) |
+| `app/ui/assets/leagues/` | imaginile ligilor (`sources.json`: sursa și unde începe fâșia arătată) |
 | `app/ui/assets/fonts/` | Barlow Condensed (patru grosimi), Libre Franklin (cinci grosimi) și licențele |
 | `app/ui/assets/icons/` | săgeata listelor și bifa |
 
@@ -232,4 +232,4 @@ Graficele au fundalul cardurilor, text deschis, titluri cu Barlow Condensed și 
 
 - Interfața are doar tema întunecată, și când sistemul folosește modul luminos.
 - Stemele sunt mărci ale cluburilor. Sunt incluse doar în depozitul privat și în pachete, pentru recunoașterea echipelor, și nu trebuie publicate.
-- Stemele și fotografiile sunt o fotografie a lor din 15.10.2026; se reîmprospătează cu `tools/crests.py` și `tools/league_photos.py`.
+- Stemele sunt o fotografie a lor din 15.10.2026 și se reîmprospătează cu `tools/crests.py`. Imaginile ligilor (DAZN) aparțin deținătorilor lor și, ca stemele, nu se publică.

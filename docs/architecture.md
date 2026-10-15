@@ -21,7 +21,7 @@ Acest document descrie structura aplicației, fluxul datelor și deciziile tehni
 | `app/services` | Operațiile cerute de interfață, gata de afișat, cu rezultatele lente păstrate în memorie. Fără Qt. | toate straturile de mai sus |
 | `app/visualization` | Construiește graficele din rezultate deja calculate, fără calcule proprii; păstrează culorile aplicației (`palette.py`). | matplotlib, tipurile de rezultate din `app.services` și `app.evaluation` |
 | `app/ui` | Interfața grafică: preia datele de intrare, apelează serviciile și afișează rezultatele; identitatea vizuală (`brand.py`, `theme.py`, `assets/`). | PySide6 și celelalte straturi |
-| `tools/` | Unelte folosite o dată, în afara aplicației: stemele cluburilor (`crests.py`) și fotografiile ligilor (`league_photos.py`), descărcate în `app/ui/assets/` (Faza 19). | aplicația și internetul |
+| `tools/` | Unelte folosite o dată, în afara aplicației: stemele cluburilor (`crests.py`), descărcate în `app/ui/assets/` (Faza 19). | aplicația și internetul |
 
 ## 3. Reguli verificate automat
 
@@ -774,19 +774,13 @@ Echipa a ales stemele reale, de pe Wikipedia, la rezoluție mică, păstrate doa
 - `team_badge` (`app/ui/brand.py`) desenează stema; o echipă fără stemă păstrează ecusonul cu trei litere. O stemă aproape în întregime întunecată (sub 10% din pixeli cu luminanța peste 0,25: Juventus, Tottenham, Derby, Swansea și alte șase) ar dispărea pe fundalul întunecat, așa că stă pe un disc deschis.
 - Stemele sunt mărci ale cluburilor. Sunt folosite doar ca să recunoști echipele, într-un proiect universitar privat, iar ecranul Analiză → Surse spune asta.
 
-### 16.5. Fotografiile ligilor
+### 16.5. Imaginile ligilor
 
-Fiecare ligă are în antet o fotografie liberă de pe Wikimedia Commons, cu un stadion care o reprezintă. Fotografiile au fost alese privind candidații. `tools/league_photos.py` le descarcă la 1600 px, cu autorul, licența și pagina lor (`app/ui/assets/leagues/sources.json`), și acceptă doar licențele CC BY, CC BY-SA, CC0 și domeniul public.
+Fiecare ligă are în antet o imagine cu jucătorii ei. La început erau fotografii libere de stadioane de pe Wikimedia Commons (Anfield, Camp Nou, San Siro, Signal Iduna Park, Parc des Princes, CC BY și CC BY-SA). După acceptarea fazei, echipa le-a înlocuit cu cinci imagini promoționale DAZN, alese de ea, și a cerut ca jucătorii să încapă în antet.
 
-| Liga | Fotografia | Autor | Licența |
-|---|---|---|---|
-| Premier League | Anfield, Liverpool | Chris Street | CC BY 2.0 |
-| La Liga | Camp Nou, Barcelona | JonasBlaps | CC BY-SA 4.0 |
-| Serie A | San Siro, Milano | PetarStoychev48 | CC BY-SA 4.0 |
-| Bundesliga | Signal Iduna Park, Dortmund | Markus Unger | CC BY 2.0 |
-| Ligue 1 | Parc des Princes, Paris | Kilyac | CC BY-SA 4.0 |
-
-Antetul (`HeroBanner`) pune fotografia pe dreapta, o estompează spre stânga ca titlul să rămână lizibil și scrie în colț autorul și licența. Analiză → Surse dă, pentru fiecare, autorul, licența, pagina și modificările (redimensionată, decupată, estompată), cum cer licențele CC.
+- Imaginile stau în `app/ui/assets/leagues/<cod>.jpg` (1,7 MB în total), nemodificate; echipa a schimbat apoi imaginea Bundesligii cu una cu Kane pe fond roșu. `sources.json` spune, pentru fiecare, sursa (DAZN) și unde începe fâșia arătată (`top`, ca parte din înălțimea imaginii, puțin deasupra celui mai înalt cap). Un decupaj dat ca procent din spațiul rămas tăia capetele în ferestrele late (Mbappé, Bruno Fernandes), pentru că acolo imaginea se mărește; marginea de sus fixată pe imagine le păstrează la orice lățime (verificat la 1192 și 1672 px).
+- Antetul (`HeroBanner`) are 236 px. Imaginea ocupă partea dreaptă, cel mult 58% din lățime și cel mult 760 px, ca o fereastră lată să nu taie capetele. Spre stânga, imaginea se estompează în culoarea antetului, iar marginea ei cade pe un pixel întreg, ca să nu se vadă o linie. În colț scrie „Imagine: DAZN”.
+- Drepturile asupra imaginilor, ale jucătorilor, siglelor și sponsorilor aparțin deținătorilor lor. Imaginile sunt folosite doar în depozitul privat și în pachete și nu se publică, iar Analiză → Surse spune asta. Unealta pentru fotografiile Commons (`tools/league_photos.py`) a fost scoasă.
 
 ### 16.6. Corecturi găsite pe parcurs
 
@@ -917,5 +911,5 @@ Sursa datelor este Football-Data.co.uk: cinci ligi (Premier League, La Liga, Ser
 | Lista meciurilor arată un singur model, implicit regresia logistică | Cel mai mic scor Brier pe cele cinci ligi, cu o diferență reală; o medie a modelelor ar fi un model nou, neevaluat. |
 | Stemele reale ale cluburilor, de pe Wikipedia, la 128 px, cu sursa fiecăreia | Decizia echipei; folosite doar pentru recunoașterea echipelor, într-un depozit privat și în pachete. |
 | Stemele întunecate stau pe un disc deschis | Altfel dispar pe tema întunecată; regula se calculează din pixelii stemei, nu dintr-o listă. |
-| Fotografii libere de pe Wikimedia Commons, cu autorul și licența afișate | Decizia echipei: fără fotografii de presă; licențele CC cer atribuirea, iar aplicația o arată în antet și în Analiză. |
+| Imaginile ligilor: imagini promoționale DAZN alese de echipă, cu sursa afișată | Decizia echipei, după acceptarea Fazei 19 (înainte: fotografii libere de stadioane); folosite doar în proiectul privat. |
 | Predicțiile tuturor ligilor se pregătesc în fundal, pe rând | Ecranul Meciuri arată toate ligile; liga aleasă este gata prima, iar fereastra nu se blochează. |

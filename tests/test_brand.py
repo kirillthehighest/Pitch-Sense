@@ -10,6 +10,7 @@ from PySide6.QtGui import QColor, QFont, QFontDatabase, QImage, QPainter, QRawFo
 from app.data.competitions import COMPETITIONS
 from app.ui.brand import (
     CREST_DISC,
+    DEFAULT_TOP,
     FLAGS,
     ICON_SIZES,
     LOGO_UNITS,
@@ -22,9 +23,12 @@ from app.ui.brand import (
     flag_pixmap,
     icon_image,
     is_dark,
+    league_photo,
     letter_p,
     letter_s,
     paint_logo,
+    photo_credit,
+    photo_top,
     team_badge,
 )
 from app.ui.theme import DISPLAY_FAMILY, FONT_FAMILY, FONTS_DIR, STYLE_SHEET, apply_theme
@@ -213,6 +217,15 @@ def test_a_dark_crest_sits_on_a_light_disc(application):
     # Between the disc's edge and the crest, inset by a sixth of the badge
     assert colour_at(badge, badge.width() * 0.1, badge.height() / 2) == CREST_DISC.lower()
     assert badge.pixelColor(0, 0).alpha() == 0  # round
+
+
+def test_every_league_has_its_image_its_source_and_where_to_cut_it(application):
+    for code in COMPETITIONS:
+        assert league_photo(code) is not None
+        assert photo_credit(code) == "Imagine: DAZN"
+        assert 0 <= photo_top(code) < 0.5  # above the faces
+    assert photo_credit("XX") is None
+    assert photo_top("XX") == DEFAULT_TOP
 
 
 def test_crests_are_named_after_the_teams():

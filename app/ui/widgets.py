@@ -64,6 +64,7 @@ from app.visualization.palette import (
 )
 
 TABLE_ROW_HEIGHT = 36
+NIGHT_EDGE = "#101A3A"  # the right end of the banner's night gradient
 RIGHT = Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
 LEFT = Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
 
@@ -241,14 +242,19 @@ class BrandStripe(QWidget):
 
 
 class HeroBanner(QWidget):
-    """The head of every screen: the league's photo (or the pitch lines) under a night gradient
+    """The head of every screen: the league's image (or the pitch lines) under a night gradient
     lit blue and garnet, the league as a gold eyebrow with its flag, the screen's name in large
-    capitals and a subtitle; the photo's author and licence in the corner."""
+    capitals and a subtitle; the image's source in the corner."""
+
+    HEIGHT = 236
+    PHOTO_SHARE = 0.58  # the image takes the right part of the banner...
+    PHOTO_MAX_WIDTH = 760  # ...but no wider, or a wide window would cut the players' heads
 
     def __init__(self) -> None:
         super().__init__()
-        self.setFixedHeight(148)
+        self.setFixedHeight(self.HEIGHT)
         self.photo: QImage | None = None
+        self.top = 0.1
         self.flag_label = QLabel()
         self.eyebrow_label = label(role="eyebrow")
         self.title_label = label(role="title")
@@ -259,16 +265,14 @@ class HeroBanner(QWidget):
         eyebrow.addWidget(self.flag_label)
         eyebrow.addWidget(self.eyebrow_label)
         eyebrow.addStretch()
-        bottom = QHBoxLayout()
-        bottom.addWidget(self.subtitle_label, stretch=1)
-        bottom.addWidget(self.credit_label, alignment=Qt.AlignmentFlag.AlignBottom)
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(32, 20, 24, 12)
+        layout.setContentsMargins(32, 20, 16, 8)
         layout.setSpacing(2)
         layout.addLayout(eyebrow)
         layout.addWidget(self.title_label)
-        layout.addLayout(bottom)
+        layout.addWidget(self.subtitle_label)
         layout.addStretch()
+        layout.addWidget(self.credit_label, alignment=Qt.AlignmentFlag.AlignRight)
 
     def show_page(self, title: str, subtitle: str) -> None:
         self.title_label.setText(title.upper())
@@ -280,13 +284,16 @@ class HeroBanner(QWidget):
         flag: QPixmap | None,
         photo: QImage | None = None,
         credit: str | None = None,
+        top: float = 0.1,
     ) -> None:
+        """``top`` is where the image's strip starts, as a share of its height."""
         self.eyebrow_label.setText(eyebrow.upper())
         if flag is None:
             self.flag_label.clear()
         else:
             self.flag_label.setPixmap(flag)
         self.photo = photo
+        self.top = top
         self.credit_label.setText(credit or "")
         self.update()
 
@@ -297,13 +304,14 @@ class HeroBanner(QWidget):
         area = QRectF(self.rect())
         night = QLinearGradient(0, 0, area.width(), 0)
         night.setColorAt(0, QColor(NIGHT))
-        night.setColorAt(1, QColor("#101A3A"))
+        night.setColorAt(1, QColor(NIGHT_EDGE))
         painter.fillRect(area, QBrush(night))
         if self.photo is not None:
             self._paint_photo(painter, area)
+        photo_glow = 0.4 if self.photo is not None else 1.0  # the image keeps its own colours
         for colour, centre, alpha in (
-            (BLAU, QPointF(area.width() * 0.08, 0), 120),
-            (GRANA, QPointF(area.width() * 0.95, area.height()), 90),
+            (BLAU, QPointF(area.width() * 0.08, 0), round(120 * photo_glow)),
+            (GRANA, QPointF(area.width() * 0.95, area.height()), round(90 * photo_glow)),
         ):
             glow = QRadialGradient(centre, area.width() * 0.45)
             tint = QColor(colour)
@@ -320,25 +328,44 @@ class HeroBanner(QWidget):
         painter.end()
 
     def _paint_photo(self, painter: QPainter, area: QRectF) -> None:
-        """The photo on the right two thirds, covering the height, fading into the night on the
-        left so the title stays readable."""
+        """The image on the right, as wide as the banner allows, its strip starting at ``top``
+        and fading into the night on the left so the title stays readable."""
         photo = self.photo
-        box = QRectF(area.width() * 0.3, 0, area.width() * 0.7, area.height())
+        width = min(area.width() * self.PHOTO_SHARE, self.PHOTO_MAX_WIDTH)
+        left = round(area.width() - width)  # a whole pixel: a fraction would leave a seam
+        box = QRectF(left, 0, area.width() - left, area.height())
         scale = max(box.width() / photo.width(), box.height() / photo.height())
         source_width, source_height = box.width() / scale, box.height() / scale
         source = QRectF(
-            (photo.width() - source_width) / 2,
-            (photo.height() - source_height) * 0.45,
+            photo.width() - source_width,  # the players stand on the right of these banners
+            min(photo.height() * self.top, photo.height() - source_height),
             source_width,
             source_height,
         )
         painter.drawImage(box, photo, source)
-        fade = QLinearGradient(box.left(), 0, box.left() + box.width() * 0.6, 0)
-        start, end = QColor(NIGHT), QColor(NIGHT)
-        end.setAlpha(110)
+        fade = QLinearGradient(box.left(), 0, box.left() + box.width() * 0.4, 0)
+        start = _blend(QColor(NIGHT), QColor(NIGHT_EDGE), box.left() / area.width())
+        end = QColor(start)  # the night where the image starts, so no edge shows
+        end.setAlpha(0)
         fade.setColorAt(0, start)
         fade.setColorAt(1, end)
         painter.fillRect(box, QBrush(fade))
+        bottom = QLinearGradient(0, area.height() * 0.55, 0, area.height())
+        clear, dark = QColor(NIGHT), QColor(NIGHT)
+        clear.setAlpha(0)
+        dark.setAlpha(150)
+        bottom.setColorAt(0, clear)
+        bottom.setColorAt(1, dark)
+        painter.fillRect(box, QBrush(bottom))  # under the source, in the corner
+
+
+def _blend(first: QColor, second: QColor, share: float) -> QColor:
+    """The colour ``share`` of the way from ``first`` to ``second``."""
+    return QColor(
+        round(first.red() + (second.red() - first.red()) * share),
+        round(first.green() + (second.green() - first.green()) * share),
+        round(first.blue() + (second.blue() - first.blue()) * share),
+    )
 
 
 class StatTile(QFrame):

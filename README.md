@@ -160,7 +160,7 @@ python -m app.evaluation.leagues
 
 ### Imaginile
 
-Stemele cluburilor vin de pe Wikipedia, la rezoluție mică (`tools/crests.py`); sunt mărci ale cluburilor, folosite doar ca să recunoști echipele, și rămân în depozitul privat și în pachete. Fotografiile ligilor sunt fotografii libere de pe Wikimedia Commons (`tools/league_photos.py`); autorul și licența lor apar în aplicație. Ambele unelte se rulează doar ca să reîmprospăteze imaginile.
+Stemele cluburilor vin de pe Wikipedia, la rezoluție mică (`tools/crests.py`, care se rulează doar ca să le reîmprospăteze). Imaginile ligilor sunt imagini promoționale DAZN, alese de echipă. Stemele și imaginile aparțin deținătorilor lor: sunt folosite doar ca să recunoști echipele și ligile și rămân în depozitul privat și în pachete.
 
 ## Documentație
 

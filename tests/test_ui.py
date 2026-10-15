@@ -114,9 +114,9 @@ def test_the_window_prepares_the_predictions_of_the_league(window, app_context):
     assert window.league_buttons["SP1"].isChecked()
     assert window.hero.eyebrow_label.text() == "LA LIGA · SPANIA · 2006/07–2007/08"
     assert not window.hero.flag_label.pixmap().isNull()
-    assert window.hero.photo is not None  # Camp Nou
-    assert window.hero.credit_label.text().startswith("Foto: ")
-    assert window.hero.credit_label.text().endswith("Wikimedia Commons")
+    assert window.hero.photo is not None  # the La Liga image
+    assert window.hero.credit_label.text() == "Imagine: DAZN"
+    assert 0 <= window.hero.top < 0.5
     assert app_context.league("SP1").predictions.is_prepared
     assert window.statusBar().currentMessage() == "Predicțiile pentru La Liga sunt gata"
     assert window.windowTitle().startswith("PitchSense")
@@ -525,7 +525,8 @@ def test_the_analysis_explains_scores_and_credits(window):
     texts = " ".join(label.text() for label in analysis.findChildren(type(window.page_title)))
     assert "Ratingul Elo" in texts or "RATINGUL ELO" in texts
     assert "Wikipedia" in texts and "CC0" in texts
-    assert "Camp Nou, Barcelona, fotografie de" in texts
+    assert "La Liga: imagine promoțională, sursa DAZN." in texts
+    assert "nu se publică" in texts
     assert "209 steme în aplicație." in texts
     assert analysis.check_label.text().startswith("Sezonul în desfășurare nu a fost descărcat")
 
@@ -816,10 +817,11 @@ def test_the_hero_shows_the_league_photo_and_its_credit(application):
     photo = QImage(400, 200, QImage.Format.Format_RGB32)
     photo.fill(QColor("#3355AA"))
 
-    hero.show_league("La Liga", None, photo, "Foto: Autor, CC BY-SA 4.0, Wikimedia Commons")
+    hero.show_league("La Liga", None, photo, "Imagine: DAZN", 0.3)
     hero.resize(1000, hero.height())
 
     assert hero.photo is photo
-    assert hero.credit_label.text() == "Foto: Autor, CC BY-SA 4.0, Wikimedia Commons"
+    assert hero.credit_label.text() == "Imagine: DAZN"
+    assert hero.top == 0.3
     image = hero.grab().toImage()
     assert image.pixelColor(image.width() - 20, image.height() // 2) != image.pixelColor(10, 10)
