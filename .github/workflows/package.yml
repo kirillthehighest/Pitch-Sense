@@ -1,7 +1,8 @@
 # Windows package of PitchSense, built on a GitHub-hosted Windows machine: PyInstaller does not
 # cross-compile, and the macOS package is built on a Mac with `python packaging/build.py`.
-# The job runs the whole test suite on Windows, builds the package, runs the packaged
-# application's self-test and keeps the .zip as a downloadable artifact.
+# The job runs the whole test suite on Windows, builds the package, lets the packaged
+# application download the season in progress (--update) and run its self-test, and keeps the
+# .zip as a downloadable artifact.
 name: Windows package
 
 on:
@@ -40,6 +41,13 @@ jobs:
 
       - name: Build the package
         run: python packaging/build.py
+
+      - name: Update the season in progress from the packaged application
+        shell: pwsh
+        run: |
+          $update = Start-Process -FilePath dist\PitchSense\PitchSense.exe -ArgumentList "--update" -Wait -PassThru
+          Get-Content "$env:LOCALAPPDATA\PitchSense\live\update.json" -TotalCount 4
+          exit $update.ExitCode
 
       - name: Self-test the packaged application
         shell: pwsh

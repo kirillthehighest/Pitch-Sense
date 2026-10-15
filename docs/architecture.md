@@ -1,6 +1,6 @@
 # Arhitectura aplicației PitchSense
 
-Acest document descrie structura aplicației, fluxul datelor și deciziile tehnice luate până acum (fazele 0–19). Se actualizează ori de câte ori structura se schimbă.
+Acest document descrie structura aplicației, fluxul datelor și deciziile tehnice luate până acum (fazele 0–20). Se actualizează ori de câte ori structura se schimbă.
 
 ## 1. Principii
 
@@ -558,6 +558,23 @@ Verificare (2026-10-06):
   - Pornită normal (`open PitchSense.app`), aplicația rulează, folosește aproximativ 450 MB de memorie și se închide fără erori.
 - **Windows** (fluxul „Windows package” pe mașina `windows-latest` de la GitHub, ramura `phase-17`): toate cele 662 de teste și verificarea codului au trecut, pachetul `.zip` are 88 MB, iar autoverificarea pachetului a trecut (20 din 20, cu ambele fonturi și iconițele SVG). Lucrarea a durat 7 min, după aproximativ 5 min de așteptare la coadă.
 
+### 12.8. Versiunea 0.3.0 (Faza 20)
+
+Pachetele versiunii 0.3.0 conțin tot ce au adus fazele 18 și 19: sezonul în desfășurare, cu meciurile programate și predicțiile lor, butonul „Actualizează datele”, cele patru ecrane noi, stemele cluburilor și imaginile ligilor. Față de 0.2.0:
+
+- **Versiunea** devine 0.3.0 în `app/__init__.py`. La prima pornire, jurnalele 0.2.0 din folderul utilizatorului sunt înlocuite, după regula din secțiunea 12.7.
+- **Conținutul pachetului** are în plus instantaneul sezonului în desfășurare, descărcat la construire (`data/live`), stemele (`app/ui/assets/crests/`) și imaginile ligilor (`app/ui/assets/leagues/`). Instantaneul este copiat în folderul utilizatorului doar dacă e mai nou decât ce are acolo (secțiunea 15.2).
+- **Opțiunea `--update`** (`python -m app --update` sau aplicația împachetată) face aceeași actualizare ca butonul, fără fereastră, și se termină cu codul 0 dacă a reușit. Ea face actualizarea din pachet verificabilă automat, pe ambele sisteme. Fluxul pentru Windows o rulează înaintea autoverificării și arată începutul fișierului `update.json` scris în folderul utilizatorului.
+
+Verificare (2026-10-15):
+
+- **macOS** (Mac cu Apple Silicon): `python packaging/build.py` a construit pachetul.
+  - Mărimea: imaginea `.dmg` are 79 MB, aplicația despachetată 168 MB.
+  - Autoverificarea a trecut, 23 din 23, atât din `dist/`, cât și din imaginea `.dmg` montată doar pentru citire.
+  - Folderul utilizatorului de pe Mac-ul de test avea jurnalele și `VERSION` ale lui 0.2.0 și un instantaneu al sezonului mai vechi decât cel din pachet. Prima pornire a lui 0.3.0 a înlocuit jurnalele, a scris `VERSION` 0.3.0 și a copiat instantaneul nou.
+  - `PitchSense --update`, rulat din pachet, a descărcat sezonul 2026/27 cu certificatele sistemului: 60, 78, 60, 45 și 54 de meciuri jucate, 320, 302, 320, 261 și 252 programate. Este prima încercare a actualizării dintr-o aplicație împachetată; în Faza 18 fusese încercată doar din codul sursă.
+- **Windows** (fluxul „Windows package”, ramura `phase-20`): WINDOWS_RESULT
+
 ## 13. Cinci ligi (Faza 15)
 
 ### 13.1. Datele
@@ -778,7 +795,7 @@ Echipa a ales stemele reale, de pe Wikipedia, la rezoluție mică, păstrate doa
 
 Fiecare ligă are în antet o imagine cu jucătorii ei. La început erau fotografii libere de stadioane de pe Wikimedia Commons (Anfield, Camp Nou, San Siro, Signal Iduna Park, Parc des Princes, CC BY și CC BY-SA). După acceptarea fazei, echipa le-a înlocuit cu cinci imagini promoționale DAZN, alese de ea, și a cerut ca jucătorii să încapă în antet.
 
-- Imaginile stau în `app/ui/assets/leagues/<cod>.jpg` (1,7 MB în total), nemodificate; echipa a schimbat apoi imaginea Bundesligii cu una cu Kane pe fond roșu. `sources.json` spune, pentru fiecare, sursa (DAZN) și unde începe fâșia arătată (`top`, ca parte din înălțimea imaginii, puțin deasupra celui mai înalt cap). Un decupaj dat ca procent din spațiul rămas tăia capetele în ferestrele late (Mbappé, Bruno Fernandes), pentru că acolo imaginea se mărește; marginea de sus fixată pe imagine le păstrează la orice lățime (verificat la 1192 și 1672 px).
+- Imaginile stau în `app/ui/assets/leagues/<cod>.jpg` (1,6 MB în total), nemodificate; echipa a schimbat apoi imaginea Bundesligii cu una cu Kane pe fond roșu. `sources.json` spune, pentru fiecare, sursa (DAZN) și unde începe fâșia arătată (`top`, ca parte din înălțimea imaginii, puțin deasupra celui mai înalt cap). Un decupaj dat ca procent din spațiul rămas tăia capetele în ferestrele late (Mbappé, Bruno Fernandes), pentru că acolo imaginea se mărește; marginea de sus fixată pe imagine le păstrează la orice lățime (verificat la 1192 și 1672 px).
 - Antetul (`HeroBanner`) are 236 px. Imaginea ocupă partea dreaptă, cel mult 58% din lățime și cel mult 760 px, ca o fereastră lată să nu taie capetele. Spre stânga, imaginea se estompează în culoarea antetului, iar marginea ei cade pe un pixel întreg, ca să nu se vadă o linie. În colț scrie „Imagine: DAZN”.
 - Drepturile asupra imaginilor, ale jucătorilor, siglelor și sponsorilor aparțin deținătorilor lor. Imaginile sunt folosite doar în depozitul privat și în pachete și nu se publică, iar Analiză → Surse spune asta. Unealta pentru fotografiile Commons (`tools/league_photos.py`) a fost scoasă.
 
@@ -912,4 +929,5 @@ Sursa datelor este Football-Data.co.uk: cinci ligi (Premier League, La Liga, Ser
 | Stemele reale ale cluburilor, de pe Wikipedia, la 128 px, cu sursa fiecăreia | Decizia echipei; folosite doar pentru recunoașterea echipelor, într-un depozit privat și în pachete. |
 | Stemele întunecate stau pe un disc deschis | Altfel dispar pe tema întunecată; regula se calculează din pixelii stemei, nu dintr-o listă. |
 | Imaginile ligilor: imagini promoționale DAZN alese de echipă, cu sursa afișată | Decizia echipei, după acceptarea Fazei 19 (înainte: fotografii libere de stadioane); folosite doar în proiectul privat. |
+| Opțiunea `--update` a aplicației | Actualizarea din pachet poate fi verificată automat pe macOS și pe Windows, fără să apeși un buton; tot ea poate actualiza datele fără fereastră. |
 | Predicțiile tuturor ligilor se pregătesc în fundal, pe rând | Ecranul Meciuri arată toate ligile; liga aleasă este gata prima, iar fereastra nu se blochează. |
