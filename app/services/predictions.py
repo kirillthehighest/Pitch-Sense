@@ -7,15 +7,20 @@ for the same match (tested in Phases 7 and 18).
 
 A fixture of the season in progress dated after the last match played is predicted from every
 match played so far, whatever its date: nothing newer is known.
+
+The matches screen (Phase 19) reads the cache day by day (``on_day``) and team by team
+(``team_matches``); ``season_check`` scores the predictions of a season's matches played so far.
 """
 
-from collections.abc import Iterable, Sequence
+from collections import defaultdict
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, replace
-from datetime import date, timedelta
+from datetime import date, time, timedelta
 
 import numpy as np
 
 from app.data.models import Fixture, Match, Outcome
+from app.evaluation.metrics import Estimate, accuracy, brier_score, log_loss, outcome_indices
 from app.prediction.logistic_predictions import MIN_TRAINING_MATCHES
 from app.prediction.outputs import ModelName, ModelPrediction
 from app.prediction.prediction_engine import (
@@ -63,6 +68,76 @@ def summarize(prediction: ModelPrediction, top_scores: int = TOP_SCORES) -> Mode
     )
 
 
+@dataclass(frozen=True, eq=False)
+class MatchForecast:
+    """A match of the calendar, played or scheduled, with every model's prediction for it."""
+
+    competition: str
+    season: str
+    match_date: date
+    kickoff_time: time | None
+    home_team: str
+    away_team: str
+    played: Match | None  # the real match, once played
+    predictions: Mapping[ModelName, ModelPrediction]
+    as_of: date | None = None  # scheduled: the predictions use the matches before this day
+    hypothetical: bool = False  # not in the calendar: two teams and a day chosen by the user
+
+    def of(self, model: ModelName) -> ModelPrediction | None:
+        return self.predictions.get(model)
+
+    @property
+    def postponed(self) -> bool:
+        """Scheduled for a day already past, but without a result yet."""
+        return (
+            self.played is None
+            and not self.hypothetical
+            and self.as_of is not None
+            and self.match_date < self.as_of
+        )
+
+
+def forecast_of(prediction: FixturePrediction, competition: str) -> MatchForecast:
+    """A prediction asked for on request, as the matches screen shows it."""
+    return MatchForecast(
+        competition=competition,
+        season=prediction.season,
+        match_date=prediction.match_date,
+        kickoff_time=prediction.played.kickoff_time if prediction.played else None,
+        home_team=prediction.home_team,
+        away_team=prediction.away_team,
+        played=prediction.played,
+        predictions=prediction.predictions,
+        as_of=prediction.as_of,
+        hypothetical=prediction.played is None,
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class ModelCheck:
+    """How one model's predictions of a season's matches played so far turned out."""
+
+    model: ModelName
+    accuracy: Estimate
+    brier_score: Estimate
+    log_loss: Estimate
+
+
+@dataclass(frozen=True, eq=False)
+class SeasonCheck:
+    """The models scored on the matches of one season predicted by all of them."""
+
+    season: str
+    matches: int
+    first_day: date | None
+    last_day: date | None
+    models: tuple[ModelCheck, ...]
+
+
+def _forecast_order(forecast: MatchForecast) -> tuple[date, time, str]:
+    return forecast.match_date, forecast.kickoff_time or time.min, forecast.home_team
+
+
 class PredictionService:
     """Predictions for one competition's matches and, when given, its fixtures still to play."""
 
@@ -78,6 +153,7 @@ class PredictionService:
         self._min_training_matches = min_training_matches
         self._history: dict[Match, MatchPredictions] | None = None
         self._upcoming: dict[tuple[str, str], UpcomingPrediction] | None = None
+        self._days: dict[date, list[MatchForecast]] = {}
         self._current_season = self._fixtures[0].season if self._fixtures else None
         last_played = max(match.match_date for match in self._matches)
         self._as_of = last_played + timedelta(days=1)  # nothing newer is known
@@ -104,7 +180,77 @@ class PredictionService:
                 self._matches, min_training_matches=self._min_training_matches
             )
             self._upcoming = {}
-        self._history = {result.match: result for result in results}
+        history = {result.match: result for result in results}
+        days: dict[date, list[MatchForecast]] = defaultdict(list)
+        for match, result in history.items():
+            days[match.match_date].append(self._played_forecast(match, result.predictions))
+        for upcoming in self._upcoming.values():
+            fixture = upcoming.fixture
+            days[fixture.match_date].append(
+                MatchForecast(
+                    competition=fixture.competition,
+                    season=fixture.season,
+                    match_date=fixture.match_date,
+                    kickoff_time=fixture.kickoff_time,
+                    home_team=fixture.home_team,
+                    away_team=fixture.away_team,
+                    played=None,
+                    predictions=upcoming.predictions,
+                    as_of=upcoming.as_of,
+                )
+            )
+        self._days = {day: sorted(found, key=_forecast_order) for day, found in days.items()}
+        self._history = history
+
+    def match_days(self) -> list[date]:
+        """Every day with a match, played or scheduled, in order."""
+        self.prepare()
+        return sorted(self._days)
+
+    def on_day(self, day: date) -> list[MatchForecast]:
+        """The matches of one day, by kickoff time, then home team; empty without matches."""
+        self.prepare()
+        return list(self._days.get(day, ()))
+
+    def team_matches(self, team: str, season: str) -> list[MatchForecast]:
+        """A team's matches of one season, played and scheduled, in order."""
+        self.prepare()
+        return sorted(
+            (
+                forecast
+                for forecasts in self._days.values()
+                for forecast in forecasts
+                if forecast.season == season and team in (forecast.home_team, forecast.away_team)
+            ),
+            key=_forecast_order,
+        )
+
+    def season_check(self, season: str) -> SeasonCheck:
+        """Score every model on the season's played matches that all of them predicted."""
+        self.prepare()
+        scored = [
+            (match, self._history[match].predictions)
+            for match in self._matches
+            if match.season == season and len(self._history[match].predictions) == len(ModelName)
+        ]
+        if not scored:
+            return SeasonCheck(season, 0, None, None, ())
+        actual = outcome_indices([match.result.value for match, _ in scored])
+        checks = []
+        for model in ModelName:
+            probabilities = np.array(
+                [predictions[model].probabilities.as_tuple() for _, predictions in scored]
+            )
+            checks.append(
+                ModelCheck(
+                    model=model,
+                    accuracy=accuracy(probabilities, actual),
+                    brier_score=brier_score(probabilities, actual),
+                    log_loss=log_loss(probabilities, actual),
+                )
+            )
+        days = [match.match_date for match, _ in scored]
+        return SeasonCheck(season, len(scored), min(days), max(days), tuple(checks))
 
     def upcoming(self) -> list[UpcomingPrediction]:
         """The predictions of the fixtures still to be played, in chronological order."""
@@ -154,6 +300,21 @@ class PredictionService:
             min_training_matches=self._min_training_matches,
         )
         return replace(prediction, match_date=match_date)
+
+    @staticmethod
+    def _played_forecast(
+        match: Match, predictions: Mapping[ModelName, ModelPrediction]
+    ) -> MatchForecast:
+        return MatchForecast(
+            competition=match.competition,
+            season=match.season,
+            match_date=match.match_date,
+            kickoff_time=match.kickoff_time,
+            home_team=match.home_team,
+            away_team=match.away_team,
+            played=match,
+            predictions=predictions,
+        )
 
     def _scheduled(self, home_team: str, away_team: str) -> Fixture | None:
         return next(

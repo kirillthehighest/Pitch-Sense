@@ -548,3 +548,93 @@ def test_the_time_of_an_update_is_shown_in_the_local_time_zone():
     local = moment.astimezone()
 
     assert updated_text(moment) == f"{local:%d.%m.%Y}, {local:%H:%M}"
+
+
+# --- the matches screen (Phase 19) ---
+
+
+def test_every_day_lists_its_played_and_scheduled_matches(catalog_in_progress):
+    catalog = catalog_in_progress
+    service = PredictionService(catalog.matches, catalog.fixtures, min_training_matches=3)
+
+    days = service.match_days()
+
+    assert len(days) == len(catalog.matches) + len(catalog.fixtures)  # one match a day
+    assert days == sorted(days)
+    played = service.on_day(date(2008, 9, 7))
+    scheduled = service.on_day(date(2008, 9, 8))
+    assert [(f.home_team, f.away_team) for f in played] == [("Charlie", "Alpha")]
+    assert played[0].played is not None and played[0].as_of is None
+    assert scheduled[0].played is None
+    assert scheduled[0].as_of == date(2008, 9, 8)
+    assert scheduled[0].kickoff_time is not None
+    assert numbers(scheduled[0]) == numbers(service.upcoming()[0])
+    assert service.on_day(date(2008, 10, 1)) == []
+
+
+def test_a_past_day_without_its_result_is_postponed(catalog_in_progress):
+    catalog = catalog_in_progress
+    late = replace(catalog.fixtures[0], match_date=date(2008, 9, 5))
+    service = PredictionService(
+        catalog.matches, (late, *catalog.fixtures[1:]), min_training_matches=3
+    )
+
+    forecast = next(f for f in service.on_day(date(2008, 9, 5)) if f.played is None)
+
+    assert forecast.postponed
+    assert not service.on_day(date(2008, 9, 9))[0].postponed
+
+
+def test_a_team_has_its_matches_of_the_season_in_order(catalog_in_progress):
+    catalog = catalog_in_progress
+    service = PredictionService(catalog.matches, catalog.fixtures, min_training_matches=3)
+
+    matches = service.team_matches("Alpha", LIVE_SEASON)
+
+    assert len(matches) == 6  # a double round-robin of four teams
+    assert [m.match_date for m in matches] == sorted(m.match_date for m in matches)
+    assert sum(m.played is not None for m in matches) == 5
+    assert all("Alpha" in (m.home_team, m.away_team) for m in matches)
+
+
+def test_the_season_check_scores_every_model_on_the_matches_played(catalog_in_progress):
+    catalog = catalog_in_progress
+    service = PredictionService(catalog.matches, catalog.fixtures, min_training_matches=3)
+
+    check = service.season_check(LIVE_SEASON)
+
+    assert check.matches == LIVE_PLAYED
+    assert (check.first_day, check.last_day) == (date(2008, 9, 1), date(2008, 9, 7))
+    assert [m.model for m in check.models] == list(ModelName)
+    played = [m for m in catalog.matches if m.season == LIVE_SEASON]
+    for model_check in check.models:
+        right = sum(
+            service.on_day(m.match_date)[0].of(model_check.model).probabilities.most_likely
+            == m.result
+            for m in played
+        )
+        assert model_check.accuracy.value == pytest.approx(right / LIVE_PLAYED)
+        assert model_check.accuracy.count == LIVE_PLAYED
+        assert 0 <= model_check.brier_score.value <= 2
+
+
+def test_a_season_without_predictions_has_an_empty_check(two_seasons):
+    service = PredictionService(two_seasons, min_training_matches=50)
+
+    check = service.season_check("2006-07")
+
+    assert (check.matches, check.models, check.first_day) == (0, (), None)
+
+
+def test_the_rating_before_a_day_is_the_one_after_the_last_match_before_it(two_seasons):
+    teams = TeamService(two_seasons)
+    history = {season.season: season for season in teams.elo_history("Alpha")}
+    dates, ratings = history["2007-08"].dates, history["2007-08"].ratings
+
+    assert teams.rating_before("Alpha", dates[1]) == ratings[1]
+    assert teams.rating_before("Alpha", dates[0] + timedelta(days=1)) == ratings[1]
+    assert teams.rating_before("Alpha", date(2006, 8, 1)) == DEFAULT_INITIAL_RATING
+    after_all = teams.rating_before("Alpha", date(2009, 1, 1))
+    assert after_all == run_elo(two_seasons).final_ratings["Alpha"]
+    with pytest.raises(ValueError, match="played no matches"):
+        teams.rating_before("Echo", date(2009, 1, 1))

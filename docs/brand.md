@@ -51,7 +51,8 @@ Iconița aplicației este chiar sigla, care umple pătratul (`icon_image`). Apli
 ### 2.4. Steagurile și ecusoanele
 
 - **Ligile** au steagul rotund al țării lor, ca în listele LiveScore și OneFootball: Anglia, Spania, Italia, Germania și Franța (`flag_pixmap`). Steagurile țărilor nu aparțin nimănui. Siglele ligilor sunt mărci înregistrate și nu sunt folosite.
-- **Echipele** au un ecuson rotund cu trei litere, ca pe tabela de marcaj a unei transmisiuni TV: BAR, RMA, MUN, NFO (`team_badge`; prescurtarea vine din `team_abbreviation`, în `app/services/labels.py`). Stemele cluburilor nu sunt folosite: sunt mărci înregistrate și nu fac parte din date. Echipa ta are ecusonul cu inel și litere aurii.
+- **Echipele** au stema clubului, din Faza 19, la decizia echipei. Stemele vin de pe Wikipedia, la cel mult 128 px (`app/ui/assets/crests/`, cu sursa fiecăreia în `sources.json`). Sunt mărci ale cluburilor, folosite doar ca să recunoști echipele, într-un proiect privat. O stemă aproape în întregime întunecată (Juventus, Tottenham, Derby) stă pe un disc deschis (`#E9EDF5`), altfel ar dispărea pe fundalul închis. O echipă fără stemă păstrează ecusonul rotund cu trei litere al Fazei 16 (BAR, RMA, MUN; `team_abbreviation`). Echipa ta are un inel auriu în jurul stemei.
+- **Ligile** au în antet o fotografie liberă a unui stadion care le reprezintă (Anfield, Camp Nou, San Siro, Signal Iduna Park, Parc des Princes), de pe Wikimedia Commons. Autorul și licența sunt scrise în colțul antetului (`docs/architecture.md`, secțiunea 16.5).
 
 ## 3. Culorile
 
@@ -124,18 +125,18 @@ Fiecare rol de text are o mărime fixă:
 
 Așezarea urmează LiveScore și site-ul Barcelonei:
 
-- **Bara de sus** are sigla cu numele, cele cinci ecrane cu majuscule (cel ales are dedesubt o linie aurie) și, în dreapta, butonul auriu „Echipa ta”. Sub bară se întinde linia albastru–grena.
+- **Bara de sus** are sigla cu numele, cele patru ecrane cu majuscule (Meciuri, Clasament, Echipe, Analiză; cel ales are dedesubt o linie aurie) și, în dreapta, butonul „Actualizează datele” și butonul auriu „Echipa ta”. Sub bară se întinde linia albastru–grena.
 - **Panoul din stânga** are titlul „COMPETIȚII” și cele cinci ligi, fiecare cu steagul și țara ei. Liga aleasă are fundalul ridicat și o linie aurie în stânga. Jos sunt sursa datelor și grupa.
-- **Eroul** este capul fiecărui ecran: un gradient de noapte luminat discret în albastru și grena, cu liniile terenului (linia de mijloc, cercul central, careul) abia vizibile. Peste el apar liga (cu steag, auriu, cu majuscule), titlul ecranului cu litere mari și o explicație.
+- **Eroul** este capul fiecărui ecran: un gradient de noapte luminat discret în albastru și grena, cu fotografia ligii pe dreapta, estompată spre titlu (fără fotografie, liniile terenului abia vizibile). Peste el apar liga (cu steag, auriu, cu majuscule), titlul ecranului cu litere mari, o explicație și, în colț, autorul fotografiei.
 - **Conținutul** stă în carduri cu colțurile rotunjite (14 px), pe fundalul noapte.
 
 | Ecran | Ce arată |
 |---|---|
-| Acasă | patru cifre mari (meciuri, sezoane, echipe, meciuri evaluate), modelul cu cel mai mic scor Brier (și dacă avantajul lui este real), echipa ta (ecuson, loc, puncte, ultimele cinci rezultate, rating Elo) și rezultatele modelelor |
-| Predicție | **cardul meciului**: ecusoanele și numele echipelor, scorul cu cifre mari sau „VS” și, pentru fiecare model, o bară împărțită în victorie gazde (albastru), egal (gri) și victorie oaspeți (grena), cu procentele în ea și cel mai probabil rezultat îngroșat; dedesubt, cifrele exacte, golurile așteptate, scorurile probabile și harta scorurilor (Poisson) |
-| Echipe | clasamentul la orice dată, cu ecusoanele echipelor, profilul unei echipe (cu ultimele cinci rezultate în pătrățele colorate, ca într-un ghid de formă), ratingul Elo și grupurile K-Means |
-| Modele | măsurile de evaluare, diferențele reale dintre modele, împărțirea pe subseturi, calibrarea și matricea de confuzie |
-| Ligi | cinci **carduri de ligă** (steag, procentul victoriilor gazdelor cu cifre mari, golurile pe meci, modelul cu cel mai mic scor Brier); un clic deschide liga. Dedesubt sunt comparațiile, în tabele și grafice. |
+| Meciuri | **banda de zile** (șapte jetoane: „Azi”, „Mâine”, „sâm. 17 oct.”; ziua aleasă e aurie); meciurile zilei, grupate pe ligă sub un cap cu steag; fiecare **rând de meci** are ora (sau „Final”, „Amânat”), stemele și numele, scorul și cele trei probabilități ale modelului ales, cea mai mare umplută cu culoarea rezultatului; la meciurile jucate, o bifă verde sau o cruce roșie. În dreapta, cardul auriu al echipei tale și începutul clasamentului. |
+| Pagina meciului | **cardul meciului**: un dreptunghi albastru–noapte–grena cu liniile terenului, stemele mari, scorul sau „VS” și starea; barele celor trei modele (victorie gazde albastru, egal gri, victorie oaspeți grena), fiecare cu o frază simplă; cum vin echipele; scorurile probabile și harta lor |
+| Clasament | tabelul ligii cu stemele și ultimele cinci rezultate în pătrățele colorate |
+| Echipe | **banda echipei**, ca pe site-urile canalelor sportive: stema mare și numele cu litere de titlu pe albastru–grena; șase cifre mari; forma; meciurile echipei; profilul K-Means; ratingul Elo și grupurile |
+| Analiză | explicațiile algoritmilor, sezonul curent, măsurile de evaluare, cele cinci **carduri de ligă** și sursele |
 
 ### 5.2. Echipa ta
 
@@ -143,9 +144,9 @@ Butonul „Echipa ta” deschide o fereastră în care utilizatorul alege o lig�
 
 Echipa aleasă:
 
-- apare pe ecranul Acasă;
-- are în clasamente rândul auriu și ecusonul cu inel auriu;
-- este aleasă din start în ecranele Predicție (ultimul ei meci al sezonului) și Echipe.
+- are cardul ei pe ecranul Meciuri (forma, următorul meci, ultimul rezultat);
+- are numele auriu în lista meciurilor, rândul auriu în clasamente și inelul auriu în jurul stemei;
+- este aleasă din start pe ecranul Echipe.
 
 Dacă echipa joacă în altă ligă decât cea afișată, aplicația trece la liga ei.
 
@@ -171,6 +172,9 @@ Toate componentele folosesc stilul Qt Fusion, o paletă Qt întunecată și o si
 - **Sub-filele** au numele cu majuscule și, dedesubt, o linie aurie. Înălțimea lor urmează pagina afișată.
 - **Listele și casetele de bifat** au săgeata și bifa desenate de noi (`app/ui/assets/icons/`). Bifa și butonul radio ales sunt aurii.
 - **Pătrățelele de formă** au litera rezultatului (V, E, Î). Culoarea (verde, gri, roșu) doar o repetă, deci rezultatul se citește și de daltoniști, care nu deosebesc verdele de roșu.
+- **Bifa și crucea** de pe rândurile meciurilor jucate urmează aceeași regulă: forma (bifă sau „×”) spune dacă predicția s-a nimerit, iar culoarea (verde, roșu) doar o repetă.
+- **Jetoanele zilelor** fără meciuri nu au fundal și au textul secundar, nu textul șters al butoanelor dezactivate: se pot alege și trebuie să se poată citi.
+- **Rândurile înguste** (cardul echipei tale, pagina echipei) pun echipele pe un rând și probabilitățile dedesubt, ca numele să nu fie tăiate.
 
 ## 6. Graficele
 
@@ -203,6 +207,9 @@ Graficele au fundalul cardurilor, text deschis, titluri cu Barlow Condensed și 
 | `app/ui/brand.py` | sigla (literele și pătratul), iconița, sigla cu numele, steagurile, ecusoanele, liniile terenului din erou |
 | `app/ui/theme.py` | fonturile, paleta Qt și foaia de stil |
 | `app/ui/widgets.py` | piesele desenate ale interfeței |
+| `app/ui/match_widgets.py` | banda de zile, rândul de meci (cu varianta pe două rânduri), capetele coloanelor de probabilități, bifa și crucea |
+| `app/ui/assets/crests/` | stemele cluburilor (`sources.json`: articolul și fișierul fiecăreia) |
+| `app/ui/assets/leagues/` | fotografiile ligilor (`sources.json`: autorul, licența, pagina) |
 | `app/ui/assets/fonts/` | Barlow Condensed (patru grosimi), Libre Franklin (cinci grosimi) și licențele |
 | `app/ui/assets/icons/` | săgeata listelor și bifa |
 
@@ -218,9 +225,11 @@ Graficele au fundalul cardurilor, text deschis, titluri cu Barlow Condensed și 
 - `tests/test_ui.py` verifică navigarea, alegerea ligii din panou și din cardurile ligilor, „echipa ta”, cardul meciului, barele de probabilitate, pătrățelele de formă și evidențierea rândurilor.
 - `tests/test_charts.py` verifică tema întunecată a graficelor, referința punctată și lizibilitatea cifrelor din celule.
 - Autoverificarea (`python -m app --self-test`) verifică încărcarea ambelor fonturi și a iconițelor SVG, pentru că un pachet trebuie să le conțină.
-- Toate ecranele au fost desenate cu datele reale și verificate vizual (2026-10-05).
+- Toate ecranele au fost desenate cu datele reale și verificate vizual (2026-10-05; din nou pentru ecranele Fazei 19, 2026-10-15, plus foaia cu toate cele 209 de steme și antetul fiecărei ligi).
+- `tests/test_brand.py` verifică și stemele (rezoluția, numele fișierelor, discul stemelor întunecate, inelul auriu), iar `tests/test_ui.py` verifică bifa și crucea citind pixelii.
 
 ## 9. Limitări
 
 - Interfața are doar tema întunecată, și când sistemul folosește modul luminos.
-- Echipele au ecusoane cu inițiale, nu stemele lor: stemele sunt mărci înregistrate și nu fac parte din date.
+- Stemele sunt mărci ale cluburilor. Sunt incluse doar în depozitul privat și în pachete, pentru recunoașterea echipelor, și nu trebuie publicate.
+- Stemele și fotografiile sunt o fotografie a lor din 15.10.2026; se reîmprospătează cu `tools/crests.py` și `tools/league_photos.py`.

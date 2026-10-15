@@ -152,6 +152,10 @@ class TeamService:
             for index, record in enumerate(records)
         ]
 
+    def form(self, team: str, before: date) -> tuple[TeamResult, ...]:
+        """The team's last five results before ``before``, oldest first."""
+        return tuple(recent_form(self._history, team, before))
+
     def overview(self, season: str, team: str, before: date | None = None) -> TeamOverview:
         """The team's season up to ``before`` (default: the whole season)."""
         end = self.season_end(season)
@@ -174,7 +178,7 @@ class TeamService:
             record=team_statistics(self._history, team, before, season=season),
             home=team_statistics(self._history, team, before, season=season, venue=Venue.HOME),
             away=team_statistics(self._history, team, before, season=season, venue=Venue.AWAY),
-            form=tuple(recent_form(self._history, team, before)),
+            form=self.form(team, before),
             match_statistics=team_match_statistics(self._history, team, before, season=season),
             position=position,
             pre_season_group=self._pre_season_group(season, team),
@@ -188,10 +192,8 @@ class TeamService:
 
         These are the ratings the Elo predictions used: each comes from earlier days only.
         """
-        if self._elo is None:
-            self._elo = run_elo(self._history.league_matches_before(date.max))
         seasons: dict[str, tuple[list[date], list[float]]] = {}
-        for prediction in self._elo.predictions:
+        for prediction in self._elo_run().predictions:
             match = prediction.match
             if team not in (match.home_team, match.away_team):
                 continue
@@ -205,6 +207,17 @@ class TeamService:
             RatingSeason(season=season, dates=tuple(dates), ratings=tuple(ratings))
             for season, (dates, ratings) in seasons.items()
         )
+
+    def rating_before(self, team: str, day: date) -> float:
+        """The team's Elo rating going into ``day``: after its last match before that day."""
+        run = self._elo_run()
+        for prediction in run.predictions:
+            match = prediction.match
+            if match.match_date >= day and team in (match.home_team, match.away_team):
+                return prediction.home_rating if team == match.home_team else prediction.away_rating
+        if team not in run.final_ratings:
+            raise ValueError(f"{team!r} played no matches")
+        return run.final_ratings[team]
 
     def season_groups(self, season: str) -> SeasonGroups:
         """Every team of a season placed in its descriptive group, as in ``overview``."""
@@ -252,6 +265,11 @@ class TeamService:
             self._groups[season] = point_in_time_groups(self._history, season, CLUSTER_COUNT)
         group = self._groups[season][team]
         return PROMOTED_NAME if group is None else GROUP_NAMES[group]
+
+    def _elo_run(self) -> EloRun:
+        if self._elo is None:
+            self._elo = run_elo(self._history.league_matches_before(date.max))
+        return self._elo
 
     def _descriptive(self) -> ProfileClusters:
         if self._clusters is None:

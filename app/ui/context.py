@@ -4,6 +4,7 @@ errors."""
 
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from datetime import date
 from typing import Any
 
 from PySide6.QtWidgets import QMessageBox
@@ -50,6 +51,7 @@ class AppContext:
     comparison: LeagueComparisonService
     preferences: Preferences
     update_data: Callable[[], Any] = update_season  # downloads; returns an UpdateSummary
+    today: Callable[[], date] = date.today  # the matches screen opens on the next match day
     run_task: Runner = run_in_background
     report_error: Callable[[str], None] = field(default=show_error_dialog)
     _leagues: dict[str, LeagueServices] = field(default_factory=dict, init=False, repr=False)

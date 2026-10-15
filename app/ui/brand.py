@@ -3,10 +3,17 @@
 The logo is a monogram on a rounded tile, as a scoreboard app has: the letters P and S, heavy and
 geometric, white on a tile that runs from Barça blue to garnet, and nothing else. The reasons are
 in ``docs/brand.md``.
+
+A team's badge is its club crest when ``assets/crests`` has one (Phase 19, collected from
+Wikipedia by ``tools/crests.py``; the crests belong to the clubs), otherwise its three letters.
 """
 
+import json
+import re
 from dataclasses import dataclass
+from functools import cache
 
+import numpy as np
 from PySide6.QtCore import QPointF, QRectF, Qt
 from PySide6.QtGui import (
     QBrush,
@@ -22,6 +29,7 @@ from PySide6.QtGui import (
 )
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QSizePolicy, QWidget
 
+from app.data.paths import ASSETS_DIR
 from app.services.labels import team_abbreviation
 from app.ui.theme import DISPLAY_FAMILY
 from app.visualization.palette import (
@@ -37,6 +45,13 @@ LOGO_UNITS = 100.0  # the logo is drawn on a 100 x 100 square
 TILE_RADIUS = 23.0  # rounded corners, as macOS draws its icons
 ICON_SIZES = (16, 24, 32, 48, 64, 128, 256, 512, 1024)
 PIXEL_RATIO = 2  # pixmaps are drawn at twice their size, sharp on high-density screens
+CRESTS_DIR = ASSETS_DIR / "crests"  # <crest_slug(team)>.png, at most 128 pixels
+LEAGUE_PHOTOS_DIR = ASSETS_DIR / "leagues"  # <code>.jpg, freely licensed, see sources.json
+# A crest whose pixels are nearly all darker than this luminance vanishes on the dark surfaces
+# (Juventus, Tottenham, Derby...), so it is drawn on a light disc.
+LIGHT_LUMINANCE = 0.25
+LIGHT_SHARE = 0.1
+CREST_DISC = "#E9EDF5"
 
 # Round flags of the leagues' countries: (kind, colours); stripes are listed top to bottom or
 # left to right, a cross is (background, cross)
@@ -200,8 +215,65 @@ def flag_pixmap(code: str, size: int = 22) -> QPixmap:
     return pixmap
 
 
+def crest_slug(team: str) -> str:
+    """The file name of a team's crest: "Nott'm Forest" -> "nott-m-forest"."""
+    return re.sub(r"[^a-z0-9]+", "-", team.lower()).strip("-")
+
+
+@cache
+def crest_image(team: str) -> QImage | None:
+    """The club's crest, or None when there is none for the team."""
+    path = CRESTS_DIR / f"{crest_slug(team)}.png"
+    image = QImage(str(path)) if path.is_file() else QImage()
+    return None if image.isNull() else image
+
+
+@cache
+def league_photo(code: str) -> QImage | None:
+    """The league's photo for the banner of the screens, or None."""
+    path = LEAGUE_PHOTOS_DIR / f"{code}.jpg"
+    image = QImage(str(path)) if path.is_file() else QImage()
+    return None if image.isNull() else image
+
+
+@cache
+def photo_credit(code: str) -> str | None:
+    """The author and licence of the league's photo, as the banner shows them."""
+    path = LEAGUE_PHOTOS_DIR / "sources.json"
+    if not path.is_file():
+        return None
+    for entry in json.loads(path.read_text(encoding="utf-8")):
+        if entry["competition"] == code:
+            return f"Foto: {entry['author']}, {entry['licence']}, Wikimedia Commons"
+    return None
+
+
+def is_dark(image: QImage) -> bool:
+    """True when fewer than ``LIGHT_SHARE`` of the visible pixels are light enough to stand out
+    on the dark surfaces."""
+    rgba = image.convertToFormat(QImage.Format.Format_RGBA8888)
+    width, height = rgba.width(), rgba.height()
+    rows = np.frombuffer(rgba.constBits(), dtype=np.uint8).reshape(height, rgba.bytesPerLine())
+    pixels = rows[:, : width * 4].reshape(height, width, 4).astype(float) / 255
+    visible = pixels[..., 3] > 0.5
+    if not visible.any():
+        return True
+    luminance = pixels[..., :3] @ np.array([0.2126, 0.7152, 0.0722])
+    return float((luminance[visible] > LIGHT_LUMINANCE).mean()) < LIGHT_SHARE
+
+
+@cache
+def _crest_is_dark(team: str) -> bool:
+    crest = crest_image(team)
+    return crest is not None and is_dark(crest)
+
+
 def team_badge(team: str, size: int = 40, highlighted: bool = False) -> QPixmap:
-    """A round badge with the team's three letters; gold-ringed for "your team"."""
+    """The club's crest, or a round badge with the team's three letters; "your team" gets a gold
+    ring. A dark crest sits on a light disc."""
+    crest = crest_image(team)
+    if crest is not None:
+        return _crest_badge(crest, size, highlighted, _crest_is_dark(team))
     pixmap = _blank(size)
     painter = QPainter(pixmap)
     painter.setRenderHint(QPainter.RenderHint.Antialiasing)
@@ -216,6 +288,33 @@ def team_badge(team: str, size: int = 40, highlighted: bool = False) -> QPixmap:
     painter.setPen(QColor(GOLD if highlighted else TEXT))
     centre = Qt.AlignmentFlag.AlignCenter
     painter.drawText(QRectF(0, 0, size, size), centre, team_abbreviation(team))
+    painter.end()
+    return pixmap
+
+
+def _crest_badge(crest: QImage, size: int, highlighted: bool, dark: bool) -> QPixmap:
+    pixmap = _blank(size)
+    painter = QPainter(pixmap)
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+    painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
+    area = QRectF(0, 0, size, size)
+    ring = max(1.5, size / 20)
+    if dark:
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(QColor(CREST_DISC))
+        painter.drawEllipse(QRectF(ring / 2, ring / 2, size - ring, size - ring))
+    if highlighted:
+        painter.setPen(QPen(QColor(GOLD), ring))
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        painter.drawEllipse(QRectF(ring / 2, ring / 2, size - ring, size - ring))
+    if highlighted or dark:
+        area = area.adjusted(size * 0.17, size * 0.17, -size * 0.17, -size * 0.17)
+    scale = min(area.width() / crest.width(), area.height() / crest.height())
+    width, height = crest.width() * scale, crest.height() * scale
+    painter.drawImage(
+        QRectF(area.center().x() - width / 2, area.center().y() - height / 2, width, height),
+        crest,
+    )
     painter.end()
     return pixmap
 

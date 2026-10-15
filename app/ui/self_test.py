@@ -1,9 +1,10 @@
 """A self-test of the whole application: ``python -m app --self-test``, or the packaged app.
 
-It opens the main window off-screen on the real data, uses every screen once through its own
-buttons, draws every chart and returns 0 when everything worked. It checks a freshly built
-package, where the test suite cannot run. The report is printed; a packaged Windows application
-has no console, so there it goes to ``self-test.txt`` in the user's PitchSense folder.
+It opens the main window off-screen on the real data (every league's predictions are prepared
+first), uses every screen once through its own buttons, draws every chart and returns 0 when
+everything worked. It checks a freshly built package, where the test suite cannot run. The
+report is printed; a packaged Windows application has no console, so there it goes to
+``self-test.txt`` in the user's PitchSense folder.
 """
 
 import os
@@ -15,10 +16,13 @@ from PySide6.QtWidgets import QApplication
 
 from app.data.live import copy_bundled_live
 from app.data.paths import copy_bundled_results, user_data_dir
+from app.ui.brand import crest_image, league_photo
 from app.ui.context import AppContext, default_context
 from app.ui.main_window import MainWindow
 from app.ui.theme import apply_theme
 from app.ui.worker import run_now
+
+SHIPPED_CREST = "Barcelona"  # any club of the data; its crest proves the crests were packaged
 
 
 def run_self_test(load_context: Callable[[], AppContext] = default_context) -> int:
@@ -43,39 +47,46 @@ def run_self_test(load_context: Callable[[], AppContext] = default_context) -> i
     checks = {
         "typeface": typeface,
         "SVG icons": b"svg" in QImageReader.supportedImageFormats(),  # the style sheet's icons
-        f"historical predictions ({league.code})": league.predictions.is_prepared,
+        "club crests": crest_image(SHIPPED_CREST) is not None,  # the assets reached the package
+        f"league photo ({league.code})": league_photo(league.code) is not None,
+        f"predictions of every league ({len(context.competitions)})": all(
+            context.league(code).predictions.is_prepared for code in context.competitions
+        ),
         # readable when shipped or downloaded; before a season starts it has no fixtures yet
         f"season in progress ({len(league.catalog.fixtures)} scheduled matches)": (
             league.catalog.live_problem is None
         ),
     }
-    home = window.home
-    if not league.evaluation.has_log:
-        home.backtest_button.click()
-    window.show_page(window.pages.index(home))
-    checks["home"] = home.results_table.rowCount() > 0
-    prediction = window.match_prediction
-    prediction.predict_button.click()  # the first scheduled match, when there is one
-    checks["match prediction"] = prediction.probability_table.rowCount() > 0
-    team = window.team_analysis
+    matches = window.matches
+    window.show_page(window.pages.index(matches))
+    rows = [row for group in matches.groups for row in group.rows]
+    checks["matches"] = bool(rows)
+    if rows:
+        rows[0].click()
+    checks["match page"] = bool(matches.detail.bars.rows)
+    standings = window.standings
+    window.show_page(window.pages.index(standings))
+    checks["standings"] = standings.table.rowCount() > 0
+    team = window.team_page
     completed = [s for s in league.catalog.seasons() if s != league.catalog.current_season]
     team.season_box.setCurrentIndex(team.season_box.findData(completed[-1]))  # it has groups
-    team.show_button.click()
-    checks["team analysis"] = team.standings_table.rowCount() > 0
-    comparison = window.algorithm_comparison
-    window.show_page(window.pages.index(comparison))  # shows the latest results
-    checks["algorithm comparison"] = comparison.metrics_table.rowCount() > 0
-    leagues = window.leagues
+    window.show_page(window.pages.index(team))
+    checks["team page"] = team.answer is not None and bool(team.header.name.text())
+    analysis = window.analysis
+    models, leagues = analysis.models, analysis.leagues
+    if not league.evaluation.has_log:
+        models.backtest_button.click()
     if context.comparison.missing():
         leagues.backtest_button.click()
-    window.show_page(window.pages.index(leagues))
+    window.show_page(window.pages.index(analysis))  # shows the latest results
+    checks["models"] = models.metrics_table.rowCount() > 0
     checks["leagues"] = leagues.models_table.rowCount() == len(context.competitions)
     for name, chart in (
-        ("score chart", prediction.score_chart),
+        ("score chart", matches.detail.score_chart),
         ("Elo chart", team.elo_chart),
         ("team groups chart", team.groups_chart),
-        ("calibration chart", comparison.calibration_chart),
-        ("confusion matrix chart", comparison.confusion_chart),
+        ("calibration chart", models.calibration_chart),
+        ("confusion matrix chart", models.confusion_chart),
         ("skill chart", leagues.skill_chart),
         ("home advantage chart", leagues.home_chart),
     ):

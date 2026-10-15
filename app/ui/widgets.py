@@ -18,6 +18,7 @@ from PySide6.QtGui import (
     QFont,
     QFontMetrics,
     QIcon,
+    QImage,
     QLinearGradient,
     QPainter,
     QPainterPath,
@@ -240,48 +241,66 @@ class BrandStripe(QWidget):
 
 
 class HeroBanner(QWidget):
-    """The head of every screen: a night gradient lit blue and garnet, faint pitch lines, the
-    league as a gold eyebrow with its flag, the screen's name in large capitals and a subtitle."""
+    """The head of every screen: the league's photo (or the pitch lines) under a night gradient
+    lit blue and garnet, the league as a gold eyebrow with its flag, the screen's name in large
+    capitals and a subtitle; the photo's author and licence in the corner."""
 
     def __init__(self) -> None:
         super().__init__()
         self.setFixedHeight(148)
+        self.photo: QImage | None = None
         self.flag_label = QLabel()
         self.eyebrow_label = label(role="eyebrow")
         self.title_label = label(role="title")
         self.subtitle_label = label(role="subtitle", wrap=True)
+        self.credit_label = label(role="credit")
         eyebrow = QHBoxLayout()
         eyebrow.setSpacing(8)
         eyebrow.addWidget(self.flag_label)
         eyebrow.addWidget(self.eyebrow_label)
         eyebrow.addStretch()
+        bottom = QHBoxLayout()
+        bottom.addWidget(self.subtitle_label, stretch=1)
+        bottom.addWidget(self.credit_label, alignment=Qt.AlignmentFlag.AlignBottom)
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(32, 20, 32, 18)
+        layout.setContentsMargins(32, 20, 24, 12)
         layout.setSpacing(2)
         layout.addLayout(eyebrow)
         layout.addWidget(self.title_label)
-        layout.addWidget(self.subtitle_label)
+        layout.addLayout(bottom)
         layout.addStretch()
 
     def show_page(self, title: str, subtitle: str) -> None:
         self.title_label.setText(title.upper())
         self.subtitle_label.setText(subtitle)
 
-    def show_league(self, eyebrow: str, flag: QPixmap | None) -> None:
+    def show_league(
+        self,
+        eyebrow: str,
+        flag: QPixmap | None,
+        photo: QImage | None = None,
+        credit: str | None = None,
+    ) -> None:
         self.eyebrow_label.setText(eyebrow.upper())
         if flag is None:
             self.flag_label.clear()
         else:
             self.flag_label.setPixmap(flag)
+        self.photo = photo
+        self.credit_label.setText(credit or "")
+        self.update()
 
     def paintEvent(self, event) -> None:  # noqa: N802 (Qt's name)
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
         area = QRectF(self.rect())
         night = QLinearGradient(0, 0, area.width(), 0)
         night.setColorAt(0, QColor(NIGHT))
         night.setColorAt(1, QColor("#101A3A"))
         painter.fillRect(area, QBrush(night))
+        if self.photo is not None:
+            self._paint_photo(painter, area)
         for colour, centre, alpha in (
             (BLAU, QPointF(area.width() * 0.08, 0), 120),
             (GRANA, QPointF(area.width() * 0.95, area.height()), 90),
@@ -293,11 +312,33 @@ class HeroBanner(QWidget):
             tint.setAlpha(0)
             glow.setColorAt(1, tint)
             painter.fillRect(area, QBrush(glow))
-        lines = QColor(TEXT)
-        lines.setAlpha(26)
-        paint_pitch(painter, area.adjusted(0, -10, 0, 10), lines)
+        if self.photo is None:
+            lines = QColor(TEXT)
+            lines.setAlpha(26)
+            paint_pitch(painter, area.adjusted(0, -10, 0, 10), lines)
         painter.fillRect(QRectF(0, area.height() - 1, area.width(), 1), QColor(LINE))
         painter.end()
+
+    def _paint_photo(self, painter: QPainter, area: QRectF) -> None:
+        """The photo on the right two thirds, covering the height, fading into the night on the
+        left so the title stays readable."""
+        photo = self.photo
+        box = QRectF(area.width() * 0.3, 0, area.width() * 0.7, area.height())
+        scale = max(box.width() / photo.width(), box.height() / photo.height())
+        source_width, source_height = box.width() / scale, box.height() / scale
+        source = QRectF(
+            (photo.width() - source_width) / 2,
+            (photo.height() - source_height) * 0.45,
+            source_width,
+            source_height,
+        )
+        painter.drawImage(box, photo, source)
+        fade = QLinearGradient(box.left(), 0, box.left() + box.width() * 0.6, 0)
+        start, end = QColor(NIGHT), QColor(NIGHT)
+        end.setAlpha(110)
+        fade.setColorAt(0, start)
+        fade.setColorAt(1, end)
+        painter.fillRect(box, QBrush(fade))
 
 
 class StatTile(QFrame):

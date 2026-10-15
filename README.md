@@ -93,15 +93,14 @@ Cu mediul virtual activat și baza de date construită:
 python -m app
 ```
 
-Liga se alege din panoul din stânga (sau dintr-un card al ecranului Ligi); prima dată când o ligă este afișată, aplicația îi calculează toate predicțiile istorice (aproximativ 7 secunde; bara de stare arată „Predicțiile pentru … sunt gata”). Ultima ligă afișată este redeschisă la următoarea pornire. Ecranele, din bara de sus:
+Liga se alege din panoul din stânga. După pornire, aplicația calculează în fundal predicțiile fiecărei ligi, întâi pe cea aleasă (aproximativ 7 secunde pe ligă; bara de stare arată „Predicțiile pentru … sunt gata”). Ultima ligă afișată este redeschisă la următoarea pornire. Ecranele, din bara de sus:
 
-- **Acasă:** liga pe scurt, modelul cu cel mai mic scor Brier (și dacă avantajul lui este real), echipa ta și rezultatele modelelor;
-- **Predicție:** predicția meciurilor programate ale sezonului în desfășurare (din tot ce s-a jucat până acum), a unui meci jucat sau a oricăror două echipe dintr-un sezon, la o anumită dată, cu graficul probabilităților scorurilor (Poisson);
-- **Echipe:** clasamentul și profilul unei echipe, la final de sezon sau la o anumită dată, evoluția ratingului ei Elo și grupurile K-Means ale sezonului;
-- **Modele:** compararea modelelor ligii, în tabele și în grafice (calibrarea și matricea de confuzie);
-- **Ligi:** cele cinci ligi comparate: caracterul fiecăreia și cât de bine prezic modelele în fiecare.
+- **Meciuri:** meciurile fiecărei zile, din toate ligile, cu stemele cluburilor și probabilitățile modelului ales (implicit regresia logistică); la meciurile jucate, scorul și dacă modelul a nimerit. Un clic pe un meci deschide pagina lui: toate modelele, scorurile probabile (Poisson) și cum vin echipele. „Alt meci…” prezice oricare două echipe ale unui sezon, la o dată aleasă;
+- **Clasament:** clasamentul unui sezon sau la o anumită dată, cu forma fiecărei echipe; un clic pe o echipă îi deschide pagina;
+- **Echipe:** pagina unei echipe: sezonul în cifre, forma, următorul meci și ultimele rezultate, profilul K-Means, ratingul Elo și grupurile;
+- **Analiză:** cum funcționează algoritmii, cum au prezis sezonul în desfășurare, compararea modelelor (tabele, calibrare, matricea de confuzie), comparația celor cinci ligi și sursele datelor și imaginilor.
 
-Butonul auriu **Echipa ta** din dreapta sus păstrează echipa pe care o urmăriți: este evidențiată în clasamente și aleasă din start în ecranele Predicție și Echipe.
+Butonul auriu **Echipa ta** din dreapta sus păstrează echipa pe care o urmăriți: are cardul ei pe ecranul Meciuri, este evidențiată în liste și clasamente și aleasă din start pe ecranul Echipe.
 
 Butonul **Actualizează datele** descarcă rezultatele și calendarul sezonului în desfășurare (câteva secunde, cu internet); restul aplicației funcționează fără internet. Panoul din stânga arată când au fost actualizate datele ultima dată.
 
@@ -158,6 +157,10 @@ Compară ligile între ele:
 ```bash
 python -m app.evaluation.leagues
 ```
+
+### Imaginile
+
+Stemele cluburilor vin de pe Wikipedia, la rezoluție mică (`tools/crests.py`); sunt mărci ale cluburilor, folosite doar ca să recunoști echipele, și rămân în depozitul privat și în pachete. Fotografiile ligilor sunt fotografii libere de pe Wikimedia Commons (`tools/league_photos.py`); autorul și licența lor apar în aplicație. Ambele unelte se rulează doar ca să reîmprospăteze imaginile.
 
 ## Documentație
 

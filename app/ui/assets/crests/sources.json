@@ -1,0 +1,1256 @@
+[
+ {
+  "team": "Aachen",
+  "competition": "D1",
+  "article": "https://en.wikipedia.org/wiki/Alemannia%20Aachen",
+  "file": "https://en.wikipedia.org/wiki/File:Alemannia_Aachen_2010.svg"
+ },
+ {
+  "team": "Ajaccio",
+  "competition": "F1",
+  "article": "https://en.wikipedia.org/wiki/AC%20Ajaccio",
+  "file": "https://en.wikipedia.org/wiki/File:AC_Ajaccio_logo.svg"
+ },
+ {
+  "team": "Ajaccio GFCO",
+  "competition": "F1",
+  "article": "https://en.wikipedia.org/wiki/Gaz%C3%A9lec%20Ajaccio",
+  "file": "https://en.wikipedia.org/wiki/File:Gazelec_Ajaccio_logo.svg"
+ },
+ {
+  "team": "Alaves",
+  "competition": "SP1",
+  "article": "https://en.wikipedia.org/wiki/Deportivo%20Alav%C3%A9s",
+  "file": "https://en.wikipedia.org/wiki/File:Deportivo_Alaves_logo_%282020%29.svg"
+ },
+ {
+  "team": "Almeria",
+  "competition": "SP1",
+  "article": "https://en.wikipedia.org/wiki/UD%20Almer%C3%ADa",
+  "file": "https://en.wikipedia.org/wiki/File:UD_Almeria_logo.svg"
+ },
+ {
+  "team": "Amiens",
+  "competition": "F1",
+  "article": "https://en.wikipedia.org/wiki/Amiens%20SC",
+  "file": "https://en.wikipedia.org/wiki/File:Amiens_SC_logo.svg"
+ },
+ {
+  "team": "Angers",
+  "competition": "F1",
+  "article": "https://en.wikipedia.org/wiki/Angers%20SCO",
+  "file": "https://en.wikipedia.org/wiki/File:Angers_Sporting_Club_de_l%27Ouest_logo.svg"
+ },
+ {
+  "team": "Arles",
+  "competition": "F1",
+  "article": "https://en.wikipedia.org/wiki/AC%20Arl%C3%A9sien",
+  "file": "https://en.wikipedia.org/wiki/File:AC_Arl%C3%A9sien_logo.svg"
+ },
+ {
+  "team": "Arsenal",
+  "competition": "E0",
+  "article": "https://en.wikipedia.org/wiki/Arsenal%20F.C.",
+  "file": "https://en.wikipedia.org/wiki/File:Arsenal_FC.svg"
+ },
+ {
+  "team": "Ascoli",
+  "competition": "I1",
+  "article": "https://en.wikipedia.org/wiki/Ascoli%20Calcio%201898%20FC",
+  "file": "https://en.wikipedia.org/wiki/File:Ascoli_Calcio_1898_logo.svg"
+ },
+ {
+  "team": "Aston Villa",
+  "competition": "E0",
+  "article": "https://en.wikipedia.org/wiki/Aston%20Villa%20F.C.",
+  "file": "https://en.wikipedia.org/wiki/File:Aston_Villa_FC_new_crest.svg"
+ },
+ {
+  "team": "Atalanta",
+  "competition": "I1",
+  "article": "https://en.wikipedia.org/wiki/Atalanta%20BC",
+  "file": "https://en.wikipedia.org/wiki/File:Atalanta_BC_new_logo.svg"
+ },
+ {
+  "team": "Ath Bilbao",
+  "competition": "SP1",
+  "article": "https://en.wikipedia.org/wiki/Athletic%20Bilbao",
+  "file": "https://en.wikipedia.org/wiki/File:Club_Athletic_Bilbao_logo.svg"
+ },
+ {
+  "team": "Ath Madrid",
+  "competition": "SP1",
+  "article": "https://en.wikipedia.org/wiki/Atl%C3%A9tico%20Madrid",
+  "file": "https://en.wikipedia.org/wiki/File:Atletico_Madrid_Logo_2024.svg"
+ },
+ {
+  "team": "Augsburg",
+  "competition": "D1",
+  "article": "https://en.wikipedia.org/wiki/FC%20Augsburg",
+  "file": "https://en.wikipedia.org/wiki/File:FC_Augsburg_logo.svg"
+ },
+ {
+  "team": "Auxerre",
+  "competition": "F1",
+  "article": "https://en.wikipedia.org/wiki/AJ%20Auxerre",
+  "file": "https://en.wikipedia.org/wiki/File:AJAuxerreLogo.svg"
+ },
+ {
+  "team": "Barcelona",
+  "competition": "SP1",
+  "article": "https://en.wikipedia.org/wiki/FC%20Barcelona",
+  "file": "https://en.wikipedia.org/wiki/File:FC_Barcelona_%28crest%29.svg"
+ },
+ {
+  "team": "Bari",
+  "competition": "I1",
+  "article": "https://en.wikipedia.org/wiki/SSC%20Bari",
+  "file": "https://en.wikipedia.org/wiki/File:SSC_Bari_crest.svg"
+ },
+ {
+  "team": "Bastia",
+  "competition": "F1",
+  "article": "https://en.wikipedia.org/wiki/SC%20Bastia",
+  "file": "https://en.wikipedia.org/wiki/File:SC_Bastia_logo_2024.svg"
+ },
+ {
+  "team": "Bayern Munich",
+  "competition": "D1",
+  "article": "https://en.wikipedia.org/wiki/FC%20Bayern%20Munich",
+  "file": "https://en.wikipedia.org/wiki/File:FC_Bayern_M%C3%BCnchen_logo_%282024%29.svg"
+ },
+ {
+  "team": "Benevento",
+  "competition": "I1",
+  "article": "https://en.wikipedia.org/wiki/Benevento%20Calcio",
+  "file": "https://en.wikipedia.org/wiki/File:Benevento_Calcio_logo.svg"
+ },
+ {
+  "team": "Betis",
+  "competition": "SP1",
+  "article": "https://en.wikipedia.org/wiki/Real%20Betis",
+  "file": "https://en.wikipedia.org/wiki/File:Real_Betis_2022_logo.svg"
+ },
+ {
+  "team": "Bielefeld",
+  "competition": "D1",
+  "article": "https://en.wikipedia.org/wiki/Arminia%20Bielefeld",
+  "file": "https://en.wikipedia.org/wiki/File:Arminia_Bielefeld_crest.svg"
+ },
+ {
+  "team": "Birmingham",
+  "competition": "E0",
+  "article": "https://en.wikipedia.org/wiki/Birmingham%20City%20F.C.",
+  "file": "https://en.wikipedia.org/wiki/File:Birmingham_City_FC_logo.svg"
+ },
+ {
+  "team": "Blackburn",
+  "competition": "E0",
+  "article": "https://en.wikipedia.org/wiki/Blackburn%20Rovers%20F.C.",
+  "file": "https://en.wikipedia.org/wiki/File:Blackburn_Rovers.svg"
+ },
+ {
+  "team": "Blackpool",
+  "competition": "E0",
+  "article": "https://en.wikipedia.org/wiki/Blackpool%20F.C.",
+  "file": "https://en.wikipedia.org/wiki/File:Blackpool_FC_logo.svg"
+ },
+ {
+  "team": "Bochum",
+  "competition": "D1",
+  "article": "https://en.wikipedia.org/wiki/VfL%20Bochum",
+  "file": "https://en.wikipedia.org/wiki/File:VfL_Bochum_logo.svg"
+ },
+ {
+  "team": "Bologna",
+  "competition": "I1",
+  "article": "https://en.wikipedia.org/wiki/Bologna%20FC%201909",
+  "file": "https://en.wikipedia.org/wiki/File:Bologna_F.C._1909_logo.svg"
+ },
+ {
+  "team": "Bolton",
+  "competition": "E0",
+  "article": "https://en.wikipedia.org/wiki/Bolton%20Wanderers%20F.C.",
+  "file": "https://en.wikipedia.org/wiki/File:Bolton_Wanderers_FC_logo.svg"
+ },
+ {
+  "team": "Bordeaux",
+  "competition": "F1",
+  "article": "https://en.wikipedia.org/wiki/FC%20Girondins%20de%20Bordeaux",
+  "file": "https://en.wikipedia.org/wiki/File:FC_Girondins_de_Bordeaux_logo.svg"
+ },
+ {
+  "team": "Boulogne",
+  "competition": "F1",
+  "article": "https://en.wikipedia.org/wiki/US%20Boulogne",
+  "file": "https://en.wikipedia.org/wiki/File:US_Boulogne_crest.svg"
+ },
+ {
+  "team": "Bournemouth",
+  "competition": "E0",
+  "article": "https://en.wikipedia.org/wiki/AFC%20Bournemouth",
+  "file": "https://en.wikipedia.org/wiki/File:AFC_Bournemouth_%282013%29.svg"
+ },
+ {
+  "team": "Braunschweig",
+  "competition": "D1",
+  "article": "https://en.wikipedia.org/wiki/Eintracht%20Braunschweig",
+  "file": "https://en.wikipedia.org/wiki/File:Eintracht_Braunschweig_logo.svg"
+ },
+ {
+  "team": "Brentford",
+  "competition": "E0",
+  "article": "https://en.wikipedia.org/wiki/Brentford%20F.C.",
+  "file": "https://en.wikipedia.org/wiki/File:Brentford_FC_crest.svg"
+ },
+ {
+  "team": "Brescia",
+  "competition": "I1",
+  "article": "https://en.wikipedia.org/wiki/Union%20Brescia",
+  "file": "https://en.wikipedia.org/wiki/File:Union_Brescia_crest.svg"
+ },
+ {
+  "team": "Brest",
+  "competition": "F1",
+  "article": "https://en.wikipedia.org/wiki/Stade%20Brestois%2029",
+  "file": "https://en.wikipedia.org/wiki/File:Stade_Brestois_29_logo.svg"
+ },
+ {
+  "team": "Brighton",
+  "competition": "E0",
+  "article": "https://en.wikipedia.org/wiki/Brighton%20%26%20Hove%20Albion%20F.C.",
+  "file": "https://en.wikipedia.org/wiki/File:Brighton_and_Hove_Albion_FC_crest.svg"
+ },
+ {
+  "team": "Burnley",
+  "competition": "E0",
+  "article": "https://en.wikipedia.org/wiki/Burnley%20F.C.",
+  "file": "https://en.wikipedia.org/wiki/File:Burnley_FC_Logo.svg"
+ },
+ {
+  "team": "Cadiz",
+  "competition": "SP1",
+  "article": "https://en.wikipedia.org/wiki/C%C3%A1diz%20CF",
+  "file": "https://en.wikipedia.org/wiki/File:C%C3%A1diz_CF_logo.svg"
+ },
+ {
+  "team": "Caen",
+  "competition": "F1",
+  "article": "https://en.wikipedia.org/wiki/Stade%20Malherbe%20Caen",
+  "file": "https://en.wikipedia.org/wiki/File:SM_Caen_2016_logo.svg"
+ },
+ {
+  "team": "Cagliari",
+  "competition": "I1",
+  "article": "https://en.wikipedia.org/wiki/Cagliari%20Calcio",
+  "file": "https://en.wikipedia.org/wiki/File:Cagliari_Calcio_1920.svg"
+ },
+ {
+  "team": "Cardiff",
+  "competition": "E0",
+  "article": "https://en.wikipedia.org/wiki/Cardiff%20City%20F.C.",
+  "file": "https://en.wikipedia.org/wiki/File:Cardiff_City_crest.svg"
+ },
+ {
+  "team": "Carpi",
+  "competition": "I1",
+  "article": "https://en.wikipedia.org/wiki/AC%20Carpi",
+  "file": "https://en.wikipedia.org/wiki/File:AC_Carpi_crest.svg"
+ },
+ {
+  "team": "Catania",
+  "competition": "I1",
+  "article": "https://en.wikipedia.org/wiki/Catania%20FC",
+  "file": "https://en.wikipedia.org/wiki/File:Logo_CATANIA_FC.svg"
+ },
+ {
+  "team": "Celta",
+  "competition": "SP1",
+  "article": "https://en.wikipedia.org/wiki/RC%20Celta%20de%20Vigo",
+  "file": "https://en.wikipedia.org/wiki/File:RC_Celta_de_Vigo_logo.svg"
+ },
+ {
+  "team": "Cesena",
+  "competition": "I1",
+  "article": "https://en.wikipedia.org/wiki/Cesena%20FC",
+  "file": "https://en.wikipedia.org/wiki/File:Cesena_FC_crest.svg"
+ },
+ {
+  "team": "Charlton",
+  "competition": "E0",
+  "article": "https://en.wikipedia.org/wiki/Charlton%20Athletic%20F.C.",
+  "file": "https://en.wikipedia.org/wiki/File:Charlton_Athletic_FC_crest.svg"
+ },
+ {
+  "team": "Chelsea",
+  "competition": "E0",
+  "article": "https://en.wikipedia.org/wiki/Chelsea%20F.C.",
+  "file": "https://en.wikipedia.org/wiki/File:Chelsea_FC.svg"
+ },
+ {
+  "team": "Chievo",
+  "competition": "I1",
+  "article": "https://en.wikipedia.org/wiki/AC%20ChievoVerona",
+  "file": "https://en.wikipedia.org/wiki/File:A.C._ChievoVerona_logo.svg"
+ },
+ {
+  "team": "Clermont",
+  "competition": "F1",
+  "article": "https://en.wikipedia.org/wiki/Clermont%20Foot%2063",
+  "file": "https://en.wikipedia.org/wiki/File:Clermont_Foot_logo.svg"
+ },
+ {
+  "team": "Como",
+  "competition": "I1",
+  "article": "https://en.wikipedia.org/wiki/Como%201907",
+  "file": "https://en.wikipedia.org/wiki/File:Calcio_Como_-_logo_%28Italy%2C_2019-%29.svg"
+ },
+ {
+  "team": "Cordoba",
+  "competition": "SP1",
+  "article": "https://en.wikipedia.org/wiki/C%C3%B3rdoba%20CF",
+  "file": "https://en.wikipedia.org/wiki/File:C%C3%B3rdoba_CF_logo.svg"
+ },
+ {
+  "team": "Cottbus",
+  "competition": "D1",
+  "article": "https://en.wikipedia.org/wiki/FC%20Energie%20Cottbus",
+  "file": "https://en.wikipedia.org/wiki/File:Logo_Energie_Cottbus.svg"
+ },
+ {
+  "team": "Coventry",
+  "competition": "E0",
+  "article": "https://en.wikipedia.org/wiki/Coventry%20City%20F.C.",
+  "file": "https://en.wikipedia.org/wiki/File:Coventry_City_FC_crest.svg"
+ },
+ {
+  "team": "Cremonese",
+  "competition": "I1",
+  "article": "https://en.wikipedia.org/wiki/US%20Cremonese",
+  "file": "https://en.wikipedia.org/wiki/File:US_Cremonese_logo.svg"
+ },
+ {
+  "team": "Crotone",
+  "competition": "I1",
+  "article": "https://en.wikipedia.org/wiki/FC%20Crotone",
+  "file": "https://en.wikipedia.org/wiki/File:FC_Crotone_logo.svg"
+ },
+ {
+  "team": "Crystal Palace",
+  "competition": "E0",
+  "article": "https://en.wikipedia.org/wiki/Crystal%20Palace%20F.C.",
+  "file": "https://en.wikipedia.org/wiki/File:Crystal_Palace_FC_logo_%282022%29.svg"
+ },
+ {
+  "team": "Darmstadt",
+  "competition": "D1",
+  "article": "https://en.wikipedia.org/wiki/SV%20Darmstadt%2098",
+  "file": "https://en.wikipedia.org/wiki/File:SV_Darmstadt_98_logo.svg"
+ },
+ {
+  "team": "Derby",
+  "competition": "E0",
+  "article": "https://en.wikipedia.org/wiki/Derby%20County%20F.C.",
+  "file": "https://en.wikipedia.org/wiki/File:Derby_County_crest.svg"
+ },
+ {
+  "team": "Dijon",
+  "competition": "F1",
+  "article": "https://en.wikipedia.org/wiki/Dijon%20FCO",
+  "file": "https://en.wikipedia.org/wiki/File:Dijon_FCO_logo.svg"
+ },
+ {
+  "team": "Dortmund",
+  "competition": "D1",
+  "article": "https://en.wikipedia.org/wiki/Borussia%20Dortmund",
+  "file": "https://en.wikipedia.org/wiki/File:Borussia_Dortmund_logo.svg"
+ },
+ {
+  "team": "Duisburg",
+  "competition": "D1",
+  "article": "https://en.wikipedia.org/wiki/MSV%20Duisburg",
+  "file": "https://en.wikipedia.org/wiki/File:Msv_duisburg%28new%29.svg"
+ },
+ {
+  "team": "Eibar",
+  "competition": "SP1",
+  "article": "https://en.wikipedia.org/wiki/SD%20Eibar",
+  "file": "https://en.wikipedia.org/wiki/File:SD_Eibar_logo_2016.svg"
+ },
+ {
+  "team": "Ein Frankfurt",
+  "competition": "D1",
+  "article": "https://en.wikipedia.org/wiki/Eintracht%20Frankfurt",
+  "file": "https://en.wikipedia.org/wiki/File:Eintracht_Frankfurt_crest.svg"
+ },
+ {
+  "team": "Elche",
+  "competition": "SP1",
+  "article": "https://en.wikipedia.org/wiki/Elche%20CF",
+  "file": "https://en.wikipedia.org/wiki/File:Elche_CF_logo.svg"
+ },
+ {
+  "team": "Elversberg",
+  "competition": "D1",
+  "article": "https://en.wikipedia.org/wiki/SV%20Elversberg",
+  "file": "https://en.wikipedia.org/wiki/File:SV_Elversberg_Logo_2021.svg"
+ },
+ {
+  "team": "Empoli",
+  "competition": "I1",
+  "article": "https://en.wikipedia.org/wiki/Empoli%20FC",
+  "file": "https://en.wikipedia.org/wiki/File:Empoli_FC_crest.svg"
+ },
+ {
+  "team": "Espanol",
+  "competition": "SP1",
+  "article": "https://en.wikipedia.org/wiki/RCD%20Espanyol",
+  "file": "https://en.wikipedia.org/wiki/File:RCD_Espanyol_crest.svg"
+ },
+ {
+  "team": "Everton",
+  "competition": "E0",
+  "article": "https://en.wikipedia.org/wiki/Everton%20F.C.",
+  "file": "https://en.wikipedia.org/wiki/File:Everton_FC_logo.svg"
+ },
+ {
+  "team": "Evian Thonon Gaillard",
+  "competition": "F1",
+  "article": "https://en.wikipedia.org/wiki/Thonon%20Evian%20Grand%20Gen%C3%A8ve%20FC",
+  "file": "https://en.wikipedia.org/wiki/File:Thonon_Evian_Grand_Gen%C3%A8ve_FC_logo.svg"
+ },
+ {
+  "team": "FC Koln",
+  "competition": "D1",
+  "article": "https://en.wikipedia.org/wiki/1.%20FC%20K%C3%B6ln",
+  "file": "https://en.wikipedia.org/wiki/File:1._FC_Koeln_Logo_2014%E2%80%93.svg"
+ },
+ {
+  "team": "Fiorentina",
+  "competition": "I1",
+  "article": "https://en.wikipedia.org/wiki/ACF%20Fiorentina",
+  "file": "https://en.wikipedia.org/wiki/File:Logo_ACF_Fiorentina.svg"
+ },
+ {
+  "team": "Fortuna Dusseldorf",
+  "competition": "D1",
+  "article": "https://en.wikipedia.org/wiki/Fortuna%20D%C3%BCsseldorf",
+  "file": "https://en.wikipedia.org/wiki/File:Fortuna_D%C3%BCsseldorf.svg"
+ },
+ {
+  "team": "Freiburg",
+  "competition": "D1",
+  "article": "https://en.wikipedia.org/wiki/SC%20Freiburg",
+  "file": "https://en.wikipedia.org/wiki/File:SC_Freiburg_logo.svg"
+ },
+ {
+  "team": "Frosinone",
+  "competition": "I1",
+  "article": "https://en.wikipedia.org/wiki/Frosinone%20Calcio",
+  "file": "https://en.wikipedia.org/wiki/File:Frosinone_Calcio_logo.svg"
+ },
+ {
+  "team": "Fulham",
+  "competition": "E0",
+  "article": "https://en.wikipedia.org/wiki/Fulham%20F.C.",
+  "file": "https://en.wikipedia.org/wiki/File:Fulham_FC_%28shield%29.svg"
+ },
+ {
+  "team": "Genoa",
+  "competition": "I1",
+  "article": "https://en.wikipedia.org/wiki/Genoa%20CFC",
+  "file": "https://en.wikipedia.org/wiki/File:Genoa_CFC_crest.svg"
+ },
+ {
+  "team": "Getafe",
+  "competition": "SP1",
+  "article": "https://en.wikipedia.org/wiki/Getafe%20CF",
+  "file": "https://en.wikipedia.org/wiki/File:Getafe_logo.svg"
+ },
+ {
+  "team": "Gimnastic",
+  "competition": "SP1",
+  "article": "https://en.wikipedia.org/wiki/Gimn%C3%A0stic%20de%20Tarragona",
+  "file": "https://en.wikipedia.org/wiki/File:Gimn%C3%A0stic_de_Tarragona_logo.svg"
+ },
+ {
+  "team": "Girona",
+  "competition": "SP1",
+  "article": "https://en.wikipedia.org/wiki/Girona%20FC",
+  "file": "https://en.wikipedia.org/wiki/File:Girona_FC_Logo.svg"
+ },
+ {
+  "team": "Granada",
+  "competition": "SP1",
+  "article": "https://en.wikipedia.org/wiki/Granada%20CF",
+  "file": "https://en.wikipedia.org/wiki/File:Logo_of_Granada_Club_de_F%C3%BAtbol.svg"
+ },
+ {
+  "team": "Grenoble",
+  "competition": "F1",
+  "article": "https://en.wikipedia.org/wiki/Grenoble%20Foot%2038",
+  "file": "https://en.wikipedia.org/wiki/File:Grenoble_Foot_38_logo.svg"
+ },
+ {
+  "team": "Greuther Furth",
+  "competition": "D1",
+  "article": "https://en.wikipedia.org/wiki/SpVgg%20Greuther%20F%C3%BCrth",
+  "file": "https://en.wikipedia.org/wiki/File:SpVgg_Greuther_F%C3%BCrth_logo_%282017%29.svg"
+ },
+ {
+  "team": "Guingamp",
+  "competition": "F1",
+  "article": "https://en.wikipedia.org/wiki/En%20Avant%20Guingamp",
+  "file": "https://en.wikipedia.org/wiki/File:En_Avant_Guingamp_logo.svg"
+ },
+ {
+  "team": "Hamburg",
+  "competition": "D1",
+  "article": "https://en.wikipedia.org/wiki/Hamburger%20SV",
+  "file": "https://en.wikipedia.org/wiki/File:Hamburger_SV_logo.svg"
+ },
+ {
+  "team": "Hannover",
+  "competition": "D1",
+  "article": "https://en.wikipedia.org/wiki/Hannover%2096",
+  "file": "https://en.wikipedia.org/wiki/File:Hannover_96_Logo.svg"
+ },
+ {
+  "team": "Hansa Rostock",
+  "competition": "D1",
+  "article": "https://en.wikipedia.org/wiki/FC%20Hansa%20Rostock",
+  "file": "https://en.wikipedia.org/wiki/File:F.C._Hansa_Rostock_Logo.svg"
+ },
+ {
+  "team": "Heidenheim",
+  "competition": "D1",
+  "article": "https://en.wikipedia.org/wiki/1.%20FC%20Heidenheim",
+  "file": "https://en.wikipedia.org/wiki/File:1._FC_Heidenheim_1846.svg"
+ },
+ {
+  "team": "Hercules",
+  "competition": "SP1",
+  "article": "https://en.wikipedia.org/wiki/H%C3%A9rcules%20CF",
+  "file": "https://en.wikipedia.org/wiki/File:Hercules_CF_crest.svg"
+ },
+ {
+  "team": "Hertha",
+  "competition": "D1",
+  "article": "https://en.wikipedia.org/wiki/Hertha%20BSC",
+  "file": "https://en.wikipedia.org/wiki/File:Hertha_BSC_Logo_2012.svg"
+ },
+ {
+  "team": "Hoffenheim",
+  "competition": "D1",
+  "article": "https://en.wikipedia.org/wiki/TSG%201899%20Hoffenheim",
+  "file": "https://en.wikipedia.org/wiki/File:Logo_TSG_Hoffenheim.svg"
+ },
+ {
+  "team": "Holstein Kiel",
+  "competition": "D1",
+  "article": "https://en.wikipedia.org/wiki/Holstein%20Kiel",
+  "file": "https://en.wikipedia.org/wiki/File:Holstein_Kiel_Logo.svg"
+ },
+ {
+  "team": "Huddersfield",
+  "competition": "E0",
+  "article": "https://en.wikipedia.org/wiki/Huddersfield%20Town%20A.F.C.",
+  "file": "https://en.wikipedia.org/wiki/File:Huddersfield_Town_AFC_crest.svg"
+ },
+ {
+  "team": "Huesca",
+  "competition": "SP1",
+  "article": "https://en.wikipedia.org/wiki/SD%20Huesca",
+  "file": "https://en.wikipedia.org/wiki/File:Logo_of_SD_Huesca.svg"
+ },
+ {
+  "team": "Hull",
+  "competition": "E0",
+  "article": "https://en.wikipedia.org/wiki/Hull%20City%20A.F.C.",
+  "file": "https://en.wikipedia.org/wiki/File:Hull_City_A.F.C._logo.svg"
+ },
+ {
+  "team": "Ingolstadt",
+  "competition": "D1",
+  "article": "https://en.wikipedia.org/wiki/FC%20Ingolstadt%2004",
+  "file": "https://en.wikipedia.org/wiki/File:FC_Ingolstadt_04_logo.svg"
+ },
+ {
+  "team": "Inter",
+  "competition": "I1",
+  "article": "https://en.wikipedia.org/wiki/Inter%20Milan",
+  "file": "https://en.wikipedia.org/wiki/File:FC_Internazionale_Milano_2021.svg"
+ },
+ {
+  "team": "Ipswich",
+  "competition": "E0",
+  "article": "https://en.wikipedia.org/wiki/Ipswich%20Town%20F.C.",
+  "file": "https://en.wikipedia.org/wiki/File:Ipswich_Town.svg"
+ },
+ {
+  "team": "Juventus",
+  "competition": "I1",
+  "article": "https://en.wikipedia.org/wiki/Juventus%20FC",
+  "file": "https://en.wikipedia.org/wiki/File:Juventus_FC_-_logo_black_%28Italy%2C_2020%29.svg"
+ },
+ {
+  "team": "Kaiserslautern",
+  "competition": "D1",
+  "article": "https://en.wikipedia.org/wiki/1.%20FC%20Kaiserslautern",
+  "file": "https://en.wikipedia.org/wiki/File:Logo_1_FC_Kaiserslautern.svg"
+ },
+ {
+  "team": "Karlsruhe",
+  "competition": "D1",
+  "article": "https://en.wikipedia.org/wiki/Karlsruher%20SC",
+  "file": "https://en.wikipedia.org/wiki/File:Karlsruher_SC_Logo_2.svg"
+ },
+ {
+  "team": "La Coruna",
+  "competition": "SP1",
+  "article": "https://en.wikipedia.org/wiki/Deportivo%20de%20A%20Coru%C3%B1a",
+  "file": "https://en.wikipedia.org/wiki/File:RC_Deportivo_A_Coru%C3%B1a_logo_2026.svg"
+ },
+ {
+  "team": "Las Palmas",
+  "competition": "SP1",
+  "article": "https://en.wikipedia.org/wiki/UD%20Las%20Palmas",
+  "file": "https://en.wikipedia.org/wiki/File:UD_Las_Palmas_logo.svg"
+ },
+ {
+  "team": "Lazio",
+  "competition": "I1",
+  "article": "https://en.wikipedia.org/wiki/SS%20Lazio",
+  "file": "https://en.wikipedia.org/wiki/File:S.S._Lazio_badge.svg"
+ },
+ {
+  "team": "Le Havre",
+  "competition": "F1",
+  "article": "https://en.wikipedia.org/wiki/Le%20Havre%20AC",
+  "file": "https://en.wikipedia.org/wiki/File:Le_Havre_AC_logo.svg"
+ },
+ {
+  "team": "Le Mans",
+  "competition": "F1",
+  "article": "https://en.wikipedia.org/wiki/Le%20Mans%20FC",
+  "file": "https://en.wikipedia.org/wiki/File:Le_Mans_FC_logo.svg"
+ },
+ {
+  "team": "Lecce",
+  "competition": "I1",
+  "article": "https://en.wikipedia.org/wiki/US%20Lecce",
+  "file": "https://en.wikipedia.org/wiki/File:US_Lecce_crest.svg"
+ },
+ {
+  "team": "Leeds",
+  "competition": "E0",
+  "article": "https://en.wikipedia.org/wiki/Leeds%20United%20F.C.",
+  "file": "https://en.wikipedia.org/wiki/File:Leeds_United_F.C._logo.svg"
+ },
+ {
+  "team": "Leganes",
+  "competition": "SP1",
+  "article": "https://en.wikipedia.org/wiki/CD%20Legan%C3%A9s",
+  "file": "https://en.wikipedia.org/wiki/File:Club_Deportivo_Legan%C3%A9s_logo.svg"
+ },
+ {
+  "team": "Leicester",
+  "competition": "E0",
+  "article": "https://en.wikipedia.org/wiki/Leicester%20City%20F.C.",
+  "file": "https://en.wikipedia.org/wiki/File:Leicester_City_crest.svg"
+ },
+ {
+  "team": "Lens",
+  "competition": "F1",
+  "article": "https://en.wikipedia.org/wiki/RC%20Lens",
+  "file": "https://en.wikipedia.org/wiki/File:RC_Lens_logo.svg"
+ },
+ {
+  "team": "Levante",
+  "competition": "SP1",
+  "article": "https://en.wikipedia.org/wiki/Levante%20UD",
+  "file": "https://en.wikipedia.org/wiki/File:Levante_Uni%C3%B3n_Deportiva%2C_S.A.D._logo.svg"
+ },
+ {
+  "team": "Leverkusen",
+  "competition": "D1",
+  "article": "https://en.wikipedia.org/wiki/Bayer%2004%20Leverkusen",
+  "file": "https://en.wikipedia.org/wiki/File:Bayer_04_Leverkusen_logo.svg"
+ },
+ {
+  "team": "Lille",
+  "competition": "F1",
+  "article": "https://en.wikipedia.org/wiki/Lille%20OSC",
+  "file": "https://en.wikipedia.org/wiki/File:Lille_OSC_2018_logo.svg"
+ },
+ {
+  "team": "Liverpool",
+  "competition": "E0",
+  "article": "https://en.wikipedia.org/wiki/Liverpool%20F.C.",
+  "file": "https://en.wikipedia.org/wiki/File:Liverpool_FC.svg"
+ },
+ {
+  "team": "Livorno",
+  "competition": "I1",
+  "article": "https://en.wikipedia.org/wiki/US%20Livorno%201915",
+  "file": "https://en.wikipedia.org/wiki/File:Livorno-Stemma_semplificato.svg"
+ },
+ {
+  "team": "Lorient",
+  "competition": "F1",
+  "article": "https://en.wikipedia.org/wiki/FC%20Lorient",
+  "file": "https://en.wikipedia.org/wiki/File:FC_Lorient_logo.svg"
+ },
+ {
+  "team": "Luton",
+  "competition": "E0",
+  "article": "https://en.wikipedia.org/wiki/Luton%20Town%20F.C.",
+  "file": "https://en.wikipedia.org/wiki/File:Luton_Town_logo.svg"
+ },
+ {
+  "team": "Lyon",
+  "competition": "F1",
+  "article": "https://en.wikipedia.org/wiki/Olympique%20Lyonnais",
+  "file": "https://en.wikipedia.org/wiki/File:Olympique_Lyonnais_logo.svg"
+ },
+ {
+  "team": "M'gladbach",
+  "competition": "D1",
+  "article": "https://en.wikipedia.org/wiki/Borussia%20M%C3%B6nchengladbach",
+  "file": "https://en.wikipedia.org/wiki/File:Borussia_M%C3%B6nchengladbach_logo.svg"
+ },
+ {
+  "team": "Mainz",
+  "competition": "D1",
+  "article": "https://en.wikipedia.org/wiki/1.%20FSV%20Mainz%2005",
+  "file": "https://en.wikipedia.org/wiki/File:1._FSV_Mainz_05_logo.svg"
+ },
+ {
+  "team": "Malaga",
+  "competition": "SP1",
+  "article": "https://en.wikipedia.org/wiki/M%C3%A1laga%20CF",
+  "file": "https://en.wikipedia.org/wiki/File:M%C3%A1laga_CF.svg"
+ },
+ {
+  "team": "Mallorca",
+  "competition": "SP1",
+  "article": "https://en.wikipedia.org/wiki/RCD%20Mallorca",
+  "file": "https://en.wikipedia.org/wiki/File:Rcd_mallorca.svg"
+ },
+ {
+  "team": "Man City",
+  "competition": "E0",
+  "article": "https://en.wikipedia.org/wiki/Manchester%20City%20F.C.",
+  "file": "https://en.wikipedia.org/wiki/File:Manchester_City_FC_badge.svg"
+ },
+ {
+  "team": "Man United",
+  "competition": "E0",
+  "article": "https://en.wikipedia.org/wiki/Manchester%20United%20F.C.",
+  "file": "https://en.wikipedia.org/wiki/File:Manchester_United_FC_crest.svg"
+ },
+ {
+  "team": "Marseille",
+  "competition": "F1",
+  "article": "https://en.wikipedia.org/wiki/Olympique%20de%20Marseille",
+  "file": "https://en.wikipedia.org/wiki/File:Olympique_de_Marseille_2026_logo.svg"
+ },
+ {
+  "team": "Messina",
+  "competition": "I1",
+  "article": "https://en.wikipedia.org/wiki/ACR%20Messina",
+  "file": "https://en.wikipedia.org/wiki/File:Logo_of_ACR_Messina.svg"
+ },
+ {
+  "team": "Metz",
+  "competition": "F1",
+  "article": "https://en.wikipedia.org/wiki/FC%20Metz",
+  "file": "https://en.wikipedia.org/wiki/File:FC_Metz_2021_Logo.svg"
+ },
+ {
+  "team": "Middlesbrough",
+  "competition": "E0",
+  "article": "https://en.wikipedia.org/wiki/Middlesbrough%20F.C.",
+  "file": "https://en.wikipedia.org/wiki/File:Middlesbrough_FC_crest.svg"
+ },
+ {
+  "team": "Milan",
+  "competition": "I1",
+  "article": "https://en.wikipedia.org/wiki/AC%20Milan",
+  "file": "https://en.wikipedia.org/wiki/File:Logo_of_AC_Milan.svg"
+ },
+ {
+  "team": "Monaco",
+  "competition": "F1",
+  "article": "https://en.wikipedia.org/wiki/AS%20Monaco%20FC",
+  "file": "https://en.wikipedia.org/wiki/File:LogoASMonacoFC2021.svg"
+ },
+ {
+  "team": "Montpellier",
+  "competition": "F1",
+  "article": "https://en.wikipedia.org/wiki/Montpellier%20HSC",
+  "file": "https://en.wikipedia.org/wiki/File:Montpellier_HSC_logo.svg"
+ },
+ {
+  "team": "Monza",
+  "competition": "I1",
+  "article": "https://en.wikipedia.org/wiki/AC%20Monza",
+  "file": "https://en.wikipedia.org/wiki/File:AC_Monza_logo_%282021%29.svg"
+ },
+ {
+  "team": "Murcia",
+  "competition": "SP1",
+  "article": "https://en.wikipedia.org/wiki/Real%20Murcia%20CF",
+  "file": "https://en.wikipedia.org/wiki/File:Real_Murcia_CF_logo.svg"
+ },
+ {
+  "team": "Nancy",
+  "competition": "F1",
+  "article": "https://en.wikipedia.org/wiki/AS%20Nancy%20Lorraine",
+  "file": "https://en.wikipedia.org/wiki/File:AS_Nancy_logo.svg"
+ },
+ {
+  "team": "Nantes",
+  "competition": "F1",
+  "article": "https://en.wikipedia.org/wiki/FC%20Nantes",
+  "file": "https://en.wikipedia.org/wiki/File:Logo_FC_Nantes_%28avec_fond%29_-_2019.svg"
+ },
+ {
+  "team": "Napoli",
+  "competition": "I1",
+  "article": "https://en.wikipedia.org/wiki/SSC%20Napoli",
+  "file": "https://en.wikipedia.org/wiki/File:SSC_Napoli_2025_%28white_and_azure%29.svg"
+ },
+ {
+  "team": "Newcastle",
+  "competition": "E0",
+  "article": "https://en.wikipedia.org/wiki/Newcastle%20United%20F.C.",
+  "file": "https://en.wikipedia.org/wiki/File:Newcastle_United_FC_2026_crest.svg"
+ },
+ {
+  "team": "Nice",
+  "competition": "F1",
+  "article": "https://en.wikipedia.org/wiki/OGC%20Nice",
+  "file": "https://en.wikipedia.org/wiki/File:OGC_Nice_logo.svg"
+ },
+ {
+  "team": "Nimes",
+  "competition": "F1",
+  "article": "https://en.wikipedia.org/wiki/N%C3%AEmes%20Olympique",
+  "file": "https://en.wikipedia.org/wiki/File:N%C3%AEmes_Olympique_2018_logo.svg"
+ },
+ {
+  "team": "Norwich",
+  "competition": "E0",
+  "article": "https://en.wikipedia.org/wiki/Norwich%20City%20F.C.",
+  "file": "https://en.wikipedia.org/wiki/File:Norwich_City_FC_logo.svg"
+ },
+ {
+  "team": "Nott'm Forest",
+  "competition": "E0",
+  "article": "https://en.wikipedia.org/wiki/Nottingham%20Forest%20F.C.",
+  "file": "https://en.wikipedia.org/wiki/File:Nottingham_Forest_F.C._logo.svg"
+ },
+ {
+  "team": "Novara",
+  "competition": "I1",
+  "article": "https://en.wikipedia.org/wiki/Novara%20FC",
+  "file": "https://en.wikipedia.org/wiki/File:Novara_FC_crest.svg"
+ },
+ {
+  "team": "Numancia",
+  "competition": "SP1",
+  "article": "https://en.wikipedia.org/wiki/CD%20Numancia",
+  "file": "https://en.wikipedia.org/wiki/File:CD_Numancia_logo.svg"
+ },
+ {
+  "team": "Nurnberg",
+  "competition": "D1",
+  "article": "https://en.wikipedia.org/wiki/1.%20FC%20N%C3%BCrnberg",
+  "file": "https://en.wikipedia.org/wiki/File:1._FC_N%C3%BCrnberg_logo.svg"
+ },
+ {
+  "team": "Osasuna",
+  "competition": "SP1",
+  "article": "https://en.wikipedia.org/wiki/CA%20Osasuna",
+  "file": "https://en.wikipedia.org/wiki/File:CA_Osasuna_2024_crest.svg"
+ },
+ {
+  "team": "Oviedo",
+  "competition": "SP1",
+  "article": "https://en.wikipedia.org/wiki/Real%20Oviedo",
+  "file": "https://en.wikipedia.org/wiki/File:Real_Oviedo_logo.svg"
+ },
+ {
+  "team": "Paderborn",
+  "competition": "D1",
+  "article": "https://en.wikipedia.org/wiki/SC%20Paderborn%2007",
+  "file": "https://en.wikipedia.org/wiki/File:SC_Paderborn_07_Logo_new.svg"
+ },
+ {
+  "team": "Palermo",
+  "competition": "I1",
+  "article": "https://en.wikipedia.org/wiki/Palermo%20FC",
+  "file": "https://en.wikipedia.org/wiki/File:Palermo_Calcio_logo_%282019%29.svg"
+ },
+ {
+  "team": "Paris FC",
+  "competition": "F1",
+  "article": "https://en.wikipedia.org/wiki/Paris%20FC",
+  "file": "https://en.wikipedia.org/wiki/File:Paris_FCLogo_11-24.png"
+ },
+ {
+  "team": "Paris SG",
+  "competition": "F1",
+  "article": "https://en.wikipedia.org/wiki/Paris%20Saint-Germain%20FC",
+  "file": "https://en.wikipedia.org/wiki/File:Paris_Saint-Germain_F.C..svg"
+ },
+ {
+  "team": "Parma",
+  "competition": "I1",
+  "article": "https://en.wikipedia.org/wiki/Parma%20Calcio%201913",
+  "file": "https://en.wikipedia.org/wiki/File:Logo_Parma_Calcio_1913_%28adozione_2016%29.svg"
+ },
+ {
+  "team": "Pescara",
+  "competition": "I1",
+  "article": "https://en.wikipedia.org/wiki/Delfino%20Pescara%201936",
+  "file": "https://en.wikipedia.org/wiki/File:Delfino_Pescara_logo.svg"
+ },
+ {
+  "team": "Pisa",
+  "competition": "I1",
+  "article": "https://en.wikipedia.org/wiki/Pisa%20SC",
+  "file": "https://en.wikipedia.org/wiki/File:Pisa_SC_crest.svg"
+ },
+ {
+  "team": "Portsmouth",
+  "competition": "E0",
+  "article": "https://en.wikipedia.org/wiki/Portsmouth%20F.C.",
+  "file": "https://en.wikipedia.org/wiki/File:Portsmouth_FC_logo.svg"
+ },
+ {
+  "team": "QPR",
+  "competition": "E0",
+  "article": "https://en.wikipedia.org/wiki/Queens%20Park%20Rangers%20F.C.",
+  "file": "https://en.wikipedia.org/wiki/File:Queens_Park_Rangers_crest.svg"
+ },
+ {
+  "team": "RB Leipzig",
+  "competition": "D1",
+  "article": "https://en.wikipedia.org/wiki/RB%20Leipzig",
+  "file": "https://en.wikipedia.org/wiki/File:RB_Leipzig_2014_logo.svg"
+ },
+ {
+  "team": "Reading",
+  "competition": "E0",
+  "article": "https://en.wikipedia.org/wiki/Reading%20F.C.",
+  "file": "https://en.wikipedia.org/wiki/File:Reading_FC.svg"
+ },
+ {
+  "team": "Real Madrid",
+  "competition": "SP1",
+  "article": "https://en.wikipedia.org/wiki/Real%20Madrid%20CF",
+  "file": "https://en.wikipedia.org/wiki/File:Real_Madrid_CF.svg"
+ },
+ {
+  "team": "Recreativo",
+  "competition": "SP1",
+  "article": "https://en.wikipedia.org/wiki/Recreativo%20de%20Huelva",
+  "file": "https://en.wikipedia.org/wiki/File:Recreativo_huelva_crest.png"
+ },
+ {
+  "team": "Reggina",
+  "competition": "I1",
+  "article": "https://en.wikipedia.org/wiki/AS%20Reggina%201914",
+  "file": "https://en.wikipedia.org/wiki/File:AS_Reggina_1914_crest.svg"
+ },
+ {
+  "team": "Reims",
+  "competition": "F1",
+  "article": "https://en.wikipedia.org/wiki/Stade%20de%20Reims",
+  "file": "https://en.wikipedia.org/wiki/File:Stade_de_Reims_logo.svg"
+ },
+ {
+  "team": "Rennes",
+  "competition": "F1",
+  "article": "https://en.wikipedia.org/wiki/Stade%20Rennais%20FC",
+  "file": "https://en.wikipedia.org/wiki/File:Stade_Rennais_FC.svg"
+ },
+ {
+  "team": "Roma",
+  "competition": "I1",
+  "article": "https://en.wikipedia.org/wiki/AS%20Roma",
+  "file": "https://en.wikipedia.org/wiki/File:AS_Roma_logo_%282017%29.svg"
+ },
+ {
+  "team": "Salernitana",
+  "competition": "I1",
+  "article": "https://en.wikipedia.org/wiki/US%20Salernitana%201919",
+  "file": "https://en.wikipedia.org/wiki/File:US_Salernitana_1919_logo.svg"
+ },
+ {
+  "team": "Sampdoria",
+  "competition": "I1",
+  "article": "https://en.wikipedia.org/wiki/UC%20Sampdoria",
+  "file": "https://en.wikipedia.org/wiki/File:U.C._Sampdoria_logo.svg"
+ },
+ {
+  "team": "Santander",
+  "competition": "SP1",
+  "article": "https://en.wikipedia.org/wiki/Racing%20de%20Santander",
+  "file": "https://en.wikipedia.org/wiki/File:Racing_de_Santander_logo.svg"
+ },
+ {
+  "team": "Sassuolo",
+  "competition": "I1",
+  "article": "https://en.wikipedia.org/wiki/US%20Sassuolo%20Calcio",
+  "file": "https://en.wikipedia.org/wiki/File:US_Sassuolo_Calcio_logo.svg"
+ },
+ {
+  "team": "Schalke 04",
+  "competition": "D1",
+  "article": "https://en.wikipedia.org/wiki/FC%20Schalke%2004",
+  "file": "https://en.wikipedia.org/wiki/File:FC_Schalke_04_Logo.svg"
+ },
+ {
+  "team": "Sedan",
+  "competition": "F1",
+  "article": "https://en.wikipedia.org/wiki/CS%20Sedan%20Ardennes",
+  "file": "https://en.wikipedia.org/wiki/File:CS_Sedan_Ardennes_logo.svg"
+ },
+ {
+  "team": "Sevilla",
+  "competition": "SP1",
+  "article": "https://en.wikipedia.org/wiki/Sevilla%20FC",
+  "file": "https://en.wikipedia.org/wiki/File:Sevilla_FC_logo.svg"
+ },
+ {
+  "team": "Sheffield United",
+  "competition": "E0",
+  "article": "https://en.wikipedia.org/wiki/Sheffield%20United%20F.C.",
+  "file": "https://en.wikipedia.org/wiki/File:Sheffield_United_FC_logo.svg"
+ },
+ {
+  "team": "Siena",
+  "competition": "I1",
+  "article": "https://en.wikipedia.org/wiki/Siena%20FC",
+  "file": "https://en.wikipedia.org/wiki/File:Siena_FC_SSD_crest.svg"
+ },
+ {
+  "team": "Sochaux",
+  "competition": "F1",
+  "article": "https://en.wikipedia.org/wiki/FC%20Sochaux-Montb%C3%A9liard",
+  "file": "https://en.wikipedia.org/wiki/File:FC_Sochaux-Montbeliard_logo.svg"
+ },
+ {
+  "team": "Sociedad",
+  "competition": "SP1",
+  "article": "https://en.wikipedia.org/wiki/Real%20Sociedad",
+  "file": "https://en.wikipedia.org/wiki/File:Real_Sociedad_logo.svg"
+ },
+ {
+  "team": "Southampton",
+  "competition": "E0",
+  "article": "https://en.wikipedia.org/wiki/Southampton%20F.C.",
+  "file": "https://en.wikipedia.org/wiki/File:FC_Southampton.svg"
+ },
+ {
+  "team": "Sp Gijon",
+  "competition": "SP1",
+  "article": "https://en.wikipedia.org/wiki/Sporting%20de%20Gij%C3%B3n",
+  "file": "https://en.wikipedia.org/wiki/File:Real_Sporting_de_Gijon.svg"
+ },
+ {
+  "team": "Spal",
+  "competition": "I1",
+  "article": "https://en.wikipedia.org/wiki/Ars%20et%20Labor%20Ferrara%20Calcio",
+  "file": "https://en.wikipedia.org/wiki/File:SPAL_Ferrara.svg"
+ },
+ {
+  "team": "Spezia",
+  "competition": "I1",
+  "article": "https://en.wikipedia.org/wiki/Spezia%20Calcio",
+  "file": "https://en.wikipedia.org/wiki/File:Spezia_Calcio_crest.svg"
+ },
+ {
+  "team": "St Etienne",
+  "competition": "F1",
+  "article": "https://en.wikipedia.org/wiki/AS%20Saint-%C3%89tienne",
+  "file": "https://en.wikipedia.org/wiki/File:AS_Saint-%C3%89tienne_logo.svg"
+ },
+ {
+  "team": "St Pauli",
+  "competition": "D1",
+  "article": "https://en.wikipedia.org/wiki/FC%20St.%20Pauli",
+  "file": "https://en.wikipedia.org/wiki/File:FC_St._Pauli_logo_%282018%29.svg"
+ },
+ {
+  "team": "Stoke",
+  "competition": "E0",
+  "article": "https://en.wikipedia.org/wiki/Stoke%20City%20F.C.",
+  "file": "https://en.wikipedia.org/wiki/File:Stoke_City_FC_crest_2026.svg"
+ },
+ {
+  "team": "Strasbourg",
+  "competition": "F1",
+  "article": "https://en.wikipedia.org/wiki/RC%20Strasbourg%20Alsace",
+  "file": "https://en.wikipedia.org/wiki/File:Racing_Club_de_Strasbourg_logo.svg"
+ },
+ {
+  "team": "Stuttgart",
+  "competition": "D1",
+  "article": "https://en.wikipedia.org/wiki/VfB%20Stuttgart",
+  "file": "https://en.wikipedia.org/wiki/File:VfB_Stuttgart_1893_Logo.svg"
+ },
+ {
+  "team": "Sunderland",
+  "competition": "E0",
+  "article": "https://en.wikipedia.org/wiki/Sunderland%20A.F.C.",
+  "file": "https://en.wikipedia.org/wiki/File:Logo_Sunderland.svg"
+ },
+ {
+  "team": "Swansea",
+  "competition": "E0",
+  "article": "https://en.wikipedia.org/wiki/Swansea%20City%20A.F.C.",
+  "file": "https://en.wikipedia.org/wiki/File:Swansea_City_AFC_logo.svg"
+ },
+ {
+  "team": "Tenerife",
+  "competition": "SP1",
+  "article": "https://en.wikipedia.org/wiki/CD%20Tenerife",
+  "file": "https://en.wikipedia.org/wiki/File:CD_Tenerife_emblem.svg"
+ },
+ {
+  "team": "Torino",
+  "competition": "I1",
+  "article": "https://en.wikipedia.org/wiki/Torino%20FC",
+  "file": "https://en.wikipedia.org/wiki/File:Torino_FC_Logo.svg"
+ },
+ {
+  "team": "Tottenham",
+  "competition": "E0",
+  "article": "https://en.wikipedia.org/wiki/Tottenham%20Hotspur%20F.C.",
+  "file": "https://en.wikipedia.org/wiki/File:Tottenham_Hotspur.svg"
+ },
+ {
+  "team": "Toulouse",
+  "competition": "F1",
+  "article": "https://en.wikipedia.org/wiki/Toulouse%20FC",
+  "file": "https://en.wikipedia.org/wiki/File:Toulouse_FC_2018_logo.svg"
+ },
+ {
+  "team": "Troyes",
+  "competition": "F1",
+  "article": "https://en.wikipedia.org/wiki/ES%20Troyes%20AC",
+  "file": "https://en.wikipedia.org/wiki/File:ESTAC_Troyes_Logo.svg"
+ },
+ {
+  "team": "Udinese",
+  "competition": "I1",
+  "article": "https://en.wikipedia.org/wiki/Udinese%20Calcio",
+  "file": "https://en.wikipedia.org/wiki/File:Udinese_Calcio_logo.svg"
+ },
+ {
+  "team": "Union Berlin",
+  "competition": "D1",
+  "article": "https://en.wikipedia.org/wiki/1.%20FC%20Union%20Berlin",
+  "file": "https://en.wikipedia.org/wiki/File:1._FC_Union_Berlin_Logo.svg"
+ },
+ {
+  "team": "Valencia",
+  "competition": "SP1",
+  "article": "https://en.wikipedia.org/wiki/Valencia%20CF",
+  "file": "https://en.wikipedia.org/wiki/File:Valenciacf.svg"
+ },
+ {
+  "team": "Valenciennes",
+  "competition": "F1",
+  "article": "https://en.wikipedia.org/wiki/Valenciennes%20FC",
+  "file": "https://en.wikipedia.org/wiki/File:Valenciennes_FC.svg"
+ },
+ {
+  "team": "Valladolid",
+  "competition": "SP1",
+  "article": "https://en.wikipedia.org/wiki/Real%20Valladolid",
+  "file": "https://en.wikipedia.org/wiki/File:Real_Valladolid_CF_crest.svg"
+ },
+ {
+  "team": "Vallecano",
+  "competition": "SP1",
+  "article": "https://en.wikipedia.org/wiki/Rayo%20Vallecano",
+  "file": "https://en.wikipedia.org/wiki/File:Rayo_Vallecano_logo.svg"
+ },
+ {
+  "team": "Venezia",
+  "competition": "I1",
+  "article": "https://en.wikipedia.org/wiki/Venezia%20FC",
+  "file": "https://en.wikipedia.org/wiki/File:Venezia_FC_crest.svg"
+ },
+ {
+  "team": "Verona",
+  "competition": "I1",
+  "article": "https://en.wikipedia.org/wiki/Hellas%20Verona%20FC",
+  "file": "https://en.wikipedia.org/wiki/File:Hellas_Verona_FC_logo_%282020%29.svg"
+ },
+ {
+  "team": "Villarreal",
+  "competition": "SP1",
+  "article": "https://en.wikipedia.org/wiki/Villarreal%20CF",
+  "file": "https://en.wikipedia.org/wiki/File:Villarreal_CF_logo-en.svg"
+ },
+ {
+  "team": "Watford",
+  "competition": "E0",
+  "article": "https://en.wikipedia.org/wiki/Watford%20F.C.",
+  "file": "https://en.wikipedia.org/wiki/File:Watford.svg"
+ },
+ {
+  "team": "Werder Bremen",
+  "competition": "D1",
+  "article": "https://en.wikipedia.org/wiki/SV%20Werder%20Bremen",
+  "file": "https://en.wikipedia.org/wiki/File:SV-Werder-Bremen-Logo.svg"
+ },
+ {
+  "team": "West Brom",
+  "competition": "E0",
+  "article": "https://en.wikipedia.org/wiki/West%20Bromwich%20Albion%20F.C.",
+  "file": "https://en.wikipedia.org/wiki/File:West_Bromwich_Albion.svg"
+ },
+ {
+  "team": "West Ham",
+  "competition": "E0",
+  "article": "https://en.wikipedia.org/wiki/West%20Ham%20United%20F.C.",
+  "file": "https://en.wikipedia.org/wiki/File:West_Ham_United_FC_logo.svg"
+ },
+ {
+  "team": "Wigan",
+  "competition": "E0",
+  "article": "https://en.wikipedia.org/wiki/Wigan%20Athletic%20F.C.",
+  "file": "https://en.wikipedia.org/wiki/File:Wigan_Athletic.svg"
+ },
+ {
+  "team": "Wolfsburg",
+  "competition": "D1",
+  "article": "https://en.wikipedia.org/wiki/VfL%20Wolfsburg",
+  "file": "https://en.wikipedia.org/wiki/File:VfL_Wolfsburg_logo_2026.svg"
+ },
+ {
+  "team": "Wolves",
+  "competition": "E0",
+  "article": "https://en.wikipedia.org/wiki/Wolverhampton%20Wanderers%20F.C.",
+  "file": "https://en.wikipedia.org/wiki/File:Wolverhampton_Wanderers_FC_crest.svg"
+ },
+ {
+  "team": "Xerez",
+  "competition": "SP1",
+  "article": "https://en.wikipedia.org/wiki/Xerez%20CD",
+  "file": "https://en.wikipedia.org/wiki/File:Xerez_CD_logo.png"
+ },
+ {
+  "team": "Zaragoza",
+  "competition": "SP1",
+  "article": "https://en.wikipedia.org/wiki/Real%20Zaragoza",
+  "file": "https://en.wikipedia.org/wiki/File:Real_Zaragoza_logo.svg"
+ }
+]

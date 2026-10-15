@@ -24,15 +24,19 @@ def test_every_check_passes_on_working_data(make_app_context, three_seasons, cap
     assert run_self_test(lambda: app_context) == 0
 
     lines = capsys.readouterr().out.splitlines()
-    assert len(lines) == 21
+    assert len(lines) == 23
     assert all(line.startswith("ok") for line in lines)
     assert "ok      season in progress (0 scheduled matches)" in lines
     for check in (
         "typeface",
         "SVG icons",
+        "club crests",
+        "league photo (SP1)",
+        "predictions of every league (1)",
+        "match page",
         "calibration chart",
         "home advantage chart",
-        "Ligi screen drawn",
+        "Analiză screen drawn",
     ):
         assert any(check in line for line in lines)
     # The missing logs were built by the test.
@@ -45,7 +49,7 @@ def test_the_season_in_progress_is_checked(make_app_context, database, live_dir,
     # lines about the season in progress and the screens that show it are read here.
     run_self_test(lambda: make_app_context(database, live_dir=live_dir))
     lines = capsys.readouterr().out.splitlines()
-    for check in ("season in progress (5 scheduled matches)", "match prediction"):
+    for check in ("season in progress (5 scheduled matches)", "matches", "match page"):
         assert f"ok      {check}" in lines
     assert "ok      team groups chart" in lines  # drawn for the latest completed season
 

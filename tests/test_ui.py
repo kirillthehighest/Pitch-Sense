@@ -6,16 +6,22 @@ from datetime import date
 import pytest
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
-from PySide6.QtCore import QCoreApplication, QDate, Qt, QThread
-from PySide6.QtGui import QColor
+from PySide6.QtCore import QCoreApplication, Qt, QThread
+from PySide6.QtGui import QColor, QImage
 
 from app import __version__
 from app.data.live import update_live_data
+from app.data.models import Outcome
+from app.prediction.outputs import ModelName
 from app.services.preferences import FavouriteTeam, Preferences
+from app.services.teams import FIRST_SEASON_NAME, GROUP_NAMES
+from app.ui.analysis import TABS
 from app.ui.brand import flag_pixmap
 from app.ui.main_window import UPDATE, MainWindow
-from app.ui.match_prediction import SAME_TEAM
-from app.ui.team_analysis import GROUPS_IN_PROGRESS, GROUPS_NEED_WHOLE_SEASON, SEASON_NOT_FINISHED
+from app.ui.match_detail import MODEL_EXPLANATIONS
+from app.ui.match_widgets import DayStrip, MatchRow, chip_text
+from app.ui.matches import NO_MATCHES, next_match_day
+from app.ui.team_page import GROUPS_IN_PROGRESS, SEASON_NOT_FINISHED
 from app.ui.widgets import (
     BarRow,
     ChartView,
@@ -28,10 +34,10 @@ from app.ui.widgets import (
     make_table,
 )
 from app.ui.worker import run_in_background, run_now
-from app.visualization.palette import GOLD_TINT
+from app.visualization.palette import GOLD_TINT, LOSS, WIN
 from tests.conftest import LIVE_TODAY
 
-PAGE_TITLES = ["ACASĂ", "PREDICȚIE", "ECHIPE", "MODELE", "LIGI"]
+PAGE_TITLES = ["MECIURI", "CLASAMENT", "ECHIPE", "ANALIZĂ"]
 MODEL_NAMES = [
     "Elo",
     "Poisson",
@@ -39,10 +45,12 @@ MODEL_NAMES = [
     "Frecvențele trecute",
     "Mereu victoria gazdelor",
 ]
+OUTCOME_MODELS = ["Elo", "Poisson", "Regresie logistică"]
 
 
 @pytest.fixture
 def window(app_context):
+    app_context.today = lambda: date(2007, 9, 4)  # in the middle of 2007-08
     main_window = MainWindow(app_context)
     yield main_window
     main_window.close()
@@ -68,35 +76,37 @@ def chart_legend(chart_view):
     return [text.get_text() for text in chart_view.figure.axes[0].get_legend().get_texts()]
 
 
+def day_rows(page):
+    return [row for group in page.groups for row in group.rows]
+
+
 # --- the window ---
 
 
 def test_charts_wait_for_results(window):
     charts = (
-        window.match_prediction.score_chart,
-        window.team_analysis.elo_chart,
-        window.team_analysis.groups_chart,
-        window.algorithm_comparison.calibration_chart,
-        window.algorithm_comparison.confusion_chart,
-        window.leagues.skill_chart,
-        window.leagues.home_chart,
+        window.matches.detail.score_chart,
+        window.analysis.models.calibration_chart,
+        window.analysis.models.confusion_chart,
+        window.analysis.leagues.skill_chart,
+        window.analysis.leagues.home_chart,
     )
 
     assert all(chart.figure is None for chart in charts)
     assert all(chart.message_label.text() for chart in charts)
 
 
-def test_the_sidebar_leads_to_five_screens_and_the_header_names_them(window):
+def test_the_top_bar_leads_to_four_screens_and_the_header_names_them(window):
     assert [button.text() for button in window.nav_buttons] == PAGE_TITLES
     assert window.stack.currentIndex() == 0
-    assert window.page_title.text() == "ACASĂ"
+    assert window.page_title.text() == "MECIURI"
 
     window.nav_buttons[3].click()
 
     assert window.stack.currentIndex() == 3
     assert window.nav_buttons[3].isChecked() and not window.nav_buttons[0].isChecked()
-    assert window.page_title.text() == "MODELE"
-    assert window.page_subtitle.text() == window.algorithm_comparison.subtitle
+    assert window.page_title.text() == "ANALIZĂ"
+    assert window.page_subtitle.text() == window.analysis.subtitle
 
 
 def test_the_window_prepares_the_predictions_of_the_league(window, app_context):
@@ -104,6 +114,9 @@ def test_the_window_prepares_the_predictions_of_the_league(window, app_context):
     assert window.league_buttons["SP1"].isChecked()
     assert window.hero.eyebrow_label.text() == "LA LIGA · SPANIA · 2006/07–2007/08"
     assert not window.hero.flag_label.pixmap().isNull()
+    assert window.hero.photo is not None  # Camp Nou
+    assert window.hero.credit_label.text().startswith("Foto: ")
+    assert window.hero.credit_label.text().endswith("Wikimedia Commons")
     assert app_context.league("SP1").predictions.is_prepared
     assert window.statusBar().currentMessage() == "Predicțiile pentru La Liga sunt gata"
     assert window.windowTitle().startswith("PitchSense")
@@ -111,25 +124,167 @@ def test_the_window_prepares_the_predictions_of_the_league(window, app_context):
     assert window.version_note.text().startswith(f"PitchSense {__version__}\n")
 
 
-# --- Acasă ---
+# --- Meciuri ---
 
 
-def test_home_summarizes_the_league_and_offers_the_backtest(window):
-    home = window.home
-    values = {name: tile.value_label.text() for name, tile in home.stat_tiles.items()}
+def test_the_matches_open_on_the_next_day_with_matches(window):
+    page = window.matches
 
-    assert values == {"Meciuri": "24", "Sezoane": "2", "Echipe": "4", "Meciuri evaluate": "–"}
-    assert home.stat_tiles["Meciuri"].name_label.text() == "MECIURI"
-    assert home.results_table.isHidden()
-    assert home.best_label.text() == "–"
-    home.backtest_button.click()
+    assert page.day == date(2007, 9, 4)  # "today" has a match
+    assert page.day_label.text() == "AZI · MAR. 4 SEPT."
+    assert [chip.isChecked() for chip in page.day_strip.chips] == [False] * 3 + [True] + [False] * 3
+    assert page.day_strip.chips[3].text() == "AZI\n4 SEPT."
+    (row,) = day_rows(page)
+    assert (row.forecast.home_team, row.forecast.away_team) == ("Bravo", "Alpha")
+    assert row.model is ModelName.LOGISTIC_REGRESSION  # the default model
+    assert page.groups[0].code == "SP1"
+    assert next_match_day([date(2007, 9, 1), date(2007, 9, 6)], date(2007, 9, 4)) == date(
+        2007, 9, 6
+    )
+    assert next_match_day([date(2007, 9, 1)], date(2007, 9, 4)) == date(2007, 9, 1)
 
-    assert home.stat_tiles["Meciuri evaluate"].value_label.text() == "12"
-    assert not home.results_table.isHidden()
-    assert home.backtest_button.isHidden()
-    assert cells(home.results_table, 0) == MODEL_NAMES
-    assert home.best_label.text() in MODEL_NAMES[:3]
-    assert home.results_label.text().startswith("12 meciuri din sezoanele 2007/08–2007/08")
+
+def test_a_played_match_shows_its_score_and_whether_the_model_was_right(window):
+    page = window.matches
+    page.show_day(date(2007, 9, 3))
+
+    (row,) = day_rows(page)
+
+    played = row.forecast.played
+    assert row.status_text == "Final"
+    prediction = row.forecast.of(ModelName.LOGISTIC_REGRESSION)
+    assert row.hit == (prediction.probabilities.most_likely == played.result)
+    assert not row.grab().isNull()
+
+
+def test_a_played_match_says_right_or_wrong_with_a_shape_and_a_colour(window):
+    window.matches.show_day(date(2007, 9, 3))
+    forecast = day_rows(window.matches)[0].forecast
+    for model in ModelName:
+        row = MatchRow(forecast, model)
+        row.resize(700, MatchRow.HEIGHT)
+        image = row.grab().toImage()
+        best = (Outcome.HOME_WIN, Outcome.DRAW, Outcome.AWAY_WIN).index(
+            forecast.of(model).probabilities.most_likely
+        )
+        width = MatchRow.PROBABILITY_WIDTH
+        chip_left = 700 - 12 - 3 * width - 2 * 6 + best * (width + 6)
+        mark = image.pixelColor(round(chip_left + width - 1), round(MatchRow.HEIGHT / 2 - 15 - 4))
+
+        assert mark.name() == (WIN if row.hit else LOSS).lower()
+
+
+def test_the_chosen_model_fills_the_list(window):
+    page = window.matches
+
+    page.model_box.setCurrentText("Elo")
+
+    assert all(row.model is ModelName.ELO for row in day_rows(page))
+
+
+def test_the_day_strip_moves_a_week_at_a_time(window):
+    page = window.matches
+
+    page.day_strip.later_button.click()
+
+    assert page.day == date(2007, 9, 11)
+    assert page.day_strip.chips[3].isChecked()
+    page.day_strip.chips[0].click()
+    assert page.day == date(2007, 9, 8)
+    page.show_day(date(2007, 10, 20))
+    assert day_rows(page) == []
+    assert not page.empty_label.isHidden()
+    assert page.empty_label.text() == NO_MATCHES
+    assert page.day_strip.chips[3].property("empty") is True
+
+
+def test_a_match_page_shows_every_model_its_scores_and_both_teams(window):
+    page = window.matches
+    page.show_day(date(2007, 9, 3))
+    (row,) = day_rows(page)
+
+    row.click()
+
+    detail = page.detail
+    played = row.forecast.played
+    assert page.views.currentIndex() == 1
+    assert [bar.label for bar in detail.bars.rows] == OUTCOME_MODELS
+    assert all(bar.home + bar.draw + bar.away == pytest.approx(1) for bar in detail.bars.rows)
+    assert detail.hero.score.text() == f"{played.home_goals} – {played.away_goals}"
+    assert detail.hero.status.text() == "FINAL"
+    assert detail.hero.eyebrow.text() == "LA LIGA · 2007/08 · 03.09.2007"
+    assert detail.verdict.text().startswith(f"Rezultat: {played.home_goals}–{played.away_goals}")
+    assert detail.knowledge.text() == (
+        "Predicțiile au fost făcute din meciurile jucate înainte de 03.09.2007, fără să știe "
+        "rezultatul."
+    )
+    assert len(detail.explanations) == len(MODEL_EXPLANATIONS) == 3
+    assert detail.scores_table.rowCount() == 5
+    assert detail.goals_label.text().startswith("Goluri așteptate:")
+    assert chart_title(detail.score_chart).startswith("Probabilitatea fiecărui scor (Poisson")
+    assert detail.home_column.place.text().startswith("Locul ")
+    assert len(detail.home_column.form.results) <= 5
+    assert detail.home_column.rating.text().startswith("Rating Elo: ")
+
+    detail.back_button.click()
+    assert page.views.currentIndex() == 0
+
+
+def test_a_team_name_on_a_match_page_opens_the_team(window):
+    page = window.matches
+    page.show_day(date(2007, 9, 3))
+    day_rows(page)[0].click()
+
+    page.detail.away_column.name_button.click()
+
+    assert window.stack.currentIndex() == window.pages.index(window.team_page)
+    assert window.team_page.team_box.currentText() == page.detail.forecast.away_team
+
+
+def test_predicting_a_hypothetical_fixture(window):
+    dialog = window.matches.open_hypothetical()
+    dialog.season_box.setCurrentText("2007/08")
+    dialog.home_box.setCurrentText("Alpha")
+    dialog.away_box.setCurrentText("Bravo")
+    dialog.date_edit.setDate(date(2007, 9, 5))
+
+    dialog.predict_button.click()
+
+    detail = window.matches.detail
+    assert window.matches.views.currentIndex() == 1
+    assert detail.knowledge.text() == (
+        "Meci ipotetic: predicțiile folosesc meciurile jucate înainte de 05.09.2007."
+    )
+    assert detail.hero.status.text() == "MECI IPOTETIC"
+    assert detail.hero.score.text() == "VS"
+    assert len(detail.bars.rows) == 3
+
+
+def test_a_team_cannot_play_itself(window, errors):
+    dialog = window.matches.open_hypothetical()
+    dialog.home_box.setCurrentText("Alpha")
+    dialog.away_box.setCurrentText("Alpha")
+
+    dialog.predict_button.click()
+
+    assert dialog.status.text() == "Alege două echipe diferite."
+    assert window.matches.views.currentIndex() == 0
+    assert dialog.predict_button.isEnabled()
+    assert errors == []
+
+
+def test_a_failed_prediction_is_reported_not_crashed(window, app_context, errors, monkeypatch):
+    def fail(*_):
+        raise ValueError("no such fixture")
+
+    monkeypatch.setattr(app_context.league("SP1").predictions, "predict", fail)
+    dialog = window.matches.open_hypothetical()
+
+    dialog.predict_button.click()
+
+    assert errors == ["no such fixture"]
+    assert dialog.predict_button.isEnabled()
+    assert dialog.status.text() == ""
 
 
 # --- Echipa ta ---
@@ -145,29 +300,26 @@ def choose_favourite(window, league_name, team):
 
 def test_your_team_is_saved_shown_and_highlighted(window, app_context, tmp_path):
     assert window.favourite_button.text() == "Alege echipa ta"
-    assert window.home.favourite_label.text() == "–"
+    assert not window.matches.favourite_choose_button.isHidden()
 
     choose_favourite(window, "La Liga", "Charlie")
 
     assert app_context.preferences.favourite == FavouriteTeam("SP1", "Charlie")
     assert Preferences(tmp_path / "preferences.json").favourite == FavouriteTeam("SP1", "Charlie")
     assert window.favourite_button.text() == "Echipa ta: Charlie"
-    home = window.home
-    assert home.favourite_label.text() == "Charlie"
-    assert home.favourite_caption.text() == "La Liga, 2007/08: locul 3 din 4, 7 puncte."
-    assert len(home.favourite_form.results) == 5
-    assert not home.favourite_badge.pixmap().isNull()
-    assert home.favourite_button.text() == "Schimbă echipa"
-    prediction = window.match_prediction
-    last = prediction.match_box.currentData()
-    assert "Charlie" in (last.home_team, last.away_team)
-    later = [prediction.match_box.itemData(i) for i in range(prediction.match_box.count())]
-    assert all("Charlie" not in (m.home_team, m.away_team) for m in later[later.index(last) + 1 :])
-    assert prediction.home_box.currentText() == "Charlie"
-    team = window.team_analysis
-    assert team.team_box.currentText() == "Charlie"
-    team.show_button.click()
-    assert cells(team.standings_table, 1)[highlighted(team.standings_table)[0]] == "Charlie"
+    page = window.matches
+    assert page.favourite_name.text() == "CHARLIE"
+    assert page.favourite_caption.text() == "La Liga · 2007/08"
+    assert len(page.favourite_form.results) == 5
+    assert len(page.favourite_rows) == 1  # the last result; the season is over
+    assert page.favourite_rows[0].stacked
+    assert page.favourite_choose_button.isHidden()
+    assert not page.favourite_badge.pixmap().isNull()
+    assert window.team_page.team_box.currentText() == "Charlie"
+    standings = window.standings
+    assert cells(standings.table, 1)[highlighted(standings.table)[0]] == "Charlie"
+    page.favourite_open_button.click()
+    assert window.stack.currentIndex() == window.pages.index(window.team_page)
 
 
 def test_the_dialog_starts_from_your_team_and_can_forget_it(window, app_context):
@@ -185,8 +337,8 @@ def test_the_dialog_starts_from_your_team_and_can_forget_it(window, app_context)
 
     assert app_context.preferences.favourite is None
     assert window.favourite_button.text() == "Alege echipa ta"
-    assert window.home.favourite_label.text() == "–"
-    assert window.home.favourite_form.results == ()
+    assert window.matches.favourite_form.results == ()
+    assert not window.matches.favourite_choose_button.isHidden()
 
 
 def test_cancelling_the_dialog_changes_nothing(window, app_context):
@@ -203,7 +355,9 @@ def test_cancelling_the_dialog_changes_nothing(window, app_context):
 
 @pytest.fixture
 def two_league_context(make_app_context, two_league_database):
-    return make_app_context(two_league_database, ("E0", "SP1"))
+    context = make_app_context(two_league_database, ("E0", "SP1"))
+    context.today = lambda: date(2007, 9, 4)
+    return context
 
 
 def test_choosing_a_league_shows_it_on_every_screen_and_is_remembered(two_league_context):
@@ -214,16 +368,15 @@ def test_choosing_a_league_shows_it_on_every_screen_and_is_remembered(two_league
         "Premier League",
         "La Liga",
     ]
+    assert all(two_league_context.league(c).predictions.is_prepared for c in ("E0", "SP1"))
 
     window.league_buttons["SP1"].click()
 
     assert window.current_league == "SP1"
     assert window.league_buttons["SP1"].isChecked() and not window.league_buttons["E0"].isChecked()
     assert window.hero.eyebrow_label.text().startswith("LA LIGA · SPANIA")
-    assert window.match_prediction.home_box.itemText(0) == "Alpha"
-    assert window.team_analysis.team_box.itemText(0) == "Alpha"
-    assert window.statusBar().currentMessage() == "Predicțiile pentru La Liga sunt gata"
-    assert two_league_context.league("SP1").predictions.is_prepared
+    assert window.team_page.team_box.itemText(0) == "Alpha"
+    assert cells(window.standings.table, 1)[0] in ("Alpha", "Bravo", "Charlie", "Delta")
     assert two_league_context.preferences.competition == "SP1"
     window.close()
 
@@ -232,19 +385,39 @@ def test_choosing_a_league_shows_it_on_every_screen_and_is_remembered(two_league
     again.close()
 
 
+def test_the_matches_of_every_league_come_with_the_chosen_league_first(two_league_context):
+    window = MainWindow(two_league_context)
+    page = window.matches
+
+    assert [group.code for group in page.groups] == ["E0", "SP1"]
+    window.league_buttons["SP1"].click()
+    assert [group.code for group in page.groups] == ["SP1", "E0"]
+    page.league_button.click()  # only the chosen league
+    assert [group.code for group in page.groups] == ["SP1"]
+    assert page.league_button.text() == "Doar La Liga"
+    page.all_button.click()
+    assert len(page.groups) == 2
+
+    page.groups[1].standings_button.click()  # the other league's table
+
+    assert window.current_league == "E0"
+    assert window.stack.currentIndex() == window.pages.index(window.standings)
+    window.close()
+
+
 def test_your_team_from_another_league_brings_its_league(two_league_context):
     window = MainWindow(two_league_context)
 
     choose_favourite(window, "La Liga", "Delta")
 
     assert window.current_league == "SP1"
-    assert window.team_analysis.team_box.currentText() == "Delta"
+    assert window.team_page.team_box.currentText() == "Delta"
     window.close()
 
 
-def test_the_leagues_screen_compares_every_league_after_their_backtests(two_league_context):
+def test_the_leagues_tab_compares_every_league_after_their_backtests(two_league_context):
     window = MainWindow(two_league_context)
-    leagues = window.leagues
+    leagues = window.analysis.leagues
     assert "Premier League, La Liga" in leagues.summary_label.text()
     assert not leagues.backtest_button.isHidden()
 
@@ -275,233 +448,90 @@ def test_the_leagues_screen_compares_every_league_after_their_backtests(two_leag
     window.close()
 
 
-# --- Predicție ---
+# --- Clasament ---
 
 
-def test_predicting_a_played_match(window):
-    tab = window.match_prediction
-    assert tab.season_box.currentText() == "2007/08"  # latest season first
-    tab.match_box.setCurrentIndex(3)
+def test_the_table_shows_crests_and_form_and_opens_a_team(window):
+    page = window.standings
+    page.show_season("2006-07")
 
-    tab.predict_button.click()
+    assert cells(page.table, 1) == ["Alpha", "Bravo", "Charlie", "Delta"]
+    assert cells(page.table, 9) == ["11", "9", "7", "5"]
+    assert not page.table.item(0, 1).icon().isNull()  # the team's badge
+    form = page.table.cellWidget(0, 10).findChild(FormStrip)
+    assert form.letters == "V V E V E"
+    assert page.title_label.text() == "LA LIGA 2006/07 · TOT SEZONUL"
 
-    assert cells(tab.probability_table, 0) == ["Elo", "Poisson", "Regresie logistică"]
-    assert [row.label for row in tab.bars.rows] == ["Elo", "Poisson", "Regresie logistică"]
-    assert all(row.home + row.draw + row.away == pytest.approx(1) for row in tab.bars.rows)
-    match = tab.match_box.currentData()
-    assert tab.score_label.text() == f"{match.home_goals} – {match.away_goals}"
-    assert (tab.home_name.text(), tab.away_name.text()) == (
-        match.home_team.upper(),
-        match.away_team.upper(),
-    )
-    assert not tab.home_badge.pixmap().isNull()
-    assert tab.result_label.text().startswith("Rezultat real:")
-    assert tab.scores_table.rowCount() == 5
-    assert tab.goals_label.text().startswith("Goluri așteptate:")
-    assert tab.predict_button.isEnabled()
-    assert chart_title(tab.score_chart).startswith("Probabilitatea fiecărui scor (Poisson")
-    assert tab.score_chart.message_label.isHidden()
+    page.table.cellClicked.emit(2, 1)
+
+    assert window.stack.currentIndex() == window.pages.index(window.team_page)
+    assert window.team_page.team_box.currentText() == "Charlie"
+    assert window.team_page.season_box.currentText() == "2006/07"
 
 
-def test_predicting_a_hypothetical_fixture(window):
-    tab = window.match_prediction
-    tab.fixture_button.setChecked(True)
-    tab.home_box.setCurrentText("Alpha")
-    tab.away_box.setCurrentText("Bravo")
-    tab.date_edit.setDate(QDate(2007, 9, 5))
+def test_the_table_as_of_a_date(window):
+    page = window.standings
+    page.show_season("2006-07")
+    page.whole_season_box.setChecked(False)
 
-    tab.predict_button.click()
+    page.date_edit.setDate(date(2006, 9, 4))
 
-    assert tab.result_label.text() == (
-        "Meci ipotetic: predicția folosește meciurile jucate înainte de 05.09.2007."
-    )
-    assert tab.probability_table.rowCount() == 3
-    assert tab.fixture_label.text() == "LA LIGA · 2007/08 · 05.09.2007"
-    assert tab.score_label.text() == "VS"
-
-
-def test_a_team_cannot_play_itself(window, errors):
-    tab = window.match_prediction
-    tab.fixture_button.setChecked(True)
-    tab.home_box.setCurrentText("Alpha")
-    tab.away_box.setCurrentText("Alpha")
-
-    tab.predict_button.click()
-
-    assert tab.status_label.text() == SAME_TEAM
-    assert tab.probability_table.rowCount() == 0
-    assert tab.predict_button.isEnabled()
-    assert errors == []
-
-
-def test_a_failed_prediction_is_reported_not_crashed(window, app_context, errors, monkeypatch):
-    def fail(*_):
-        raise ValueError("no such fixture")
-
-    monkeypatch.setattr(app_context.league("SP1").predictions, "predict", fail)
-    tab = window.match_prediction
-
-    tab.predict_button.click()
-
-    assert errors == ["no such fixture"]
-    assert tab.predict_button.isEnabled()
-    assert tab.status_label.text() == ""
+    assert cells(page.table, 1) == ["Alpha", "Bravo", "Delta", "Charlie"]
+    assert page.title_label.text() == "LA LIGA 2006/07 · ÎNAINTE DE 04.09.2006"
 
 
 # --- Echipe ---
 
 
-def test_team_analysis_for_a_whole_season(window):
-    tab = window.team_analysis
-    tab.season_box.setCurrentText("2006/07")
-    tab.team_box.setCurrentText("Alpha")
+def test_the_page_of_a_team_for_a_whole_season(window):
+    page = window.team_page
 
-    tab.show_button.click()
+    page.show_team("Alpha", "2006-07")
 
-    assert cells(tab.standings_table, 1) == ["Alpha", "Bravo", "Charlie", "Delta"]
-    assert cells(tab.standings_table, 9) == ["11", "9", "7", "5"]
-    assert highlighted(tab.standings_table) == [0]  # the team shown
-    assert not tab.standings_table.item(0, 1).icon().isNull()  # the team's badge
-    assert tab.team_label.text() == "ALPHA"
-    assert tab.overview_labels["Poziție"].text() == "locul 1 din 4"
-    assert tab.form_strip.letters == "V V E V E"
-    assert tab.overview_labels["Grupul sezonului"].text() != SEASON_NOT_FINISHED
-    assert [tab.views.tabText(i) for i in range(tab.views.count())] == [
-        "CLASAMENT",
-        "RATING ELO",
-        "GRUPURI",
+    assert page.header.name.text() == "ALPHA"
+    assert page.header.caption.text() == "2006/07 · locul 1 din 4 · sezon încheiat"
+    values = {name: tile.value_label.text() for name, tile in page.tiles.items()}
+    assert values["Loc"] == "1" and values["Puncte"] == "11" and values["Meciuri"] == "6"
+    assert page.form_strip.letters == "V V E V E"
+    assert page.pre_season_label.text() == FIRST_SEASON_NAME
+    assert page.season_group_label.text() in GROUP_NAMES.values()
+    assert len(page.match_rows) == 5  # the last five results; nothing left to play
+    assert page.next_title.isHidden()
+    assert chart_title(page.elo_chart) == "Alpha: ratingul Elo înaintea fiecărui meci"
+    assert chart_legend(page.elo_chart) == ["2006/07"]
+    assert chart_title(page.groups_chart).startswith("Grupurile echipelor, 2006/07")
+    assert [page.views.tabText(i) for i in range(page.views.count())] == ["RATING ELO", "GRUPURI"]
+
+
+def test_a_match_on_a_team_page_opens_its_page(window):
+    page = window.team_page
+    page.show_team("Alpha", "2006-07")
+
+    page.match_rows[0].click()
+
+    assert window.stack.currentIndex() == 0
+    assert window.matches.views.currentIndex() == 1
+    assert window.matches.detail.forecast is page.match_rows[0].forecast
+
+
+# --- Analiză ---
+
+
+def test_the_analysis_explains_scores_and_credits(window):
+    analysis = window.analysis
+    assert [analysis.views.tabText(i) for i in range(analysis.views.count())] == [
+        tab.upper() for tab in TABS
     ]
-    assert chart_title(tab.elo_chart) == "Alpha: ratingul Elo înaintea fiecărui meci"
-    assert chart_legend(tab.elo_chart) == ["2006/07"]
-    assert chart_title(tab.groups_chart).startswith("Grupurile echipelor, 2006/07")
-
-
-def test_team_analysis_as_of_a_date(window):
-    tab = window.team_analysis
-    tab.season_box.setCurrentText("2006/07")
-    tab.team_box.setCurrentText("Charlie")
-    tab.whole_season_box.setChecked(False)
-    tab.date_edit.setDate(QDate(2006, 9, 4))
-
-    tab.show_button.click()
-
-    assert cells(tab.standings_table, 1) == ["Alpha", "Bravo", "Delta", "Charlie"]
-    assert tab.overview_labels["Poziție"].text() == "locul 4 din 4, înainte de 04.09.2006"
-    assert tab.overview_labels["Grupul sezonului"].text() == SEASON_NOT_FINISHED
-    assert chart_legend(tab.elo_chart) == ["2006/07", "Meciuri până la 04.09.2006"]
-    assert tab.groups_chart.figure is None
-    assert tab.groups_chart.message_label.text() == GROUPS_NEED_WHOLE_SEASON
-
-
-# --- the season in progress (Phase 18) ---
-
-
-@pytest.fixture
-def live_window(make_app_context, database, live_dir):
-    main_window = MainWindow(make_app_context(database, live_dir=live_dir))
-    yield main_window
-    main_window.close()
-
-
-def test_the_season_in_progress_starts_from_its_scheduled_matches(live_window):
-    tab = live_window.match_prediction
-    assert tab.season_box.currentText() == "2008/09"
-    assert tab.scheduled_button.isChecked()
-    assert not tab.scheduled_button.isHidden()
-    assert tab.scheduled_box.count() == 5
-    assert tab.scheduled_box.itemText(0) == "08.09.2008, 18:30   Charlie – Bravo"
-    assert "Actualizat:" in live_window.version_note.text()
-
-    tab.predict_button.click()
-
-    assert tab.result_label.text() == (
-        "Meci programat. Predicția folosește toate meciurile jucate până acum (ultimele pe "
-        "07.09.2008)."
-    )
-    assert tab.fixture_label.text() == "LA LIGA · 2008/09 · 08.09.2008, 18:30"
-    assert tab.score_label.text() == "VS"
-    assert cells(tab.probability_table, 0) == ["Elo", "Poisson", "Regresie logistică"]
-    assert tab.scores_table.rowCount() == 5
-
-
-def test_completed_seasons_have_no_scheduled_matches(live_window):
-    tab = live_window.match_prediction
-
-    tab.season_box.setCurrentText("2007/08")
-
-    assert tab.scheduled_button.isHidden()
-    assert tab.played_button.isChecked()
-    assert tab.scheduled_box.count() == 0
-
-
-def test_team_analysis_of_the_season_in_progress(live_window):
-    tab = live_window.team_analysis
-    assert tab.season_box.currentText() == "2008/09"
-    tab.team_box.setCurrentText("Alpha")
-
-    tab.show_button.click()
-
-    assert tab.overview_labels["Poziție"].text().startswith("locul ")
-    assert "înainte de" not in tab.overview_labels["Poziție"].text()
-    assert tab.overview_labels["Grupul sezonului"].text() == SEASON_NOT_FINISHED
-    assert tab.groups_chart.message_label.text() == GROUPS_IN_PROGRESS
-
-
-def test_the_update_button_brings_the_season_in_progress(
-    make_app_context, database, tmp_path, fake_fetch, four_team_league, errors
-):
-    target = tmp_path / "downloaded"
-
-    def update():
-        return update_live_data(
-            target, ("SP1",), today=LIVE_TODAY, fetch=fake_fetch, competitions=four_team_league
-        )
-
-    window = MainWindow(make_app_context(database, live_dir=target, update_data=update))
-    assert window.match_prediction.season_box.currentText() == "2007/08"
-    assert "Sezonul curent: —" in window.version_note.text()
-
-    window.update_button.click()
-
-    assert errors == []
-    assert window.match_prediction.season_box.currentText() == "2008/09"
-    assert window.match_prediction.scheduled_box.count() == 5
-    assert window.statusBar().currentMessage() == (
-        "Date actualizate. Sezonul 2008/09: 7 meciuri jucate și 5 meciuri programate în 1 ligă."
-    )
-    assert "Actualizat:" in window.version_note.text()
-    assert window.update_button.isEnabled()
-    assert window.update_button.text() == UPDATE
-    window.close()
-
-
-def test_a_failed_update_is_reported_and_keeps_the_data(window, errors):
-    window.update_button.click()
-
-    assert len(errors) == 1
-    assert errors[0].startswith("Datele nu au putut fi actualizate; au rămas cele de până acum.")
-    assert errors[0].endswith("tests never use the network>")
-    assert window.match_prediction.season_box.currentText() == "2007/08"
-    assert window.update_button.isEnabled()
-
-
-def test_a_damaged_season_in_progress_is_reported(make_app_context, database, live_dir, errors):
-    (live_dir / "SP1.json").write_text("<html>", encoding="utf-8")
-
-    window = MainWindow(make_app_context(database, live_dir=live_dir))
-
-    assert len(errors) == 1
-    assert errors[0].startswith("Sezonul în desfășurare pentru La Liga nu a putut fi citit")
-    assert "not a calendar" in errors[0]
-    assert window.match_prediction.season_box.currentText() == "2007/08"
-    window.close()
-
-
-# --- Modele ---
+    texts = " ".join(label.text() for label in analysis.findChildren(type(window.page_title)))
+    assert "Ratingul Elo" in texts or "RATINGUL ELO" in texts
+    assert "Wikipedia" in texts and "CC0" in texts
+    assert "Camp Nou, Barcelona, fotografie de" in texts
+    assert "209 steme în aplicație." in texts
+    assert analysis.check_label.text().startswith("Sezonul în desfășurare nu a fost descărcat")
 
 
 def test_algorithm_comparison_after_the_backtest(window):
-    tab = window.algorithm_comparison
+    tab = window.analysis.models
     assert not tab.backtest_button.isHidden()
 
     tab.backtest_button.click()
@@ -521,6 +551,124 @@ def test_algorithm_comparison_after_the_backtest(window):
     assert chart_title(tab.confusion_chart) == "Regresie logistică: matricea de confuzie"
     tab.refresh()  # showing the results again keeps the chosen model
     assert chart_title(tab.confusion_chart) == "Regresie logistică: matricea de confuzie"
+
+
+# --- the season in progress (Phases 18 and 19) ---
+
+
+@pytest.fixture
+def live_window(make_app_context, database, live_dir):
+    context = make_app_context(database, live_dir=live_dir)
+    context.today = lambda: LIVE_TODAY  # 10 September 2008: matches until the 12th
+    main_window = MainWindow(context)
+    yield main_window
+    main_window.close()
+
+
+def test_the_matches_open_on_the_next_scheduled_day(live_window):
+    page = live_window.matches
+
+    assert page.day == date(2008, 9, 10)
+    (row,) = day_rows(page)
+    assert row.forecast.played is None
+    assert row.status_text == "18:30"
+    assert "Actualizat:" in live_window.version_note.text()
+
+    row.click()
+
+    detail = page.detail
+    assert detail.hero.status.text() == "PROGRAMAT"
+    assert detail.hero.eyebrow.text() == "LA LIGA · 2008/09 · 10.09.2008, 18:30"
+    assert detail.knowledge.text() == (
+        "Predicțiile folosesc toate meciurile jucate până acum (ultimele pe 07.09.2008)."
+    )
+    assert detail.verdict.isHidden()
+    assert [bar.label for bar in detail.bars.rows] == OUTCOME_MODELS
+
+
+def test_a_scheduled_day_already_past_is_marked_postponed(live_window):
+    row = MatchRow(day_rows(live_window.matches)[0].forecast, ModelName.ELO)
+    forecast = row.forecast
+    late = type(forecast)(**{**forecast.__dict__, "match_date": date(2008, 9, 5)})
+
+    assert MatchRow(late, ModelName.ELO).status_text == "Amânat"
+    assert MatchRow(late, ModelName.ELO, show_date=True).status_text == "05.09"
+
+
+def test_the_team_page_of_the_season_in_progress(live_window):
+    page = live_window.team_page
+
+    page.show_team("Alpha", "2008-09")
+
+    assert page.header.caption.text().endswith("sezon în desfășurare")
+    assert page.season_group_label.text() == SEASON_NOT_FINISHED
+    assert page.groups_chart.message_label.text() == GROUPS_IN_PROGRESS
+    assert not page.next_title.isHidden()
+    assert page.match_rows[0].forecast.played is None  # the next match first
+    assert page.match_rows[0].stacked
+
+
+def test_the_analysis_scores_the_season_in_progress(live_window):
+    analysis = live_window.analysis
+
+    assert cells(analysis.check_table, 0) == OUTCOME_MODELS
+    assert cells(analysis.check_table, 1) == ["7", "7", "7"]
+    assert analysis.check_label.text().startswith(
+        "La Liga 2008/09: 7 meciuri jucate între 01.09.2008 și 07.09.2008"
+    )
+
+
+def test_the_update_button_brings_the_season_in_progress(
+    make_app_context, database, tmp_path, fake_fetch, four_team_league, errors
+):
+    target = tmp_path / "downloaded"
+
+    def update():
+        return update_live_data(
+            target, ("SP1",), today=LIVE_TODAY, fetch=fake_fetch, competitions=four_team_league
+        )
+
+    context = make_app_context(database, live_dir=target, update_data=update)
+    context.today = lambda: LIVE_TODAY
+    window = MainWindow(context)
+    assert window.standings.season_box.currentText() == "2007/08"
+    assert "Sezonul curent: —" in window.version_note.text()
+
+    window.update_button.click()
+
+    assert errors == []
+    assert window.standings.season_box.currentText() == "2008/09"
+    assert window.matches.day == date(2008, 9, 10)
+    assert day_rows(window.matches)[0].forecast.played is None
+    assert window.statusBar().currentMessage() == (
+        "Date actualizate. Sezonul 2008/09: 7 meciuri jucate și 5 meciuri programate în 1 ligă."
+    )
+    assert "Actualizat:" in window.version_note.text()
+    assert window.update_button.isEnabled()
+    assert window.update_button.text() == UPDATE
+    window.close()
+
+
+def test_a_failed_update_is_reported_and_keeps_the_data(window, errors):
+    window.update_button.click()
+
+    assert len(errors) == 1
+    assert errors[0].startswith("Datele nu au putut fi actualizate; au rămas cele de până acum.")
+    assert errors[0].endswith("tests never use the network>")
+    assert window.standings.season_box.currentText() == "2007/08"
+    assert window.update_button.isEnabled()
+
+
+def test_a_damaged_season_in_progress_is_reported(make_app_context, database, live_dir, errors):
+    (live_dir / "SP1.json").write_text("<html>", encoding="utf-8")
+
+    window = MainWindow(make_app_context(database, live_dir=live_dir))
+
+    assert len(errors) == 1
+    assert errors[0].startswith("Sezonul în desfășurare pentru La Liga nu a putut fi citit")
+    assert "not a calendar" in errors[0]
+    assert window.standings.season_box.currentText() == "2007/08"
+    window.close()
 
 
 # --- building blocks ---
@@ -646,3 +794,32 @@ def test_a_stat_tile_shows_a_value_under_a_capital_name(application):
     tile.set_value("7.600")
 
     assert (tile.value_label.text(), tile.name_label.text()) == ("7.600", "MECIURI")
+
+
+def test_a_day_chip_names_the_day_in_two_lines(application):
+    today = date(2026, 10, 15)
+
+    assert chip_text(today, today) == "AZI\n15 OCT."
+    assert chip_text(date(2026, 10, 16), today) == "MÂINE\n16 OCT."
+    assert chip_text(date(2026, 10, 17), today) == "SÂM.\n17 OCT."
+    strip = DayStrip()
+    chosen = []
+    strip.day_chosen.connect(chosen.append)
+    strip.show_days(date(2026, 10, 17), today, {date(2026, 10, 17)})
+    strip.chips[0].click()
+    assert chosen == [date(2026, 10, 14)]
+    assert strip.chips[3].isChecked()  # centred again on the chosen day
+
+
+def test_the_hero_shows_the_league_photo_and_its_credit(application):
+    hero = HeroBanner()
+    photo = QImage(400, 200, QImage.Format.Format_RGB32)
+    photo.fill(QColor("#3355AA"))
+
+    hero.show_league("La Liga", None, photo, "Foto: Autor, CC BY-SA 4.0, Wikimedia Commons")
+    hero.resize(1000, hero.height())
+
+    assert hero.photo is photo
+    assert hero.credit_label.text() == "Foto: Autor, CC BY-SA 4.0, Wikimedia Commons"
+    image = hero.grab().toImage()
+    assert image.pixelColor(image.width() - 20, image.height() // 2) != image.pixelColor(10, 10)

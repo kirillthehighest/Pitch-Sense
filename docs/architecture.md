@@ -1,6 +1,6 @@
 # Arhitectura aplicației PitchSense
 
-Acest document descrie structura aplicației, fluxul datelor și deciziile tehnice luate până acum (fazele 0–18). Se actualizează ori de câte ori structura se schimbă.
+Acest document descrie structura aplicației, fluxul datelor și deciziile tehnice luate până acum (fazele 0–19). Se actualizează ori de câte ori structura se schimbă.
 
 ## 1. Principii
 
@@ -21,6 +21,7 @@ Acest document descrie structura aplicației, fluxul datelor și deciziile tehni
 | `app/services` | Operațiile cerute de interfață, gata de afișat, cu rezultatele lente păstrate în memorie. Fără Qt. | toate straturile de mai sus |
 | `app/visualization` | Construiește graficele din rezultate deja calculate, fără calcule proprii; păstrează culorile aplicației (`palette.py`). | matplotlib, tipurile de rezultate din `app.services` și `app.evaluation` |
 | `app/ui` | Interfața grafică: preia datele de intrare, apelează serviciile și afișează rezultatele; identitatea vizuală (`brand.py`, `theme.py`, `assets/`). | PySide6 și celelalte straturi |
+| `tools/` | Unelte folosite o dată, în afara aplicației: stemele cluburilor (`crests.py`) și fotografiile ligilor (`league_photos.py`), descărcate în `app/ui/assets/` (Faza 19). | aplicația și internetul |
 
 ## 3. Reguli verificate automat
 
@@ -736,7 +737,86 @@ Rulări din 2026-10-15:
 - O schimbare a calendarului (un meci mutat) apare doar după o actualizare.
 - Clasamentele nu includ deducerile de puncte, ca până acum.
 
-## 16. Setul de date și perioadele
+## 16. Interfața centrată pe meciuri (Faza 19)
+
+Echipa a cerut o aplicație care pornește de la meciuri, ca LiveScore și OneFootball: ecranul Acasă, cu scorul Brier și rezultatele modelelor, nu spunea nimic utilizatorului, iar predicția unui meci deja jucat nu este o predicție. Meniul are acum patru ecrane, iar stemele cluburilor și fotografiile ligilor au intrat în aplicație.
+
+### 16.1. Ecranele
+
+| Ecran | Ce arată | Fișier |
+|---|---|---|
+| **Meciuri** (primul) | meciurile unei zile din toate ligile, grupate pe ligă, liga aleasă prima; banda de zile (șapte zile, săgeți de o săptămână), filtrul „Toate ligile / Doar liga”, modelul ales; pentru fiecare meci ora (sau „Final”, „Amânat”), stemele, scorul și cele trei probabilități ale modelului ales, cu cea mai mare colorată; la un meci jucat, o bifă verde sau o cruce roșie spune dacă rezultatul cel mai probabil s-a întâmplat. În dreapta: echipa ta (forma, următorul meci, ultimul rezultat) și începutul clasamentului. Se deschide pe prima zi cu meciuri de azi înainte. | `app/ui/matches.py`, `match_widgets.py` |
+| **Pagina meciului** (clic pe un meci) | cardul albastru–grena cu stemele mari, scorul sau „VS” și starea (Programat, Final, Amânat, Meci ipotetic); barele celor trei modele, fiecare cu o frază simplă despre ce folosește; rezultatul și ce modele l-au anticipat; ce meciuri au folosit predicțiile; cum vin echipele (loc, puncte, ultimele cinci rezultate, ratingul Elo, la ziua predicției); scorurile probabile și harta lor (Poisson). „Alt meci…” deschide aceeași pagină pentru oricare două echipe ale unui sezon, la o dată aleasă. | `app/ui/match_detail.py` |
+| **Clasament** | clasamentul unui sezon (până acum, pentru sezonul în desfășurare) sau la o dată, cu stemele și ultimele cinci rezultate; un clic pe o echipă îi deschide pagina, în acel sezon | `app/ui/standings.py` |
+| **Echipe** | pagina unei echipe, ca pe site-urile canalelor sportive: stema și numele cu litere mari pe o bandă albastru–grena, șase cifre (loc, meciuri, victorii, goluri marcate și primite, puncte), forma, acasă și în deplasare, următorul meci și ultimele cinci rezultate (cu predicțiile), profilul K-Means explicat în cuvinte, ratingul Elo și grupurile | `app/ui/team_page.py` |
+| **Analiză** | file: Cum funcționează (fiecare algoritm și măsurile, pe înțelesul oricui), Sezonul curent (cum au prezis modelele meciurile jucate ale sezonului în desfășurare), Modele (fostul ecran Modele), Ligi (fostul ecran Ligi), Surse (datele, stemele, fotografiile și literele, cu licențele) | `app/ui/analysis.py` |
+
+Ecranele Acasă, Predicție și vechiul Echipe au fost scoase (`home.py`, `match_prediction.py`, `team_analysis.py`); tot ce arătau există în ecranele noi. Scorul Brier și rezultatele evaluării stau doar în Analiză.
+
+### 16.2. Modelul din listă
+
+Lista meciurilor arată probabilitățile unui singur model, ca să rămână ușor de citit; pagina meciului le arată pe toate. Implicit este regresia logistică: pe toate cele cinci ligi la un loc ea are cel mai mic scor Brier, iar diferența față de Elo și Poisson este reală (`docs/leagues.md`, secțiunea 5). Utilizatorul poate alege oricare model. Nu este calculată o medie a modelelor: ar fi un al patrulea model, neevaluat.
+
+### 16.3. Datele pentru ecrane
+
+- `PredictionService` (`app/services/predictions.py`) păstrează, după `prepare`, meciurile fiecărei zile (`MatchForecast`: jucat sau programat, cu predicțiile tuturor modelelor) și răspunde la `match_days`, `on_day` și `team_matches` fără calcule noi. `season_check` scoate acuratețea, scorul Brier și pierderea logaritmică ale fiecărui model pe meciurile jucate ale unui sezon, cu funcțiile din `app/evaluation/metrics.py`. `forecast_of` aduce un meci ipotetic în aceeași formă.
+- `TeamService.rating_before` dă ratingul Elo al unei echipe înaintea unei zile; `TeamService.form` dă ultimele cinci rezultate.
+- Fereastra pregătește predicțiile tuturor ligilor în fundal, pe rând, liga aleasă prima (`MainWindow._prepare_next`). Până când o ligă este gata, grupul ei din Meciuri spune „Se pregătesc predicțiile…”. Pe calculatorul de dezvoltare, prima ligă este gata în circa 7 s, toate cinci în circa 40 s.
+- Ziua de azi vine din `AppContext.today`, ca testele să o poată fixa.
+
+### 16.4. Stemele cluburilor
+
+Echipa a ales stemele reale, de pe Wikipedia, la rezoluție mică, păstrate doar în depozitul privat și în pachete, cu mențiunea că aparțin cluburilor.
+
+- `tools/crests.py` caută articolul englezesc al fiecărui club: după numele complet din calendar, pentru echipele sezonului în desfășurare, altfel după numele Football-Data și țară. Primul rezultat descris ca „football club” este ales, iar opt nume fără un rezultat bun au articolul scris în unealtă (de exemplu `Sp Gijon` → Sporting de Gijón). Stema este imaginea principală a articolului sau, dacă API-ul nu o dă (Atalanta, Fiorentina, Inter, Man City), imaginea din caseta de informații.
+- Stemele sunt micșorate la cel mult 128 px și salvate în `app/ui/assets/crests/<nume>.png` (3,2 MB pentru 209 echipe). `sources.json` păstrează, pentru fiecare, articolul și fișierul. Toate cele 209 de steme au fost verificate vizual pe o singură foaie (`--sheet`) și sunt ale cluburilor corecte.
+- Unealta se prezintă serverelor Wikimedia cu numele și adresa proiectului, face o cerere pe secundă și reîncearcă după un răspuns „prea multe cereri” (HTTP 429).
+- `team_badge` (`app/ui/brand.py`) desenează stema; o echipă fără stemă păstrează ecusonul cu trei litere. O stemă aproape în întregime întunecată (sub 10% din pixeli cu luminanța peste 0,25: Juventus, Tottenham, Derby, Swansea și alte șase) ar dispărea pe fundalul întunecat, așa că stă pe un disc deschis.
+- Stemele sunt mărci ale cluburilor. Sunt folosite doar ca să recunoști echipele, într-un proiect universitar privat, iar ecranul Analiză → Surse spune asta.
+
+### 16.5. Fotografiile ligilor
+
+Fiecare ligă are în antet o fotografie liberă de pe Wikimedia Commons, cu un stadion care o reprezintă. Fotografiile au fost alese privind candidații. `tools/league_photos.py` le descarcă la 1600 px, cu autorul, licența și pagina lor (`app/ui/assets/leagues/sources.json`), și acceptă doar licențele CC BY, CC BY-SA, CC0 și domeniul public.
+
+| Liga | Fotografia | Autor | Licența |
+|---|---|---|---|
+| Premier League | Anfield, Liverpool | Chris Street | CC BY 2.0 |
+| La Liga | Camp Nou, Barcelona | JonasBlaps | CC BY-SA 4.0 |
+| Serie A | San Siro, Milano | PetarStoychev48 | CC BY-SA 4.0 |
+| Bundesliga | Signal Iduna Park, Dortmund | Markus Unger | CC BY 2.0 |
+| Ligue 1 | Parc des Princes, Paris | Kilyac | CC BY-SA 4.0 |
+
+Antetul (`HeroBanner`) pune fotografia pe dreapta, o estompează spre stânga ca titlul să rămână lizibil și scrie în colț autorul și licența. Analiză → Surse dă, pentru fiecare, autorul, licența, pagina și modificările (redimensionată, decupată, estompată), cum cer licențele CC.
+
+### 16.6. Corecturi găsite pe parcurs
+
+- **Tema reaplicată.** `apply_theme` reaplica foaia de stil întregii aplicații, iar Qt restiliza fiecare fereastră încă vie. În suita de teste, autoverificarea dura astfel 19 s în loc de 0,06 s. Acum o temă deja aplicată nu mai este pusă din nou.
+- **Semnul de nimerit.** Primul desen al bifei folosea un argument pe care PySide6 nu îl acceptă, iar eroarea din desenare trecea neobservată. Un test care citește culorile pixelilor a prins-o.
+- **Contrastul.** Zilele fără meciuri și cuvântul „Amânat” erau scrise cu culori prea slabe pentru text (sub 4,5 : 1); acum folosesc culoarea textului secundar. Faptul că o predicție a fost nimerită se vedea doar prin culoare; acum are și forma bifei sau a crucii.
+- **Deschiderea unei echipe din clasament.** Un clic pe o echipă din clasamentul 2006/07 deschidea pagina ei din cel mai recent sezon; acum o deschide în sezonul clasamentului.
+- **După actualizare**, ecranul Meciuri rămânea pe ziua de dinainte; acum trece la următoarea zi cu meciuri din datele noi.
+
+### 16.7. Verificare
+
+Rulări din 2026-10-15:
+
+- **Teste.** Toate cele 767 de teste trec; `ruff check` și `ruff format --check` nu găsesc nimic. Testele interfeței (`tests/test_ui.py`), cele de la un capăt la altul și cele ale autoverificării au fost mutate pe ecranele noi și verifică aceleași lucruri ca înainte: predicțiile unui meci jucat sunt cele din jurnal, clasamentul coincide cu fișierele brute, un meci ipotetic folosește doar meciurile dinaintea lui, un jurnal deteriorat este explicat pe loc. Teste noi:
+  - banda de zile, modelul ales, filtrul ligilor, pagina meciului și a echipei, clasamentul cu formă;
+  - bifa și crucea, citite din pixeli;
+  - stemele și discul stemelor întunecate, fotografia din antet;
+  - fila Sezonul curent și serviciile `on_day`, `team_matches`, `season_check` și `rating_before`.
+- **Autoverificarea** pe datele reale: 23 din 23. Noile verificări: stemele și fotografia ligii sunt în aplicație, predicțiile tuturor celor cinci ligi, lista meciurilor și pagina unui meci, clasamentul și pagina echipei. Aplicația pornește (`python -m app`) și rulează fără erori.
+- **Verificare vizuală.** Toate ecranele și filele au fost desenate cu datele reale, la 1440 × 960, și verificate: Meciuri (zi viitoare și zi jucată), pagina meciului, Clasament, Echipe, cele cinci file ale Analizei și antetul fiecărei ligi.
+- **Pachete.** macOS: `.dmg` de 80 MB (stemele și fotografiile adaugă circa 6 MB), autoverificarea din `dist/` trece 23 din 23. Windows: WINDOWS_RESULT
+
+### 16.8. Limitări
+
+- Stemele sunt o fotografie a lor din 15.10.2026. Un club care își schimbă stema o păstrează pe cea veche până la o nouă rulare a uneltei.
+- Pregătirea tuturor ligilor durează circa 40 s după pornire. Ecranul Meciuri arată ligile pe măsură ce sunt gata.
+- Lista meciurilor arată un singur model odată.
+- Grupurile K-Means apar doar pentru sezoanele încheiate, ca până acum.
+
+## 17. Setul de date și perioadele
 
 Sursa datelor este Football-Data.co.uk: cinci ligi (Premier League, La Liga, Serie A, Bundesliga, Ligue 1), fiecare cu 20 de sezoane încheiate, 2006/07–2025/26 (36.197 de meciuri). Perioadele sunt aceleași pentru toate ligile. Sezonul în desfășurare (2026/27) este descărcat separat și nu face parte din evaluare (secțiunea 15).
 
@@ -746,7 +826,7 @@ Sursa datelor este Football-Data.co.uk: cinci ligi (Premier League, La Liga, Ser
 | 2007/08–2009/10 | Calibrare: se aleg hiperparametrii; rezultatele nu sunt raportate. |
 | 2010/11–2025/26 | Evaluarea raportată: 16 sezoane; 6.080 de meciuri în fiecare ligă cu 20 de echipe, 4.896 în Bundesliga, 5.757 în Ligue 1; 28.893 în total. |
 
-## 17. Tehnologii
+## 18. Tehnologii
 
 | Componentă | Versiune | Rol |
 |---|---|---|
@@ -762,7 +842,7 @@ Sursa datelor este Football-Data.co.uk: cinci ligi (Premier League, La Liga, Ser
 | Libre Franklin (font, SIL Open Font License 1.1) | cinci grosimi statice | textul interfeței și al graficelor, inclus în `app/ui/assets/fonts/` |
 | Barlow Condensed (font, SIL Open Font License 1.1) | patru grosimi statice | titlurile, cifrele mari, scorul și navigarea, inclus în `app/ui/assets/fonts/` |
 
-## 18. Decizii tehnice
+## 19. Decizii tehnice
 
 | Decizie | Motiv |
 |---|---|
@@ -833,3 +913,9 @@ Sursa datelor este Football-Data.co.uk: cinci ligi (Premier League, La Liga, Ser
 | Fișierele noi înlocuiesc folderul vechi doar după ce au trecut toate verificările | O descărcare eșuată sau un fișier deteriorat nu poate lăsa aplicația fără date. |
 | Certificatele sistemului pentru HTTPS, fără o bibliotecă nouă | Python de pe python.org nu are certificate proprii pe macOS; cele ale sistemului sunt verificate de sistem. |
 | Pachetul livrează instantaneul sezonului în desfășurare de la construcție | Aplicația instalată are meciurile programate și fără o primă actualizare. |
+| Meniul Meciuri · Clasament · Echipe · Analiză, cu meciurile pe zile ca prim ecran | Decizia echipei: aplicația pornește de la meciuri, ca aplicațiile de scoruri; evaluarea este pentru cine o caută, în Analiză. |
+| Lista meciurilor arată un singur model, implicit regresia logistică | Cel mai mic scor Brier pe cele cinci ligi, cu o diferență reală; o medie a modelelor ar fi un model nou, neevaluat. |
+| Stemele reale ale cluburilor, de pe Wikipedia, la 128 px, cu sursa fiecăreia | Decizia echipei; folosite doar pentru recunoașterea echipelor, într-un depozit privat și în pachete. |
+| Stemele întunecate stau pe un disc deschis | Altfel dispar pe tema întunecată; regula se calculează din pixelii stemei, nu dintr-o listă. |
+| Fotografii libere de pe Wikimedia Commons, cu autorul și licența afișate | Decizia echipei: fără fotografii de presă; licențele CC cer atribuirea, iar aplicația o arată în antet și în Analiză. |
+| Predicțiile tuturor ligilor se pregătesc în fundal, pe rând | Ecranul Meciuri arată toate ligile; liga aleasă este gata prima, iar fereastra nu se blochează. |

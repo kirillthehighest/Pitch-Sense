@@ -86,6 +86,8 @@ def test_a_download_names_the_application_and_returns_the_bytes(monkeypatch):
     assert requests[0][0] == "https://example.org/SP1.csv"
     assert requests[0][1].startswith("PitchSense/")
     assert requests[0][2] == 5
+    fetch("https://example.org/SP1.csv", user_agent="PitchSense tools (contact)")
+    assert requests[1][1] == "PitchSense tools (contact)"
 
 
 def test_a_file_too_large_is_refused(monkeypatch):

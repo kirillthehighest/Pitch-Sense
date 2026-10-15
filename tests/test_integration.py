@@ -11,8 +11,8 @@ from app.evaluation.backtesting import read_log
 from app.evaluation.evaluator import evaluate
 from app.prediction.prediction_engine import predict_season
 from app.services.catalog import DataCatalog
-from app.services.formatting import number, percent, season_text
-from app.services.labels import model_label, outcome_label
+from app.services.formatting import number, percent
+from app.services.labels import model_label
 from app.ui import main_window
 from app.ui.main_window import MainWindow
 
@@ -35,7 +35,7 @@ def window(app_context):
 
 @pytest.fixture
 def window_with_log(window):
-    window.home.backtest_button.click()
+    window.analysis.models.backtest_button.click()
     return window
 
 
@@ -43,56 +43,61 @@ def show(window, page):
     window.show_page(window.pages.index(page))
 
 
+def bar_numbers(bars):
+    return [
+        [row.label, percent(row.home), percent(row.draw), percent(row.away)] for row in bars.rows
+    ]
+
+
+def day_rows(page):
+    return [row for group in page.groups for row in group.rows]
+
+
 def test_every_played_match_shows_the_forecasts_of_the_backtest_log(
     window_with_log, app_context, errors
 ):
     log = read_log(app_context.league("SP1").evaluation.log)
     logged = {(row.match_date, row.home_team, row.away_team, row.model): row for row in log}
-    tab = window_with_log.match_prediction
-    tab.season_box.setCurrentText(season_text("2007-08"))
+    page = window_with_log.matches
+    played = app_context.league("SP1").catalog.season_matches("2007-08")
 
-    for index in range(tab.match_box.count()):
-        tab.match_box.setCurrentIndex(index)
-        match = tab.match_box.currentData()
-        tab.predict_button.click()
-
+    for match in played:
+        page.show_day(match.match_date)
+        (row,) = day_rows(page)  # one match a day
         rows = {
             model: logged[(match.match_date, match.home_team, match.away_team, model)]
             for model in MODELS
         }
-        assert table_rows(tab.probability_table) == [
+        logistic = rows["Logistic regression"]  # the model of the list
+        assert row.hit == (logistic.predicted == logistic.actual)
+        row.click()
+
+        detail = page.detail
+        assert bar_numbers(detail.bars) == [
             [
                 model_label(model),
                 percent(rows[model].p_home),
                 percent(rows[model].p_draw),
                 percent(rows[model].p_away),
-                outcome_label(rows[model].predicted),
             ]
             for model in MODELS
         ]
         poisson = rows["Poisson"]
-        assert tab.goals_label.text() == (
+        assert detail.goals_label.text() == (
             f"Goluri așteptate: {match.home_team} {number(poisson.expected_home_goals, 2)}, "
             f"{match.away_team} {number(poisson.expected_away_goals, 2)}"
         )
-    assert tab.match_box.count() == 12
+        assert detail.hero.score.text() == f"{match.home_goals} – {match.away_goals}"
+        page.show_list()
+    assert len(played) == 12
     assert errors == []
 
 
 def test_the_screens_show_the_evaluation_of_the_log(window_with_log, app_context, errors):
     evaluations = evaluate(read_log(app_context.league("SP1").evaluation.log))
-    show(window_with_log, window_with_log.algorithm_comparison)
+    show(window_with_log, window_with_log.analysis)
 
-    assert table_rows(window_with_log.home.results_table) == [
-        [
-            model_label(e.model),
-            percent(e.accuracy.value),
-            number(e.brier.value if e.brier else None),
-            number(e.log_loss.value if e.log_loss else None),
-        ]
-        for e in evaluations
-    ]
-    assert table_rows(window_with_log.algorithm_comparison.metrics_table) == [
+    assert table_rows(window_with_log.analysis.models.metrics_table) == [
         [
             model_label(e.model),
             percent(e.accuracy.value),
@@ -134,18 +139,17 @@ def test_the_league_table_matches_the_raw_files(window, raw_season_rows, next_se
             item[0],
         ),
     )
-    tab = window.team_analysis
-    tab.season_box.setCurrentText(season_text(season))
+    page = window.standings
+    page.show_season(season)
 
-    tab.show_button.click()
-
-    assert table_rows(tab.standings_table) == [
+    assert table_rows(page.table) == [
         [
             str(position),
             team,
             *(str(value) for value in record),
             f"{record[4] - record[5]:+d}".replace("-", "−") if record[4] != record[5] else "0",
             str(3 * record[1] + record[2]),
+            "",  # the form, drawn in the cell
         ]
         for position, (team, record) in enumerate(expected, start=1)
     ]
@@ -175,26 +179,22 @@ def test_a_damaged_log_is_explained_in_place_and_can_be_rebuilt(app_context, err
     log.write_text("not,a,prediction,log\n1,2,3,4\n", encoding="utf-8")
 
     window = MainWindow(app_context)
-    home, comparison, leagues = window.home, window.algorithm_comparison, window.leagues
+    analysis = window.analysis
+    models, leagues = analysis.models, analysis.leagues
 
-    for label in (home.results_label, comparison.summary_label, leagues.summary_label):
+    for label in (models.summary_label, leagues.summary_label):
         assert label.text().startswith("Rezultatele nu pot fi citite. Rulează din nou backtestul")
         assert "is not a prediction log" in label.text()  # the details
-    assert not home.backtest_button.isHidden()
-    assert not comparison.backtest_button.isHidden()
-    show(window, comparison)  # changing screens repeats no dialog
-    show(window, leagues)
+    assert not models.backtest_button.isHidden()
+    show(window, analysis)  # changing screens repeats no dialog
+    show(window, window.matches)
     assert errors == []
 
-    home.backtest_button.click()
-    show(window, home)
+    models.backtest_button.click()
+    show(window, analysis)
 
-    assert home.results_table.rowCount() == 5
-    assert home.backtest_button.isHidden()
-    show(window, comparison)
-    assert comparison.backtest_button.isHidden()
-    assert comparison.metrics_table.rowCount() == 5
-    show(window, leagues)
+    assert models.backtest_button.isHidden()
+    assert models.metrics_table.rowCount() == 5
     assert leagues.models_table.rowCount() == 1
     assert errors == []
     window.close()
@@ -205,15 +205,16 @@ def test_a_backtest_that_fails_is_reported_and_the_window_keeps_working(
 ):
     window = MainWindow(app_context)
     database.unlink()  # the data is already loaded; the backtest reads the database again
+    models = window.analysis.models
 
-    window.home.backtest_button.click()
+    models.backtest_button.click()
 
     assert len(errors) == 1
     assert "Database not found" in errors[0]
-    assert window.home.backtest_button.isEnabled()
-    assert not window.home.backtest_button.isHidden()
-    window.team_analysis.show_button.click()  # the loaded data still works
-    assert window.team_analysis.standings_table.rowCount() == 4
+    assert models.backtest_button.isEnabled()
+    assert not models.backtest_button.isHidden()
+    window.standings.show_season("2006-07")  # the loaded data still works
+    assert window.standings.table.rowCount() == 4
     assert len(errors) == 1
     window.close()
 
@@ -225,22 +226,28 @@ def test_every_scheduled_match_shows_the_engines_forecast_from_the_downloads(
     catalog = DataCatalog.load(database, competition="SP1", live_dir=live_dir)
     _, upcoming = predict_season(catalog.matches, catalog.fixtures, min_training_matches=3)
     window = MainWindow(make_app_context(database, live_dir=live_dir))
-    tab = window.match_prediction
+    page = window.matches
 
-    for index, expected in enumerate(upcoming):
-        tab.scheduled_box.setCurrentIndex(index)
-        assert tab.scheduled_box.currentData() == expected.fixture
-        tab.predict_button.click()
+    for expected in upcoming:
+        fixture = expected.fixture
+        page.show_day(fixture.match_date)
+        (row,) = day_rows(page)
+        assert (row.forecast.home_team, row.forecast.away_team) == (
+            fixture.home_team,
+            fixture.away_team,
+        )
+        row.click()
 
-        assert table_rows(tab.probability_table) == [
+        assert bar_numbers(page.detail.bars) == [
             [
                 model_label(str(model)),
                 percent(prediction.probabilities.home_win),
                 percent(prediction.probabilities.draw),
                 percent(prediction.probabilities.away_win),
-                outcome_label(prediction.probabilities.most_likely.value),
             ]
             for model, prediction in expected.predictions.items()
         ]
+        assert page.detail.hero.status.text() == "PROGRAMAT"
+        page.show_list()
     assert errors == []
     window.close()

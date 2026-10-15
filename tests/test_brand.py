@@ -9,6 +9,7 @@ from PySide6.QtGui import QColor, QFont, QFontDatabase, QImage, QPainter, QRawFo
 
 from app.data.competitions import COMPETITIONS
 from app.ui.brand import (
+    CREST_DISC,
     FLAGS,
     ICON_SIZES,
     LOGO_UNITS,
@@ -16,14 +17,17 @@ from app.ui.brand import (
     Lockup,
     LogoWidget,
     app_icon,
+    crest_image,
+    crest_slug,
     flag_pixmap,
     icon_image,
+    is_dark,
     letter_p,
     letter_s,
     paint_logo,
     team_badge,
 )
-from app.ui.theme import DISPLAY_FAMILY, FONT_FAMILY, FONTS_DIR, STYLE_SHEET
+from app.ui.theme import DISPLAY_FAMILY, FONT_FAMILY, FONTS_DIR, STYLE_SHEET, apply_theme
 from app.visualization.palette import (
     AWAY,
     BACKGROUND,
@@ -177,15 +181,55 @@ def test_flags_have_their_countries_colours(application, code, points):
 
 
 def test_your_team_wears_a_gold_ring(application):
-    plain = team_badge("Barcelona", 40).toImage()
-    yours = team_badge("Barcelona", 40, highlighted=True).toImage()
+    plain = team_badge("Alpha", 40).toImage()  # no crest: the team's letters
+    yours = team_badge("Alpha", 40, highlighted=True).toImage()
     ring = (plain.width() // 2, 2)
 
     assert colour_at(yours, *ring) == GOLD.lower()
     assert colour_at(plain, *ring) == LINE.lower()
 
 
+def test_a_club_with_a_crest_shows_it(application):
+    crest = crest_image("Barcelona")
+    assert crest is not None
+    assert max(crest.width(), crest.height()) <= 128  # a low resolution
+    assert crest_image("Alpha") is None
+
+    plain = team_badge("Barcelona", 40).toImage()
+    yours = team_badge("Barcelona", 40, highlighted=True).toImage()
+    ring = (plain.width() // 2, 2)
+
+    assert colour_at(yours, *ring) == GOLD.lower()
+    assert colour_at(plain, *ring) != LINE.lower()  # no letters badge
+    centre = plain.pixelColor(plain.width() // 2, plain.height() // 2)
+    assert centre.alpha() > 0  # the crest is drawn
+
+
+def test_a_dark_crest_sits_on_a_light_disc(application):
+    assert is_dark(crest_image("Juventus"))
+    assert not is_dark(crest_image("Barcelona"))
+    badge = team_badge("Juventus", 40).toImage()
+
+    # Between the disc's edge and the crest, inset by a sixth of the badge
+    assert colour_at(badge, badge.width() * 0.1, badge.height() / 2) == CREST_DISC.lower()
+    assert badge.pixelColor(0, 0).alpha() == 0  # round
+
+
+def test_crests_are_named_after_the_teams():
+    assert crest_slug("Nott'm Forest") == "nott-m-forest"
+    assert crest_slug("Ath Madrid") == "ath-madrid"
+    assert crest_slug("Ajaccio GFCO") == "ajaccio-gfco"
+
+
 # --- typefaces ---
+
+
+def test_applying_the_theme_again_changes_nothing(application):
+    style = application.style().name()
+
+    assert apply_theme(application)  # both typefaces load
+    assert application.styleSheet() == STYLE_SHEET
+    assert application.style().name() == style
 
 
 def test_the_bundled_typefaces_are_used_and_write_romanian(application):

@@ -95,9 +95,13 @@ class UpdateSummary:
     leagues: tuple[LiveLeague, ...]
 
 
-def fetch(url: str, timeout: float = 30.0) -> bytes:
-    """Download a file over HTTPS, checking the server against the system's certificates."""
-    request = urllib.request.Request(url, headers={"User-Agent": f"PitchSense/{__version__}"})
+def fetch(url: str, timeout: float = 30.0, user_agent: str | None = None) -> bytes:
+    """Download a file over HTTPS, checking the server against the system's certificates.
+
+    ``user_agent`` names the program to the server (default: ``PitchSense/<version>``).
+    """
+    agent = user_agent or f"PitchSense/{__version__}"
+    request = urllib.request.Request(url, headers={"User-Agent": agent})
     try:
         with urllib.request.urlopen(request, timeout=timeout, context=_tls_context()) as response:
             data = response.read(MAX_DOWNLOAD_BYTES + 1)

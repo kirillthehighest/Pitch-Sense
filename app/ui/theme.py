@@ -73,6 +73,7 @@ QLabel[role="section"] {{
     font-family: "{DISPLAY_FAMILY}"; font-size: 21px; font-weight: 700; color: {TEXT};
 }}
 QLabel[role="caption"] {{ color: {MUTED}; font-size: 13px; }}
+QLabel[role="credit"] {{ color: {MUTED}; font-size: 11px; }}
 QLabel[role="strong"] {{ color: {TEXT}; font-size: 14px; font-weight: 700; }}
 QLabel[role="hero"] {{
     font-family: "{DISPLAY_FAMILY}"; font-size: 40px; font-weight: 700; color: {TEXT};
@@ -110,6 +111,35 @@ QPushButton[role="primary"] {{
 QPushButton[role="primary"]:hover {{ background: {GOLD_HOVER}; border-color: {GOLD_HOVER}; }}
 QPushButton[role="primary"]:disabled {{
     background: {SURFACE_TOP}; border-color: {SURFACE_TOP}; color: {FAINT};
+}}
+
+/* The matches screen: day chips, arrows, links and filters (Phase 19) */
+QPushButton[role="chip"] {{
+    font-family: "{DISPLAY_FAMILY}"; font-size: 15px; font-weight: 600; color: {TEXT};
+    background: {SURFACE}; border: 1px solid {LINE}; border-radius: 12px;
+    padding: 6px 4px; min-height: 36px;
+}}
+QPushButton[role="chip"][empty="true"] {{ color: {MUTED}; background: transparent; }}
+QPushButton[role="chip"]:hover {{ background: {SURFACE_HIGH}; }}
+QPushButton[role="chip"]:checked {{ background: {GOLD}; border-color: {GOLD}; color: {NIGHT}; }}
+QPushButton[role="chip-arrow"] {{
+    font-size: 22px; font-weight: 700; color: {MUTED}; background: transparent; border: none;
+    padding: 0 6px; min-height: 36px;
+}}
+QPushButton[role="chip-arrow"]:hover {{ color: {GOLD}; }}
+QPushButton[role="link"] {{
+    background: transparent; border: none; color: {GOLD}; padding: 2px 4px; font-weight: 700;
+}}
+QPushButton[role="link"]:hover {{ color: {GOLD_HOVER}; }}
+QPushButton[role="filter"] {{
+    background: transparent; color: {MUTED}; border: 1px solid {LINE}; border-radius: 14px;
+    padding: 5px 14px; min-height: 16px;
+}}
+QPushButton[role="filter"]:checked {{ color: {NIGHT}; background: {TEXT}; border-color: {TEXT}; }}
+QFrame[role="list"] {{ background: {SURFACE}; border: 1px solid #1E2640; border-radius: 14px; }}
+QFrame[role="list-head"] {{
+    background: {SURFACE_HIGH}; border: none; border-top-left-radius: 14px;
+    border-top-right-radius: 14px;
 }}
 
 /* Inputs */
@@ -199,9 +229,15 @@ def load_fonts() -> set[str]:
 
 def apply_theme(application: QApplication) -> bool:
     """Give the whole application the PitchSense look; False when a bundled typeface did not load
-    and a system font stands in for it."""
-    application.setStyle("Fusion")
+    and a system font stands in for it.
+
+    Applying it again (the self-test inside a running application) changes nothing, so the
+    restyling of every widget, slow when many exist, is skipped.
+    """
     families = load_fonts()
+    if application.styleSheet() == STYLE_SHEET:
+        return {FONT_FAMILY, DISPLAY_FAMILY} <= families
+    application.setStyle("Fusion")
     font = QFont(FONT_FAMILY if FONT_FAMILY in families else QFont().family())
     font.setPixelSize(BODY_PIXELS)
     application.setFont(font)

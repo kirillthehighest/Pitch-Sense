@@ -1,4 +1,5 @@
-"""The main window: the top bar, the leagues on the left, the hero banner and the screens.
+"""The main window: the top bar with the four screens (Meciuri, Clasament, Echipe, Analiză),
+the leagues on the left, the hero banner and the screens.
 
 The application entry point (``main``) also lives here.
 """
@@ -30,15 +31,15 @@ from app.data.live import UpdateSummary, copy_bundled_live
 from app.data.paths import copy_bundled_results
 from app.services.formatting import season_text
 from app.services.labels import country_label
+from app.services.predictions import MatchForecast
 from app.services.preferences import FavouriteTeam
 from app.services.updates import summary_text, updated_text
-from app.ui.algorithm_comparison import AlgorithmComparisonTab
-from app.ui.brand import Lockup, app_icon, flag_pixmap
+from app.ui.analysis import AnalysisPage
+from app.ui.brand import Lockup, app_icon, flag_pixmap, league_photo, photo_credit
 from app.ui.context import AppContext, default_context
-from app.ui.home import HomePage
-from app.ui.leagues import LeaguesTab
-from app.ui.match_prediction import MatchPredictionTab
-from app.ui.team_analysis import TeamAnalysisTab
+from app.ui.matches import MatchesPage
+from app.ui.standings import StandingsPage
+from app.ui.team_page import TeamPage
 from app.ui.theme import apply_theme
 from app.ui.widgets import BrandStripe, HeroBanner, LeagueButton, label
 
@@ -121,33 +122,31 @@ class FavouriteDialog(QDialog):
 
 
 class MainWindow(QMainWindow):
-    """Hosts the screens, the choice of league and "your team"; prepares predictions."""
+    """Hosts the four screens, the choice of league and "your team"; prepares the predictions of
+    every league in the background, the chosen league first."""
 
     def __init__(self, context: AppContext) -> None:
         super().__init__()
         self._context = context
         self._league_code: str | None = None
         self._reported_problems: set[str] = set()
+        self._preparing: set[str] = set()
         self.setWindowTitle(WINDOW_TITLE)
         self.setWindowIcon(app_icon())
         self.resize(1400, 900)
         self.setMinimumSize(1180, 740)
 
-        self.home = HomePage(context, self.open_favourite_dialog)
-        self.match_prediction = MatchPredictionTab(context)
-        self.team_analysis = TeamAnalysisTab(context)
-        self.algorithm_comparison = AlgorithmComparisonTab(context)
-        self.leagues = LeaguesTab(context, self.show_league)
-        self.pages = (
-            self.home,
-            self.match_prediction,
-            self.team_analysis,
-            self.algorithm_comparison,
-            self.leagues,
+        self.matches = MatchesPage(
+            context, self.open_standings, self.open_team, self.open_favourite_dialog
         )
+        self.standings = StandingsPage(context, self.open_team)
+        self.team_page = TeamPage(context, self.open_match)
+        self.analysis = AnalysisPage(context, self.show_league)
+        self.pages = (self.matches, self.standings, self.team_page, self.analysis)
 
         self.stack = QStackedWidget()
         self.stack.setObjectName("pages")
+        self.scrolls: list[QScrollArea] = []
         for page in self.pages:
             scroll = QScrollArea()
             scroll.setWidget(page)
@@ -155,6 +154,7 @@ class MainWindow(QMainWindow):
             scroll.setFrameShape(QFrame.Shape.NoFrame)
             page.setObjectName("page")
             self.stack.addWidget(scroll)
+            self.scrolls.append(scroll)
         self.hero = HeroBanner()
         self.page_title = self.hero.title_label
         self.page_subtitle = self.hero.subtitle_label
@@ -182,19 +182,22 @@ class MainWindow(QMainWindow):
         self.show_favourite()
         self.show_league(context.first_league)
         self.show_page(0)
+        self._prepare_next()
 
     @property
     def current_league(self) -> str:
         return self._league_code
 
     def show_page(self, index: int) -> None:
-        """Bring a screen to the front; screens that read a prediction log re-read it."""
+        """Bring a screen to the front; screens that read results re-read them."""
         page = self.pages[index]
         self.stack.setCurrentIndex(index)
         self.nav_buttons[index].setChecked(True)
         self.hero.show_page(page.title, page.subtitle)
-        if page in (self.home, self.algorithm_comparison, self.leagues):
-            page.refresh()  # a log may have been built from another screen
+        if page is self.matches:
+            page.show_list()
+        if page in (self.matches, self.analysis):
+            page.refresh()  # a log or a league's predictions may be ready since
 
     def show_league(self, code: str) -> None:
         """Show every screen for one league and prepare its predictions in the background."""
@@ -210,6 +213,8 @@ class MainWindow(QMainWindow):
             f"{league.name} · {country_label(code)} · "
             f"{season_text(seasons[0])}–{season_text(seasons[-1])}",
             flag_pixmap(code, 18),
+            league_photo(code),
+            photo_credit(code),
         )
         self.version_note.setText(self._note(catalog.updated_at))
         for page in self.pages:
@@ -221,16 +226,23 @@ class MainWindow(QMainWindow):
                 "arătate doar sezoanele încheiate. Apăsați „Actualizează datele” ca să-l "
                 f"descărcați din nou.\n\nDetalii: {catalog.live_problem}"
             )
-        predictions = league.predictions
-        if predictions.is_prepared:
-            self.statusBar().showMessage(f"Predicțiile pentru {league.name} sunt gata")
-            return
-        self.statusBar().showMessage(f"Se pregătesc predicțiile pentru {league.name}…")
-        self._context.run_task(
-            predictions.prepare,
-            lambda _: self._predictions_ready(league.name),
-            self._failed,
-        )
+        self._prepare(code)
+
+    def open_standings(self, code: str) -> None:
+        self.show_league(code)
+        self.show_page(self.pages.index(self.standings))
+
+    def open_team(self, code: str, team: str, season: str | None = None) -> None:
+        """Open a team's page, in ``season`` or else the latest season it played."""
+        self.show_league(code)
+        self.team_page.show_team(team, season)
+        self.show_page(self.pages.index(self.team_page))
+        self.scrolls[self.pages.index(self.team_page)].verticalScrollBar().setValue(0)
+
+    def open_match(self, forecast: MatchForecast) -> None:
+        self.show_page(self.pages.index(self.matches))
+        self.matches.show_match(forecast)
+        self.scrolls[self.pages.index(self.matches)].verticalScrollBar().setValue(0)
 
     def update_data(self) -> None:
         """Download the season in progress in the background, then show it in every screen."""
@@ -244,8 +256,11 @@ class MainWindow(QMainWindow):
     def _updated(self, summary: UpdateSummary) -> None:
         self._reset_update_button()
         self._context.reload()
+        self._preparing.clear()
+        self.matches.day = None  # open on the next day with matches of the new data
         code, self._league_code = self._league_code, None
         self.show_league(code)
+        self._prepare_next()
         self.statusBar().showMessage(f"Date actualizate. {summary_text(summary)}", 15000)
 
     def _update_failed(self, message: str) -> None:
@@ -279,10 +294,43 @@ class MainWindow(QMainWindow):
         else:
             for page in self.pages:
                 page.show_league(self._context.league(self.current_league))
-        self.home.show_favourite()
 
-    def _predictions_ready(self, name: str) -> None:
+    def _prepare(self, code: str) -> None:
+        """Predict a league's matches in the background, once."""
+        league = self._context.league(code)
+        if league.predictions.is_prepared or code in self._preparing:
+            return
+        self._preparing.add(code)
+        if code == self._league_code:
+            self.statusBar().showMessage(f"Se pregătesc predicțiile pentru {league.name}…")
+        self._context.run_task(
+            league.predictions.prepare,
+            lambda _: self._prepared(code),
+            lambda message: self._prepare_failed(code, message),
+        )
+
+    def _prepared(self, code: str) -> None:
+        self._preparing.discard(code)
+        name = self._context.league(code).name
         self.statusBar().showMessage(f"Predicțiile pentru {name} sunt gata", 6000)
+        self.matches.league_ready(code)
+        if code == self._league_code:
+            self.team_page.refresh()
+            self.analysis.show_check()
+        self._prepare_next()
+
+    def _prepare_failed(self, code: str, message: str) -> None:
+        self._preparing.discard(code)
+        self._failed(message)
+
+    def _prepare_next(self) -> None:
+        """Prepare the next league that is not ready, one at a time."""
+        if self._preparing:
+            return
+        for code in self._context.competitions:
+            if not self._context.league(code).predictions.is_prepared:
+                self._prepare(code)
+                return
 
     def _failed(self, message: str) -> None:
         self.statusBar().clearMessage()
