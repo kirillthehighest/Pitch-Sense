@@ -27,9 +27,10 @@ WIDTH, HEIGHT = 600, 400
 def reveal(application):
     window = QWidget()
     window.resize(WIDTH, HEIGHT)
-    old = QPixmap(WIDTH, HEIGHT)
+    old, new = QPixmap(WIDTH, HEIGHT), QPixmap(WIDTH, HEIGHT)
     old.fill(QColor("#47201A"))
-    cover = ThemeReveal(window, old, "#3DDCFF")
+    new.fill(QColor("#0C1C3C"))
+    cover = ThemeReveal(window, old, new, "#3DDCFF")
     yield cover
     window.deleteLater()
 
@@ -94,7 +95,10 @@ def test_a_reveal_lets_clicks_through_and_removes_itself_when_finished(reveal):
     assert reveal.animation.state() == reveal.animation.State.Running
     reveal.animation.setCurrentTime(reveal.animation.duration() // 2)
     assert 0 < reveal.progress < 1
-    reveal.grab()  # paints without error mid-way
+    image = reveal.grab().toImage()  # mid-way: the new picture inside the circle, the old out
+    assert image.pixelColor(3, 3).name() == "#0c1c3c"
+    assert image.pixelColor(WIDTH - 3, HEIGHT - 3).name() == "#47201a"
+    assert reveal.testAttribute(Qt.WidgetAttribute.WA_OpaquePaintEvent)  # nothing under it repaints
 
     reveal.finish()
     assert ended == [True] and reveal.isHidden()

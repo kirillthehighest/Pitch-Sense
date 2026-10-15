@@ -6,7 +6,7 @@ data here (the only arithmetic is arranging labels). The figures are built with
 same figure can be embedded in the GUI or saved to a file.
 
 Style (``docs/brand.md``): dark cards like the rest of the interface, titles in the condensed
-Barlow Condensed and text in Libre Franklin, light text, solid hairline grids, 2-pixel lines,
+Barlow Condensed and text in Plus Jakarta Sans, light text, solid hairline grids, 2-pixel lines,
 markers ringed in the card colour, a 2-pixel gap between heatmap cells, decimal commas. Colours do
 one job each (``palette.py``): a model always has the same colour (the reference is grey and
 dashed), the ordered K-Means groups go from bright (strongest) to deep blue, magnitudes use one
@@ -54,7 +54,7 @@ from app.visualization.palette import (
     WITH_FANS,
 )
 
-FONT_FAMILY = "Libre Franklin"
+FONT_FAMILY = "Plus Jakarta Sans"
 DISPLAY_FAMILY = "Barlow Condensed"
 SHOWN_GOALS = 6
 FIGURE_SIZE = (6.4, 4.8)

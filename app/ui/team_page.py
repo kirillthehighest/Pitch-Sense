@@ -33,7 +33,7 @@ from app.ui.widgets import (
     StatTile,
     card,
     label,
-    paint_league_card,
+    paint_head_card,
 )
 from app.visualization.charts import elo_history_chart, team_groups_chart
 
@@ -87,7 +87,7 @@ class TeamHeader(QFrame):
         self.crest = QLabel()
         self.name = label(role="title", wrap=True)
         self.caption = label(role="subtitle", wrap=True)
-        self.eyebrow = label(role="eyebrow")
+        self.eyebrow = label(role="hero-eyebrow")
         names = QVBoxLayout()
         names.setSpacing(2)
         names.addStretch()
@@ -103,7 +103,7 @@ class TeamHeader(QFrame):
 
     def paintEvent(self, event) -> None:  # noqa: N802 (Qt's name)
         painter = QPainter(self)
-        paint_league_card(painter, QRectF(self.rect()))
+        paint_head_card(painter, QRectF(self.rect()))
         painter.end()
 
 
@@ -263,9 +263,7 @@ class TeamPage(QWidget):
         is_favourite = favourite is not None and favourite.team == overview.team
         self.header.crest.setPixmap(team_badge(overview.team, CREST_SIZE, highlighted=is_favourite))
         self.header.name.setText(overview.team.upper())
-        self.header.eyebrow.setText(
-            (("Echipa ta · " if is_favourite else "") + self._league.name).upper()
-        )
+        self.header.eyebrow.setText(("Echipa ta · " if is_favourite else "") + self._league.name)
         state = "sezon în desfășurare" if overview.in_progress else "sezon încheiat"
         self.header.caption.setText(
             f"{season_text(overview.season)} · locul {overview.position} din {answer.teams} · "

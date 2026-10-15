@@ -82,7 +82,7 @@ SOURCES = (
     ),
     (
         "Literele",
-        "Kanit (sigla), Barlow Condensed și Libre Franklin, SIL Open Font License 1.1.",
+        "Kanit (sigla), Barlow Condensed și Plus Jakarta Sans, SIL Open Font License 1.1.",
     ),
 )
 

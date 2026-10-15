@@ -247,7 +247,7 @@ def test_every_scheduled_match_shows_the_engines_forecast_from_the_downloads(
             ]
             for model, prediction in expected.predictions.items()
         ]
-        assert page.detail.hero.status.text() == "PROGRAMAT"
+        assert page.detail.hero.status.text() == "Programat"
         page.show_list()
     assert errors == []
     window.close()

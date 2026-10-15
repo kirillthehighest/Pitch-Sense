@@ -6,13 +6,22 @@ As in the colour changes of Android's Material You ("Monet"), the circle's edge 
 line but waves running along it, followed by fainter ripples in the new league's accent; the
 waves calm down as the circle grows.
 
-The cover lets every click through, so the window can be used during the 0.8 seconds.
+The cover lets every click through, so the window can be used during the 0.8 seconds; it paints
+only two pictures of the window, so the animation runs at the screen's frame rate.
 """
 
 import math
 
 from PySide6.QtCore import QEasingCurve, QPointF, Qt, QVariantAnimation, Signal
-from PySide6.QtGui import QColor, QPainter, QPainterPath, QPen, QPixmap, QPolygonF
+from PySide6.QtGui import (
+    QBrush,
+    QColor,
+    QPainter,
+    QPainterPath,
+    QPen,
+    QPixmap,
+    QPolygonF,
+)
 from PySide6.QtWidgets import QWidget
 
 DURATION_MS = 800
@@ -20,7 +29,7 @@ WAVELENGTH = 120.0  # pixels along the edge between two crests of the main wave
 AMPLITUDE = 18.0  # the waves' height when the circle starts, in pixels...
 CALM_AMPLITUDE = 4.0  # ...and when it has passed every corner
 STEP = 6.0  # pixels along the edge between two points of its outline
-RIPPLES = ((22.0, 0.45), (46.0, 0.25), (74.0, 0.12))  # (distance behind the edge, opacity)
+RIPPLES = ((20.0, 0.4), (44.0, 0.2))  # (distance behind the edge, opacity)
 
 
 def reveal_radius(progress: float, width: float, height: float) -> float:
@@ -61,18 +70,26 @@ def wave_edge(radius: float, progress: float, amplitude: float | None = None) ->
 
 
 class ThemeReveal(QWidget):
-    """Covers ``parent`` with ``old`` (a picture of it before the change) and opens a wavy circle
-    in it from the top-left corner; removes itself when the circle has passed every corner."""
+    """Shows ``old`` (a picture of ``parent`` before the change) and opens a wavy circle in it
+    from the top-left corner onto ``new`` (a picture after it); removes itself when the circle
+    has passed every corner.
+
+    The cover is opaque and paints only the two pictures, so nothing under it is repainted while
+    it runs: each frame costs two image copies and the wavy line, a few milliseconds, whatever
+    the window holds. That keeps the animation at the screen's frame rate.
+    """
 
     ended = Signal()
 
-    def __init__(self, parent: QWidget, old: QPixmap, edge: str) -> None:
+    def __init__(self, parent: QWidget, old: QPixmap, new: QPixmap, edge: str) -> None:
         super().__init__(parent)
         self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
-        self.setAttribute(Qt.WidgetAttribute.WA_NoSystemBackground)
+        self.setAttribute(Qt.WidgetAttribute.WA_OpaquePaintEvent)
         self.old = old
+        self.new = new
         self.edge = QColor(edge)
         self.progress = 0.0
+        self._old_brush = _picture_brush(old)
         self.setGeometry(parent.rect())
         self.animation = QVariantAnimation(self)
         self.animation.setStartValue(0.0)
@@ -122,10 +139,10 @@ class ThemeReveal(QWidget):
 
     def paintEvent(self, event) -> None:  # noqa: N802 (Qt's name)
         painter = QPainter(self)
+        painter.drawPixmap(self.rect(), self.new)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        painter.setClipPath(self.cover())
-        painter.drawPixmap(self.rect(), self.old)
-        painter.setClipping(False)
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.fillPath(self.cover(), self._old_brush)  # no clip mask: one pass over the pixels
         radius = self.radius
         if radius > 0:
             self._paint_ripples(painter, radius)
@@ -137,7 +154,7 @@ class ThemeReveal(QWidget):
         amplitude = wave_amplitude(self.progress)
         edge = QPolygonF(wave_edge(radius, self.progress, amplitude))
         painter.setBrush(Qt.BrushStyle.NoBrush)
-        for width, alpha in ((16.0, 0.16), (3.0, 0.95)):
+        for width, alpha in ((9.0, 0.14), (2.5, 0.95)):
             colour = QColor(self.edge)
             colour.setAlphaF(alpha * fade)
             pen = QPen(colour, width)
@@ -149,6 +166,12 @@ class ThemeReveal(QWidget):
                 continue
             colour = QColor(self.edge)
             colour.setAlphaF(alpha * fade)
-            painter.setPen(QPen(colour, 1.6))
+            painter.setPen(QPen(colour, 1.4))
             ripple = wave_edge(radius - distance, self.progress + distance / 300, amplitude * 0.7)
             painter.drawPolyline(QPolygonF(ripple))
+
+
+def _picture_brush(picture: QPixmap) -> QBrush:
+    """A brush that paints ``picture`` at its place in the window (Qt draws a brush's picture at
+    its own pixel density, so a high-density picture keeps its sharpness and its size)."""
+    return QBrush(picture)

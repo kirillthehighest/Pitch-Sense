@@ -286,14 +286,14 @@ def test_the_bundled_typefaces_are_used_and_write_romanian(application):
         "BarlowCondensed-SemiBold",
         "Kanit-BlackItalic",
         "Kanit-ExtraBoldItalic",
-        "LibreFranklin-Bold",
-        "LibreFranklin-ExtraBold",
-        "LibreFranklin-Medium",
-        "LibreFranklin-Regular",
-        "LibreFranklin-SemiBold",
+        "PlusJakartaSans-Bold",
+        "PlusJakartaSans-ExtraBold",
+        "PlusJakartaSans-Medium",
+        "PlusJakartaSans-Regular",
+        "PlusJakartaSans-SemiBold",
     ]
     for path in fonts:
         glyphs = QRawFont(str(path), 14).glyphIndexesForString(ROMANIAN)
         assert len(glyphs) == len(ROMANIAN) and all(glyphs), path.name
-    for licence in ("OFL-BarlowCondensed.txt", "OFL-Kanit.txt", "OFL-LibreFranklin.txt"):
+    for licence in ("OFL-BarlowCondensed.txt", "OFL-Kanit.txt", "OFL-PlusJakartaSans.txt"):
         assert (FONTS_DIR / licence).is_file()

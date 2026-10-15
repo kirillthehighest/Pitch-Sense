@@ -1,17 +1,17 @@
-"""The palettes of the leagues (Phase 21): one per league, and every text readable on every
-surface it is written on, including the glass cards over the backdrop's glows."""
+"""The palettes of the leagues (Phase 21): neutral surfaces shared by every league, one accent per
+league, and every text readable on every surface it is written on."""
 
 import pytest
 from PySide6.QtGui import QColor
 
 from app.data.competitions import COMPETITIONS
+from app.ui.brand import league_photo, photo_top
 from app.ui.theme import STYLE_SHEET, style_sheet
 from app.ui.themes import DEFAULT_THEME, THEMES, blend, theme_for
-from app.visualization.palette import AWAY, DRAW, FORM_DRAW, HOME, LOSS, NIGHT, WIN
+from app.ui.widgets import ProbabilityBars, edge_colour
+from app.visualization.palette import FORM_DRAW, LOSS, NIGHT, WIN
 
-GLASS = 0.74  # the cards' opacity over the backdrop (theme.py)
-BACKDROP_GLOW = 70 / 255  # the strongest glow of the backdrop (widgets.Backdrop)
-CARD_GLOW = 120 / 255  # the glows of a match's or a team's head (widgets.paint_league_card)
+HEAD_LIGHT = 235 / 255  # the league colour at the top of a match's or a team's head
 
 
 def contrast(foreground: str, background: str) -> float:
@@ -26,31 +26,15 @@ def contrast(foreground: str, background: str) -> float:
     return (lighter + 0.05) / (darker + 0.05)
 
 
-def surfaces(theme) -> dict[str, str]:
-    """Every colour text is written on, the glass cards at the brightest point of a glow."""
-    glows = {
-        f"glass over {name}": blend(
-            blend(theme.background, glow, BACKDROP_GLOW), theme.surface, GLASS
-        )
-        for name, glow in (
-            ("glow_primary", theme.glow_primary),
-            ("glow_secondary", theme.glow_secondary),
-        )
-    }
-    return {
-        "night": theme.night,
-        "background": theme.background,
-        "surface": theme.surface,
-        "surface_high": theme.surface_high,
-        "surface_top": theme.surface_top,
-        **glows,
-    }
+def surfaces(theme) -> list[str]:
+    return [theme.night, theme.background, theme.surface, theme.surface_high, theme.surface_top]
 
 
-def test_every_league_has_its_own_palette():
+def test_every_league_has_its_own_accent_on_the_same_surfaces():
     assert set(THEMES) == set(COMPETITIONS)
     assert len({theme.accent for theme in THEMES.values()}) == len(THEMES)
-    assert len({theme.surface for theme in THEMES.values()}) == len(THEMES)
+    assert len({theme.brand for theme in THEMES.values()}) == len(THEMES)
+    assert len({tuple(surfaces(theme)) for theme in THEMES.values()}) == 1  # neutral, shared
     assert all(theme_for(code).code == code for code in COMPETITIONS)
     assert theme_for("XX") is DEFAULT_THEME
 
@@ -58,35 +42,43 @@ def test_every_league_has_its_own_palette():
 @pytest.mark.parametrize("code", sorted(THEMES))
 def test_text_is_readable_on_every_surface(code):
     theme = THEMES[code]
-    for name, surface in surfaces(theme).items():
-        assert contrast(theme.text, surface) >= 7, name  # WCAG AAA for body text
-        assert contrast(theme.muted, surface) >= 4.5, name  # AA for secondary text
+    for surface in surfaces(theme):
+        assert contrast(theme.text, surface) >= 7, surface  # WCAG AAA for body text
+        assert contrast(theme.muted, surface) >= 4.5, surface  # AA for secondary text
     assert contrast(theme.text, theme.accent_tint) >= 7  # the row of "your team"
 
 
 @pytest.mark.parametrize("code", sorted(THEMES))
 def test_the_accent_is_readable_as_text_and_carries_readable_text(code):
     theme = THEMES[code]
-    for surface in (theme.night, theme.background, theme.surface, theme.surface_high):
-        assert contrast(theme.accent, surface) >= 4.5  # links, eyebrows, "your team"
+    for surface in surfaces(theme)[:4]:
+        assert contrast(theme.accent_text, surface) >= 4.5  # times, links, "your team"
     assert contrast(theme.accent_ink, theme.accent) >= 4.5  # the chosen screen, primary buttons
     assert contrast(theme.accent_ink, theme.accent_hover) >= 4.5
 
 
 @pytest.mark.parametrize("code", sorted(THEMES))
-def test_white_text_is_readable_on_the_heads_of_matches_and_teams(code):
+def test_white_text_is_readable_on_the_league_colours(code):
     theme = THEMES[code]
-    for glow in (theme.glow_primary, theme.glow_secondary):
-        for base in (theme.surface_high, theme.night):
-            assert contrast("#FFFFFF", blend(base, glow, CARD_GLOW)) >= 4.5
+    head = blend(theme.surface, theme.brand, HEAD_LIGHT)  # the top of a match's or team's head
+    assert contrast("#FFFFFF", head) >= 4.5
+    assert contrast("#FFFFFF", theme.brand) >= 4.5  # the banner without an image
+    photo = league_photo(code)
+    fill = blend(edge_colour(photo, photo_top(code)), theme.brand, 0.5)  # the banner's fill
+    assert contrast("#FFFFFF", fill) >= 4.5
 
 
-@pytest.mark.parametrize(
-    ("text", "background"),
-    [(NIGHT, DRAW)] + [("#FFFFFF", colour) for colour in (HOME, AWAY, WIN, FORM_DRAW, LOSS)],
-)
-def test_the_outcome_colours_carry_readable_labels_in_every_league(text, background):
-    assert contrast(text, background) >= 4.5
+@pytest.mark.parametrize("code", sorted(THEMES))
+def test_the_probability_bars_carry_readable_percentages(code, monkeypatch):
+    monkeypatch.setattr("app.ui.widgets.current_theme", lambda: THEMES[code])
+    for fill, ink in ProbabilityBars.colours():
+        assert contrast(ink, fill) >= 4.5
+
+
+@pytest.mark.parametrize("fill", [WIN, FORM_DRAW, LOSS])
+def test_the_form_squares_carry_readable_letters(fill):
+    assert contrast("#FFFFFF", fill) >= 4.5
+    assert NIGHT != fill
 
 
 @pytest.mark.parametrize("code", sorted(THEMES))
@@ -96,7 +88,6 @@ def test_the_style_sheet_is_drawn_in_the_league_colours(code):
 
     assert f"color: {theme.accent_ink}; background: {theme.accent};" in sheet  # the chosen screen
     assert f"background: {theme.accent}; color: {theme.accent_ink};" in sheet  # primary buttons
-    assert theme.rgba("surface", GLASS) in sheet  # glass cards
     others = {other.accent for other in THEMES.values() if other is not theme}
     assert not any(accent in sheet for accent in others)
     assert STYLE_SHEET == style_sheet(DEFAULT_THEME)

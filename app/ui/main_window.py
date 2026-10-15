@@ -11,7 +11,8 @@ The application entry point (``main``) also lives here.
 import sys
 from datetime import datetime
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QSize, Qt
+from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
     QButtonGroup,
@@ -46,6 +47,7 @@ from app.ui.brand import (
     league_photo,
     photo_credit,
     photo_top,
+    team_badge,
 )
 from app.ui.context import AppContext, default_context
 from app.ui.matches import MatchesPage
@@ -54,7 +56,7 @@ from app.ui.team_page import TeamPage
 from app.ui.theme import apply_theme, apply_window_theme
 from app.ui.themes import current_theme, theme_for
 from app.ui.transition import ThemeReveal
-from app.ui.widgets import Backdrop, BrandStripe, ChartView, HeroBanner, LeagueButton, label
+from app.ui.widgets import Backdrop, ChartView, HeroBanner, LeagueButton, label
 
 WINDOW_TITLE = "PitchSense – analiza și predicția meciurilor de fotbal"
 SIDE_PANEL_WIDTH = 248
@@ -182,13 +184,12 @@ class MainWindow(QMainWindow):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
         layout.addWidget(self._top_bar())
-        layout.addWidget(BrandStripe(2))
         body = QHBoxLayout()
         body.setSpacing(0)
         body.addWidget(self._side_panel())
         main = QVBoxLayout()
-        main.setContentsMargins(24, 20, 24, 0)
-        main.setSpacing(18)
+        main.setContentsMargins(28, 24, 28, 0)
+        main.setSpacing(22)
         main.addWidget(self.hero)
         main.addWidget(self.stack, stretch=1)
         body.addLayout(main, stretch=1)
@@ -223,6 +224,7 @@ class MainWindow(QMainWindow):
         background."""
         if code == self._league_code:
             return
+        old = self._snapshot() if theme_for(code) != current_theme() else None
         self._league_code = code
         self._restyle(code)
         self.league_buttons[code].setChecked(True)
@@ -249,18 +251,36 @@ class MainWindow(QMainWindow):
                 f"descărcați din nou.\n\nDetalii: {catalog.live_problem}"
             )
         self._prepare(code)
+        if old is not None:
+            self._reveal(old, theme_for(code).accent)
 
-    def _restyle(self, code: str) -> None:
-        """Repaint the window in the league's palette; a window on screen changes behind a
-        picture of itself, which a circle from the top-left corner then opens."""
-        theme = theme_for(code)
-        if theme == current_theme() and self.reveal is None and self._styled:
-            return
-        self._styled = True
-        old = self.grab() if self.animate and self.isVisible() else None
+    def _snapshot(self) -> QPixmap | None:
+        """A picture of the window as it is on screen (with a reveal still running, as it is
+        drawn), before a change of league; None when the change needs no animation."""
+        if not (self.animate and self.isVisible()):
+            return None
+        picture = self.grab()
         if self.reveal is not None:
             self.reveal.finish()
             self.reveal = None
+        return picture
+
+    def _reveal(self, old: QPixmap, edge: str) -> None:
+        """Open the new league's window from under the picture of the old one."""
+        # Widgets added to a visible layout are shown, and laid out, by posted events: deliver
+        # them, or the picture of the new window would miss the new rows.
+        QApplication.sendPostedEvents()
+        reveal = ThemeReveal(self, old, self.grab(), edge)
+        reveal.ended.connect(lambda: self._revealed(reveal))
+        self.reveal = reveal
+        reveal.start()
+
+    def _restyle(self, code: str) -> None:
+        """Repaint the window in the league's palette and give it the league's icon."""
+        theme = theme_for(code)
+        if theme == current_theme() and self._styled:
+            return
+        self._styled = True
         apply_window_theme(self, theme)
         icon = app_icon(theme)
         QApplication.instance().setWindowIcon(icon)
@@ -269,11 +289,6 @@ class MainWindow(QMainWindow):
             chart.restyle()
         for widget in self.findChildren(QWidget):
             widget.update()  # the painted widgets read the palette when they paint
-        if old is not None:
-            reveal = ThemeReveal(self, old, theme.accent)
-            reveal.ended.connect(lambda: self._revealed(reveal))
-            self.reveal = reveal
-            reveal.start()
 
     def _revealed(self, reveal: ThemeReveal) -> None:
         if self.reveal is reveal:
@@ -352,7 +367,10 @@ class MainWindow(QMainWindow):
 
     def show_favourite(self) -> None:
         favourite = self._context.preferences.favourite
-        self.favourite_button.setText(f"Echipa ta: {favourite.team}" if favourite else NO_FAVOURITE)
+        self.favourite_button.setText(favourite.team if favourite else NO_FAVOURITE)
+        self.favourite_button.setIcon(
+            QIcon(team_badge(favourite.team, 22, highlighted=True)) if favourite else QIcon()
+        )
 
     def _favourite_chosen(self, favourite: FavouriteTeam | None) -> None:
         self._context.preferences.set_favourite(favourite)
@@ -408,16 +426,17 @@ class MainWindow(QMainWindow):
         bar = QFrame()
         bar.setObjectName("topbar")
         layout = QHBoxLayout(bar)
-        layout.setContentsMargins(24, 0, 24, 0)
-        layout.setSpacing(4)
-        self.lockup = Lockup(40)
+        bar.setFixedHeight(68)
+        layout.setContentsMargins(28, 0, 28, 0)
+        layout.setSpacing(6)
+        self.lockup = Lockup(36)
         layout.addWidget(self.lockup)
         layout.addSpacing(32)
         group = QButtonGroup(self)
         group.setExclusive(True)
         self.nav_buttons: list[QPushButton] = []
         for index, page in enumerate(self.pages):
-            button = QPushButton(page.title.upper())
+            button = QPushButton(page.title)
             button.setProperty("role", "nav")
             button.setCheckable(True)
             button.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -427,13 +446,16 @@ class MainWindow(QMainWindow):
             self.nav_buttons.append(button)
         layout.addStretch()
         self.update_button = QPushButton(UPDATE)
+        self.update_button.setProperty("role", "icon")
         self.update_button.setToolTip(UPDATE_TIP)
         self.update_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.update_button.clicked.connect(self.update_data)
         layout.addWidget(self.update_button)
         layout.addSpacing(10)
         self.favourite_button = QPushButton()
-        self.favourite_button.setProperty("role", "favourite")
+        self.favourite_button.setProperty("role", "icon")
+        self.favourite_button.setToolTip("Echipa ta: o alegi, iar meciurile ei sunt evidențiate")
+        self.favourite_button.setIconSize(QSize(22, 22))
         self.favourite_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.favourite_button.clicked.connect(self.open_favourite_dialog)
         layout.addWidget(self.favourite_button)
@@ -447,7 +469,7 @@ class MainWindow(QMainWindow):
         layout = QVBoxLayout(panel)
         layout.setContentsMargins(0, 22, 0, 18)
         layout.setSpacing(2)
-        heading = label("COMPETIȚII", "overline")
+        heading = label("Competiții", "overline")
         heading.setContentsMargins(22, 0, 0, 8)
         self.side_heading = heading
         layout.addWidget(heading)

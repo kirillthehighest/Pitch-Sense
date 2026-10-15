@@ -102,7 +102,8 @@ def run_self_test(load_context: Callable[[], AppContext] = default_context) -> i
         window.show_page(index)
         checks[f"{page.title} screen drawn"] = not window.grab().isNull()
     checks["league colours"] = _colours_follow_the_league(window, context)
-    reveal = ThemeReveal(window, window.grab(), current_theme().accent)
+    picture = window.grab()
+    reveal = ThemeReveal(window, picture, picture, current_theme().accent)
     reveal.progress = 0.5
     checks["colour change wave"] = not reveal.grab().isNull() and not reveal.cover().isEmpty()
     reveal.finish()

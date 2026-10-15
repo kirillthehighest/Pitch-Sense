@@ -49,7 +49,7 @@ from app.ui.worker import run_in_background, run_now
 from app.visualization.palette import LOSS, WIN
 from tests.conftest import LIVE_TODAY
 
-PAGE_TITLES = ["MECIURI", "CLASAMENT", "ECHIPE", "ANALIZĂ"]
+PAGE_TITLES = ["Meciuri", "Clasament", "Echipe", "Analiză"]
 MODEL_NAMES = [
     "Elo",
     "Poisson",
@@ -111,7 +111,7 @@ def test_charts_wait_for_results(window):
 def test_the_top_bar_leads_to_four_screens_and_the_header_names_them(window):
     assert [button.text() for button in window.nav_buttons] == PAGE_TITLES
     assert window.stack.currentIndex() == 0
-    assert window.page_title.text() == "MECIURI"
+    assert window.page_title.text() == "MECIURI"  # the banner's title, in display capitals
 
     window.nav_buttons[3].click()
 
@@ -124,7 +124,7 @@ def test_the_top_bar_leads_to_four_screens_and_the_header_names_them(window):
 def test_the_window_prepares_the_predictions_of_the_league(window, app_context):
     assert window.current_league == "SP1"
     assert window.league_buttons["SP1"].isChecked()
-    assert window.hero.eyebrow_label.text() == "LA LIGA · SPANIA · 2006/07–2007/08"
+    assert window.hero.eyebrow_label.text() == "La Liga · Spania · 2006/07–2007/08"
     assert not window.hero.flag_label.pixmap().isNull()
     assert window.hero.photo is not None  # the La Liga image
     assert window.hero.credit_label.text() == "Imagine: DAZN"
@@ -143,9 +143,9 @@ def test_the_matches_open_on_the_next_day_with_matches(window):
     page = window.matches
 
     assert page.day == date(2007, 9, 4)  # "today" has a match
-    assert page.day_label.text() == "AZI · MAR. 4 SEPT."
+    assert page.day_label.text() == "Azi · mar. 4 sept."
     assert [chip.isChecked() for chip in page.day_strip.chips] == [False] * 3 + [True] + [False] * 3
-    assert page.day_strip.chips[3].text() == "AZI\n4 SEPT."
+    assert page.day_strip.chips[3].text() == "Azi\n4 sept."
     (row,) = day_rows(page)
     assert (row.forecast.home_team, row.forecast.away_team) == ("Bravo", "Alpha")
     assert row.model is ModelName.LOGISTIC_REGRESSION  # the default model
@@ -179,9 +179,8 @@ def test_a_played_match_says_right_or_wrong_with_a_shape_and_a_colour(window):
         best = (Outcome.HOME_WIN, Outcome.DRAW, Outcome.AWAY_WIN).index(
             forecast.of(model).probabilities.most_likely
         )
-        width = MatchRow.PROBABILITY_WIDTH
-        chip_left = 700 - 12 - 3 * width - 2 * 6 + best * (width + 6)
-        mark = image.pixelColor(round(chip_left + width - 1), round(MatchRow.HEIGHT / 2 - 15 - 4))
+        chip = MatchRow.chip_box(700, MatchRow.HEIGHT, best)
+        mark = image.pixelColor(round(chip.right() - 1), round(chip.top() - 3))
 
         assert mark.name() == (WIN if row.hit else LOSS).lower()
 
@@ -223,8 +222,8 @@ def test_a_match_page_shows_every_model_its_scores_and_both_teams(window):
     assert [bar.label for bar in detail.bars.rows] == OUTCOME_MODELS
     assert all(bar.home + bar.draw + bar.away == pytest.approx(1) for bar in detail.bars.rows)
     assert detail.hero.score.text() == f"{played.home_goals} – {played.away_goals}"
-    assert detail.hero.status.text() == "FINAL"
-    assert detail.hero.eyebrow.text() == "LA LIGA · 2007/08 · 03.09.2007"
+    assert detail.hero.status.text() == "Final"
+    assert detail.hero.eyebrow.text() == "La Liga · 2007/08 · 03.09.2007"
     assert detail.verdict.text().startswith(f"Rezultat: {played.home_goals}–{played.away_goals}")
     assert detail.knowledge.text() == (
         "Predicțiile au fost făcute din meciurile jucate înainte de 03.09.2007, fără să știe "
@@ -267,7 +266,7 @@ def test_predicting_a_hypothetical_fixture(window):
     assert detail.knowledge.text() == (
         "Meci ipotetic: predicțiile folosesc meciurile jucate înainte de 05.09.2007."
     )
-    assert detail.hero.status.text() == "MECI IPOTETIC"
+    assert detail.hero.status.text() == "Meci ipotetic"
     assert detail.hero.score.text() == "VS"
     assert len(detail.bars.rows) == 3
 
@@ -318,7 +317,8 @@ def test_your_team_is_saved_shown_and_highlighted(window, app_context, tmp_path)
 
     assert app_context.preferences.favourite == FavouriteTeam("SP1", "Charlie")
     assert Preferences(tmp_path / "preferences.json").favourite == FavouriteTeam("SP1", "Charlie")
-    assert window.favourite_button.text() == "Echipa ta: Charlie"
+    assert window.favourite_button.text() == "Charlie"
+    assert not window.favourite_button.icon().isNull()  # the club's crest
     page = window.matches
     assert page.favourite_name.text() == "CHARLIE"
     assert page.favourite_caption.text() == "La Liga · 2007/08"
@@ -375,7 +375,7 @@ def two_league_context(make_app_context, two_league_database):
 def test_choosing_a_league_shows_it_on_every_screen_and_is_remembered(two_league_context):
     window = MainWindow(two_league_context)
     assert window.current_league == "E0"  # nothing remembered: the first league
-    assert window.hero.eyebrow_label.text().startswith("PREMIER LEAGUE · ANGLIA")
+    assert window.hero.eyebrow_label.text().startswith("Premier League · Anglia")
     assert [button.text() for button in window.league_buttons.values()] == [
         "Premier League",
         "La Liga",
@@ -386,7 +386,7 @@ def test_choosing_a_league_shows_it_on_every_screen_and_is_remembered(two_league
 
     assert window.current_league == "SP1"
     assert window.league_buttons["SP1"].isChecked() and not window.league_buttons["E0"].isChecked()
-    assert window.hero.eyebrow_label.text().startswith("LA LIGA · SPANIA")
+    assert window.hero.eyebrow_label.text().startswith("La Liga · Spania")
     assert window.team_page.team_box.itemText(0) == "Alpha"
     assert cells(window.standings.table, 1)[0] in ("Alpha", "Bravo", "Charlie", "Delta")
     assert two_league_context.preferences.competition == "SP1"
@@ -472,7 +472,7 @@ def test_the_table_shows_crests_and_form_and_opens_a_team(window):
     assert not page.table.item(0, 1).icon().isNull()  # the team's badge
     form = page.table.cellWidget(0, 10).findChild(FormStrip)
     assert form.letters == "V V E V E"
-    assert page.title_label.text() == "LA LIGA 2006/07 · TOT SEZONUL"
+    assert page.title_label.text() == "La Liga 2006/07 · tot sezonul"
 
     page.table.cellClicked.emit(2, 1)
 
@@ -489,7 +489,7 @@ def test_the_table_as_of_a_date(window):
     page.date_edit.setDate(date(2006, 9, 4))
 
     assert cells(page.table, 1) == ["Alpha", "Bravo", "Delta", "Charlie"]
-    assert page.title_label.text() == "LA LIGA 2006/07 · ÎNAINTE DE 04.09.2006"
+    assert page.title_label.text() == "La Liga 2006/07 · înainte de 04.09.2006"
 
 
 # --- Echipe ---
@@ -512,7 +512,7 @@ def test_the_page_of_a_team_for_a_whole_season(window):
     assert chart_title(page.elo_chart) == "Alpha: ratingul Elo înaintea fiecărui meci"
     assert chart_legend(page.elo_chart) == ["2006/07"]
     assert chart_title(page.groups_chart).startswith("Grupurile echipelor, 2006/07")
-    assert [page.views.tabText(i) for i in range(page.views.count())] == ["RATING ELO", "GRUPURI"]
+    assert [page.views.tabText(i) for i in range(page.views.count())] == ["Rating Elo", "Grupuri"]
 
 
 def test_a_match_on_a_team_page_opens_its_page(window):
@@ -531,9 +531,7 @@ def test_a_match_on_a_team_page_opens_its_page(window):
 
 def test_the_analysis_explains_scores_and_credits(window):
     analysis = window.analysis
-    assert [analysis.views.tabText(i) for i in range(analysis.views.count())] == [
-        tab.upper() for tab in TABS
-    ]
+    assert [analysis.views.tabText(i) for i in range(analysis.views.count())] == list(TABS)
     texts = " ".join(label.text() for label in analysis.findChildren(type(window.page_title)))
     assert "Ratingul Elo" in texts or "RATINGUL ELO" in texts
     assert "Wikipedia" in texts and "CC0" in texts
@@ -590,8 +588,8 @@ def test_the_matches_open_on_the_next_scheduled_day(live_window):
     row.click()
 
     detail = page.detail
-    assert detail.hero.status.text() == "PROGRAMAT"
-    assert detail.hero.eyebrow.text() == "LA LIGA · 2008/09 · 10.09.2008, 18:30"
+    assert detail.hero.status.text() == "Programat"
+    assert detail.hero.eyebrow.text() == "La Liga · 2008/09 · 10.09.2008, 18:30"
     assert detail.knowledge.text() == (
         "Predicțiile folosesc toate meciurile jucate până acum (ultimele pe 07.09.2008)."
     )
@@ -797,24 +795,24 @@ def test_the_hero_writes_titles_and_eyebrows_in_capitals(application):
 
     assert hero.title_label.text() == "ECHIPE"
     assert hero.subtitle_label.text() == "Clasamentul la orice dată."
-    assert hero.eyebrow_label.text() == "LA LIGA · SPANIA"
+    assert hero.eyebrow_label.text() == "La Liga · Spania"
     assert not hero.grab().isNull()
 
 
-def test_a_stat_tile_shows_a_value_under_a_capital_name(application):
+def test_a_stat_tile_shows_a_value_under_its_name(application):
     tile = StatTile("Meciuri")
 
     tile.set_value("7.600")
 
-    assert (tile.value_label.text(), tile.name_label.text()) == ("7.600", "MECIURI")
+    assert (tile.value_label.text(), tile.name_label.text()) == ("7.600", "Meciuri")
 
 
 def test_a_day_chip_names_the_day_in_two_lines(application):
     today = date(2026, 10, 15)
 
-    assert chip_text(today, today) == "AZI\n15 OCT."
-    assert chip_text(date(2026, 10, 16), today) == "MÂINE\n16 OCT."
-    assert chip_text(date(2026, 10, 17), today) == "SÂM.\n17 OCT."
+    assert chip_text(today, today) == "Azi\n15 oct."
+    assert chip_text(date(2026, 10, 16), today) == "Mâine\n16 oct."
+    assert chip_text(date(2026, 10, 17), today) == "Sâm.\n17 oct."
     strip = DayStrip()
     chosen = []
     strip.day_chosen.connect(chosen.append)
@@ -1003,3 +1001,19 @@ def test_a_hidden_chart_takes_the_new_colours_when_it_is_shown(application):
         QCoreApplication.processEvents()
     assert draws
     view.close()
+
+
+def test_the_banner_shows_the_image_sharp_on_the_right_and_its_edge_colour_on_the_left(
+    application,
+):
+    photo = QImage(1920, 1080, QImage.Format.Format_RGB32)
+    photo.fill(QColor("#C04030"))
+    hero = HeroBanner()
+    hero.resize(1200, HeroBanner.HEIGHT)
+    hero.show_league("La Liga · Spania", None, photo)
+    image = hero.grab().toImage()
+
+    assert image.pixelColor(1150, 120).name() == "#c04030"  # the image itself, untouched
+    left = image.pixelColor(60, HeroBanner.HEIGHT - 20)  # the fill: the image's edge, deepened
+    assert left.red() < 0xC0 and left.red() > left.blue()
+    assert hero.subtitle_label.maximumWidth() <= 1200 - hero.photo_width(1200)

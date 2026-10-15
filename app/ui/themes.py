@@ -1,12 +1,15 @@
-"""The colours of each league (Phase 21): the whole interface takes the palette of the league on
-screen, and changing the league repaints it (with the circular reveal of ``transition.py``).
+"""The colours of each league (Phase 21): the interface takes the accent of the league on screen,
+and changing the league repaints it (with the reveal of ``transition.py``).
 
-Each palette follows the league's identity: the Premier League's purple, magenta and green, La
-Liga's red and orange, Serie A's blues, the Bundesliga's red, Ligue 1's night blue with a lime
-accent. Surfaces go from the deepest (``night``) to the highest (``surface_top``); ``accent`` is
-the one colour that says "here" (the chosen screen, the primary button, links, "your team");
-``glow_primary`` and ``glow_secondary`` light the backdrop, the banner and the logo. The contrast
-of every text colour on every surface is checked by ``tests/test_themes.py``.
+The surfaces are the same for every league: a neutral, almost black night, with cards a step
+lighter, as in the sports apps the team chose as references (Sportia, LiveScore, OneFootball).
+A league's identity lives only in a few places, so it never tints the whole screen: the accent
+(the chosen screen and league, the primary button, the most likely outcome, "your team"), the
+banner with the league's image, and the lower half of the logo. ``accent`` fills shapes and carries
+``accent_ink``; ``accent_text`` is the accent written on the dark surfaces, lighter where the
+fill would be too dark to read; ``brand`` is the league's own deep colour, behind the banner when
+there is no image. The contrast of every text colour on every surface is checked by
+``tests/test_themes.py``.
 
 The colours of match outcomes and of the form guide stay the same in every league
 (``app/visualization/palette.py``): they were validated for colour-blind readers.
@@ -19,32 +22,32 @@ from PySide6.QtGui import QColor
 
 @dataclass(frozen=True, slots=True)
 class Theme:
-    """One league's palette, as hex colours."""
+    """One league's palette, as hex colours; the surfaces are shared by all leagues."""
 
     code: str
-    night: str  # the top bar and the side panel
-    background: str  # the window
-    surface: str  # cards
-    surface_high: str  # headers, inputs, hover
-    surface_top: str  # pressed buttons, selected rows
-    line: str  # borders and dividers
-    text: str
-    muted: str  # secondary text
-    faint: str  # disabled controls only, never text that must be read
     accent: str
     accent_ink: str  # text on the accent
-    glow_primary: str
-    glow_secondary: str
+    accent_text: str  # the accent as text or a thin line on the dark surfaces
+    brand: str  # the league's deep colour: the banner without an image
+    night: str = "#0A0A0C"  # the top bar and the side panel
+    background: str = "#0E0E11"  # the window
+    surface: str = "#16161A"  # cards
+    surface_high: str = "#1E1E23"  # chips, inputs, the heads of lists, buttons
+    surface_top: str = "#28282E"  # hover and pressed
+    line: str = "#2A2A30"  # hairlines between rows
+    text: str = "#F5F5F7"
+    muted: str = "#9C9CA6"  # secondary text
+    faint: str = "#5E5E68"  # disabled controls only, never text that must be read
     accent_hover: str = field(default="")
 
     def __post_init__(self) -> None:
-        if not self.accent_hover:
-            object.__setattr__(self, "accent_hover", QColor(self.accent).lighter(118).name())
+        if not self.accent_hover:  # lighter on hover, under dark text
+            object.__setattr__(self, "accent_hover", QColor(self.accent).lighter(112).name())
 
     @property
     def accent_tint(self) -> str:
-        """The accent at 16% over a card: the row of "your team"."""
-        return blend(self.surface, self.accent, 0.16)
+        """The accent at 14% over a card: the row of "your team"."""
+        return blend(self.surface, self.accent, 0.14)
 
     def rgba(self, name: str, alpha: float) -> str:
         """A colour of the palette with an opacity, for the style sheet: rgba(r, g, b, a)."""
@@ -64,85 +67,30 @@ def blend(first: str, second: str, share: float) -> str:
 
 
 THEMES = {
+    # The Premier League's green over its purple
     "E0": Theme(
-        code="E0",
-        night="#12051F",
-        background="#180A28",
-        surface="#231236",
-        surface_high="#2E1945",
-        surface_top="#3A2156",
-        line="#4A2C6A",
-        text="#F6F1FB",
-        muted="#BBAAD2",
-        faint="#7D6A96",
-        accent="#00FF85",
-        accent_ink="#12051F",
-        glow_primary="#E90052",
-        glow_secondary="#7B2FF7",
+        code="E0", accent="#00FF85", accent_ink="#0A0A0C", accent_text="#00FF85", brand="#37003C"
     ),
+    # La Liga's orange over its red
     "SP1": Theme(
-        code="SP1",
-        night="#160705",
-        background="#1D0A07",
-        surface="#2A110D",
-        surface_high="#381812",
-        surface_top="#47201A",
-        line="#5C2B22",
-        text="#FCF4F1",
-        muted="#D2B1A7",
-        faint="#8E6F66",
-        accent="#FF8A3D",
-        accent_ink="#160705",
-        glow_primary="#FF3B30",
-        glow_secondary="#FF9500",
+        code="SP1", accent="#FF7A3D", accent_ink="#0A0A0C", accent_text="#FF8B55", brand="#6E140E"
     ),
+    # Serie A's cyan over its blue
     "I1": Theme(
-        code="I1",
-        night="#040B1D",
-        background="#071229",
-        surface="#0C1C3C",
-        surface_high="#12274E",
-        surface_top="#193262",
-        line="#22417A",
-        text="#F1F6FD",
-        muted="#A8BADB",
-        faint="#6A7C9E",
-        accent="#3DDCFF",
-        accent_ink="#040B1D",
-        glow_primary="#1F5BFF",
-        glow_secondary="#00C8FF",
+        code="I1", accent="#3DDCFF", accent_ink="#0A0A0C", accent_text="#3DDCFF", brand="#0B2A6F"
     ),
+    # The Bundesliga's red, written lighter on the dark
     "D1": Theme(
         code="D1",
-        night="#150406",
-        background="#1C0608",
-        surface="#290B0F",
-        surface_high="#371116",
-        surface_top="#46171E",
-        line="#5C2029",
-        text="#FCF2F3",
-        muted="#D7ACB2",
-        faint="#946A70",
-        accent="#FF5566",
-        accent_ink="#150406",
-        glow_primary="#D20515",
-        glow_secondary="#FF7A85",
+        accent="#E2001A",
+        accent_ink="#FFFFFF",
+        accent_text="#FF5A6A",
+        brand="#7A0410",
+        accent_hover="#C70017",  # darker on hover: its text is white
     ),
+    # Ligue 1's lime over its night blue
     "F1": Theme(
-        code="F1",
-        night="#05080F",
-        background="#080D19",
-        surface="#0E1526",
-        surface_high="#151F36",
-        surface_top="#1C2946",
-        line="#28385C",
-        text="#F2F5FA",
-        muted="#AAB5CC",
-        faint="#6B7798",
-        accent="#D4FF3D",
-        accent_ink="#05080F",
-        glow_primary="#2A4BFF",
-        glow_secondary="#00A3FF",
+        code="F1", accent="#D4FF3D", accent_ink="#0A0A0C", accent_text="#D4FF3D", brand="#0E1D45"
     ),
 }
 DEFAULT_THEME = THEMES["SP1"]  # the default league's; also the colours of the package icons

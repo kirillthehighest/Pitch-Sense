@@ -34,6 +34,7 @@ from app.services.predictions import MatchForecast, forecast_of, summarize
 from app.services.teams import TeamOverview
 from app.ui.brand import flag_pixmap, team_badge
 from app.ui.context import AppContext, LeagueServices
+from app.ui.themes import Theme, theme_for
 from app.ui.widgets import (
     BarRow,
     ChartView,
@@ -43,7 +44,7 @@ from app.ui.widgets import (
     fill_table,
     label,
     make_table,
-    paint_league_card,
+    paint_head_card,
 )
 from app.visualization.charts import score_heatmap
 
@@ -136,13 +137,14 @@ def verdict_text(forecast: MatchForecast) -> str:
 
 
 class MatchHero(QFrame):
-    """The head of a match: the league's colours and glows, faint pitch lines, both crests and
-    the score."""
+    """The head of a match: a card lit by the league's deep colour, both crests, the score and
+    the state of the match in a pill."""
 
     def __init__(self) -> None:
         super().__init__()
-        self.setMinimumHeight(230)
-        self.eyebrow = label(role="eyebrow")
+        self.setMinimumHeight(240)
+        self.theme: Theme | None = None  # the palette of the match's league
+        self.eyebrow = label(role="hero-eyebrow")
         self.eyebrow.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.home_badge, self.away_badge = QLabel(), QLabel()
         self.home_name = label(role="team", wrap=True)
@@ -165,7 +167,7 @@ class MatchHero(QFrame):
         grid.addWidget(self.score, 0, 1)
         grid.addWidget(self.away_badge, 0, 2)
         grid.addWidget(self.home_name, 1, 0)
-        grid.addWidget(self.status, 1, 1)
+        grid.addWidget(self.status, 1, 1, alignment=Qt.AlignmentFlag.AlignHCenter)
         grid.addWidget(self.away_name, 1, 2)
         grid.setColumnStretch(0, 1)
         grid.setColumnStretch(2, 1)
@@ -178,7 +180,7 @@ class MatchHero(QFrame):
 
     def paintEvent(self, event) -> None:  # noqa: N802 (Qt's name)
         painter = QPainter(self)
-        paint_league_card(painter, QRectF(self.rect()))
+        paint_head_card(painter, QRectF(self.rect()), theme=self.theme)
         painter.end()
 
 
@@ -291,9 +293,9 @@ class MatchDetail(QWidget):
         when = date_text(forecast.match_date)
         if forecast.kickoff_time is not None:
             when += f", {forecast.kickoff_time:%H:%M}"
-        self.hero.eyebrow.setText(
-            f"{league.name} · {season_text(forecast.season)} · {when}".upper()
-        )
+        self.hero.eyebrow.setText(f"{league.name} · {season_text(forecast.season)} · {when}")
+        self.hero.theme = theme_for(forecast.competition)
+        self.hero.update()
         favourite = self._context.preferences.favourite
         favourite_team = favourite.team if favourite else None
         for badge, name, team in (
@@ -306,7 +308,7 @@ class MatchDetail(QWidget):
         self.hero.score.setText(
             "VS" if played is None else f"{played.home_goals} – {played.away_goals}"
         )
-        self.hero.status.setText(status_text(forecast).upper())
+        self.hero.status.setText(status_text(forecast))
 
         summaries = [summarize(prediction) for prediction in forecast.predictions.values()]
         self.bars.set_rows(
@@ -424,7 +426,7 @@ class HypotheticalDialog(QDialog):
         flag.setPixmap(flag_pixmap(league.code, 20))
         heading = QHBoxLayout()
         heading.addWidget(flag)
-        heading.addWidget(label(f"ALT MECI · {league.name.upper()}", "section"))
+        heading.addWidget(label(f"Alt meci · {league.name}", "section"))
         heading.addStretch()
         layout.addLayout(heading)
         layout.addWidget(

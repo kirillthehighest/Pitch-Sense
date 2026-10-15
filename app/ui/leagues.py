@@ -51,7 +51,7 @@ class LeagueCard(QFrame):
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         flag = QLabel()
         flag.setPixmap(flag_pixmap(code, 26))
-        self.name_label = label(league_name(code).upper(), "section")
+        self.name_label = label(league_name(code), "section")
         heading = QHBoxLayout()
         heading.setSpacing(10)
         heading.addWidget(flag)

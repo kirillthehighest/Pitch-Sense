@@ -24,7 +24,6 @@ from PySide6.QtGui import (
     QPainterPath,
     QPen,
     QPixmap,
-    QRadialGradient,
 )
 from PySide6.QtWidgets import (
     QAbstractButton,
@@ -46,16 +45,12 @@ from PySide6.QtWidgets import (
 
 from app.services.formatting import percent
 from app.services.labels import OUTCOME_LABELS, RESULT_LETTERS
-from app.ui.brand import paint_pitch
-from app.ui.theme import DISPLAY_FAMILY, FONT_FAMILY
-from app.ui.themes import Theme, current_theme
+from app.ui.theme import CARD_RADIUS, FONT_FAMILY
+from app.ui.themes import Theme, blend, current_theme
 from app.visualization.charts import on_surface
 from app.visualization.palette import (
-    AWAY,
-    DRAW,
     FORM_DRAW,
     GOLD,
-    HOME,
     LOSS,
     NIGHT,
     SURFACE,
@@ -77,15 +72,14 @@ def label(text: str = "", role: str | None = None, wrap: bool = False) -> QLabel
 
 
 def card(title: str | None = None, role: str = "card") -> tuple[QFrame, QVBoxLayout]:
-    """A raised card with an optional section title (in capitals); returns the card and its
-    layout."""
+    """A card with an optional section title; returns the card and its layout."""
     frame = QFrame()
     frame.setProperty("role", role)
     layout = QVBoxLayout(frame)
-    layout.setContentsMargins(22, 20, 22, 20)
-    layout.setSpacing(12)
+    layout.setContentsMargins(24, 22, 24, 22)
+    layout.setSpacing(14)
     if title:
-        layout.addWidget(label(title.upper(), "section"))
+        layout.addWidget(label(title, "section"))
     return frame, layout
 
 
@@ -107,7 +101,7 @@ class PageTabs(QTabWidget):
         self.currentChanged.connect(self._fit)
 
     def addTab(self, page: QWidget, name: str) -> int:  # noqa: N802 (Qt's name)
-        return super().addTab(page, name.upper())
+        return super().addTab(page, name)
 
     def tabInserted(self, index: int) -> None:  # noqa: N802 (Qt's name)
         super().tabInserted(index)
@@ -255,7 +249,7 @@ class ChartView(QWidget):
 
 
 class Backdrop(QWidget):
-    """The window's background: the league's night with its two glows, faint behind the glass."""
+    """The window's background: the night shared by every league, flat, as in the references."""
 
     def __init__(self) -> None:
         super().__init__()
@@ -263,24 +257,8 @@ class Backdrop(QWidget):
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, False)
 
     def paintEvent(self, event) -> None:  # noqa: N802 (Qt's name)
-        theme = current_theme()
         painter = QPainter(self)
-        area = QRectF(self.rect())
-        base = QLinearGradient(area.topLeft(), area.bottomRight())
-        base.setColorAt(0, QColor(theme.background))
-        base.setColorAt(1, QColor(theme.night))
-        painter.fillRect(area, QBrush(base))
-        for colour, centre, alpha in (
-            (theme.glow_secondary, QPointF(area.width() * 0.15, area.height() * 0.05), 70),
-            (theme.glow_primary, QPointF(area.width() * 0.95, area.height() * 0.95), 60),
-        ):
-            glow = QRadialGradient(centre, max(area.width(), area.height()) * 0.6)
-            tint = QColor(colour)
-            tint.setAlpha(alpha)
-            glow.setColorAt(0, tint)
-            tint.setAlpha(0)
-            glow.setColorAt(1, tint)
-            painter.fillRect(area, QBrush(glow))
+        painter.fillRect(self.rect(), QColor(current_theme().background))
         painter.end()
 
 
@@ -354,36 +332,25 @@ class ResponsiveBox(QWidget):
                     widget.setFixedWidth(fixed)
 
 
-def paint_league_card(painter: QPainter, area: QRectF, radius: float = 22) -> None:
-    """A rounded card in the league's colours: its night, its two glows, faint pitch lines and
-    a hairline border (the heads of a match and of a team)."""
-    theme = current_theme()
+def paint_head_card(
+    painter: QPainter, area: QRectF, radius: float = CARD_RADIUS, theme: Theme | None = None
+) -> None:
+    """A card lit from its top by a league's deep colour (``theme``'s, else the league on
+    screen's), fading into the card colour: the heads of a match and of a team."""
+    theme = theme or current_theme()
     painter.setRenderHint(QPainter.RenderHint.Antialiasing)
     area = area.adjusted(0.5, 0.5, -0.5, -0.5)
     path = QPainterPath()
     path.addRoundedRect(area, radius, radius)
-    painter.save()
-    painter.setClipPath(path)
-    night = QLinearGradient(area.topLeft(), area.bottomRight())
-    night.setColorAt(0, QColor(theme.surface_high))
-    night.setColorAt(1, QColor(theme.night))
-    painter.fillRect(area, QBrush(night))
-    for colour, centre, alpha in (
-        (theme.glow_secondary, QPointF(area.left(), area.top()), 120),
-        (theme.glow_primary, QPointF(area.right(), area.bottom()), 110),
-    ):
-        glow = QRadialGradient(centre, max(area.width() * 0.55, area.height()))
-        tint = QColor(colour)
-        tint.setAlpha(alpha)
-        glow.setColorAt(0, tint)
-        tint.setAlpha(0)
-        glow.setColorAt(1, tint)
-        painter.fillRect(area, QBrush(glow))
-    lines = QColor(theme.text)
-    lines.setAlpha(24)
-    paint_pitch(painter, area.adjusted(0, -20, 0, 20), lines)
-    painter.restore()
-    painter.setPen(QPen(QColor(255, 255, 255, 26), 1))
+    painter.fillPath(path, QColor(theme.surface))
+    light = QLinearGradient(area.topLeft(), area.bottomLeft())
+    top, bottom = QColor(theme.brand), QColor(theme.brand)
+    top.setAlpha(235)
+    bottom.setAlpha(0)
+    light.setColorAt(0, top)
+    light.setColorAt(0.85, bottom)
+    painter.fillPath(path, QBrush(light))
+    painter.setPen(QPen(QColor(255, 255, 255, 16), 1))
     painter.setBrush(Qt.BrushStyle.NoBrush)
     painter.drawPath(path)
 
@@ -429,45 +396,29 @@ class ReflowGrid(QWidget):
             self._grid.setColumnStretch(column, 1 if column < columns else 0)
 
 
-class BrandStripe(QWidget):
-    """The thin line under the top bar, from one of the league's glows to the other."""
-
-    def __init__(self, height: int = 3) -> None:
-        super().__init__()
-        self.setFixedHeight(height)
-
-    def paintEvent(self, event) -> None:  # noqa: N802 (Qt's name)
-        theme = current_theme()
-        painter = QPainter(self)
-        line = QLinearGradient(0, 0, self.width(), 0)
-        line.setColorAt(0, QColor(theme.glow_secondary))
-        line.setColorAt(1, QColor(theme.glow_primary))
-        painter.fillRect(self.rect(), QBrush(line))
-        painter.end()
-
-
 class HeroBanner(QWidget):
-    """The head of every screen, a rounded card: the league's image blurred across the whole card
-    and sharp on its right, the league's glows, the league as an eyebrow with its flag, the
-    screen's name in large capitals, a subtitle and the image's source in the corner."""
+    """The head of every screen, a rounded card: the league's image on the right at full
+    resolution, its left edge running into a fill of the image's own edge colour, so the image
+    seems to continue under the title; the league with its flag, the screen's name in large
+    capitals, a subtitle, and the image's source in the corner."""
 
-    HEIGHT = 230
-    RADIUS = 22
-    PHOTO_SHARE = 0.6  # the sharp image takes the right part of the card...
-    PHOTO_MAX_WIDTH = 820  # ...but no wider, or a wide window would cut the players' heads
-    FADE = 0.38  # the share of the sharp image that melts into the blurred one
+    HEIGHT = 224
+    RADIUS = 24
+    PHOTO_SHARE = 0.62  # the image takes the right part of the card...
+    PHOTO_MAX_WIDTH = 860  # ...but no wider, or a wide window would cut the players' heads
+    FADE = 0.5  # the share of the image, from its left edge, that runs into the fill
 
     def __init__(self) -> None:
         super().__init__()
         self.setFixedHeight(self.HEIGHT)
         self.photo: QImage | None = None
         self.top = 0.1
-        self._blurred: QImage | None = None
+        self.fill = QColor(current_theme().brand)
         self.flag_label = QLabel()
-        self.eyebrow_label = label(role="eyebrow")
+        self.eyebrow_label = label(role="hero-eyebrow")
         self.title_label = label(role="title")
         self.subtitle_label = label(role="subtitle", wrap=True)
-        self.subtitle_label.setMaximumWidth(620)
+        self.subtitle_label.setMaximumWidth(560)
         self.credit_label = label(role="credit")
         eyebrow = QHBoxLayout()
         eyebrow.setSpacing(8)
@@ -475,9 +426,10 @@ class HeroBanner(QWidget):
         eyebrow.addWidget(self.eyebrow_label)
         eyebrow.addStretch()
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(34, 24, 20, 10)
-        layout.setSpacing(2)
+        layout.setContentsMargins(36, 30, 22, 12)
+        layout.setSpacing(4)
         layout.addLayout(eyebrow)
+        layout.addSpacing(2)
         layout.addWidget(self.title_label)
         layout.addWidget(self.subtitle_label)
         layout.addStretch()
@@ -487,11 +439,16 @@ class HeroBanner(QWidget):
         self.title_label.setText(title.upper())
         self.subtitle_label.setText(subtitle)
 
+    def photo_width(self, width: float) -> float:
+        """The width the image takes in a card ``width`` wide."""
+        return min(width * self.PHOTO_SHARE, self.PHOTO_MAX_WIDTH) if self.photo else 0.0
+
     def resizeEvent(self, event) -> None:  # noqa: N802 (Qt's name)
-        """Keep the subtitle left of the sharp image, so no text crosses the players."""
+        """Keep the subtitle left of the image, so no text crosses the players."""
         width = event.size().width()
-        photo = min(width * self.PHOTO_SHARE, self.PHOTO_MAX_WIDTH) if self.photo else 0
-        self.subtitle_label.setMaximumWidth(int(max(280, min(620, width - photo - 40))))
+        self.subtitle_label.setMaximumWidth(
+            int(max(260, min(560, width - self.photo_width(width) - 48)))
+        )
         super().resizeEvent(event)
 
     def show_league(
@@ -503,76 +460,52 @@ class HeroBanner(QWidget):
         top: float = 0.1,
     ) -> None:
         """``top`` is where the image's strip starts, as a share of its height."""
-        self.eyebrow_label.setText(eyebrow.upper())
+        self.eyebrow_label.setText(eyebrow)
         if flag is None:
             self.flag_label.clear()
         else:
             self.flag_label.setPixmap(flag)
         self.photo = photo
         self.top = top
-        self._blurred = None if photo is None else blurred(photo)
+        brand = current_theme().brand
+        self.fill = (
+            QColor(brand) if photo is None else QColor(blend(edge_colour(photo, top), brand, 0.5))
+        )
         self.credit_label.setText(credit or "")
+        self.resize(self.size())  # the subtitle's room depends on the image
+        self.subtitle_label.setMaximumWidth(
+            int(max(260, min(560, self.width() - self.photo_width(self.width()) - 48)))
+        )
         self.update()
 
     def paintEvent(self, event) -> None:  # noqa: N802 (Qt's name)
-        theme = current_theme()
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
-        area = QRectF(self.rect()).adjusted(0.5, 0.5, -0.5, -0.5)
+        area = QRectF(self.rect())
         card = QPainterPath()
         card.addRoundedRect(area, self.RADIUS, self.RADIUS)
         painter.setClipPath(card)
-        night = QLinearGradient(area.topLeft(), area.bottomRight())
-        night.setColorAt(0, QColor(theme.night))
-        night.setColorAt(1, QColor(theme.surface))
-        painter.fillRect(area, QBrush(night))
+        painter.fillRect(area, self.fill)
         if self.photo is not None:
-            self._paint_photo(painter, area, theme)
-        for colour, centre, alpha in (
-            (theme.glow_secondary, QPointF(area.width() * 0.05, 0), 90),
-            (theme.glow_primary, QPointF(area.width() * 0.7, area.height()), 70),
-        ):
-            glow = QRadialGradient(centre, area.width() * 0.5)
-            tint = QColor(colour)
-            tint.setAlpha(alpha if self.photo is None else alpha // 2)
-            glow.setColorAt(0, tint)
-            tint.setAlpha(0)
-            glow.setColorAt(1, tint)
-            painter.fillRect(area, QBrush(glow))
-        if self.photo is None:
-            lines = QColor(theme.text)
-            lines.setAlpha(26)
-            paint_pitch(painter, area.adjusted(0, -10, 0, 10), lines)
-        painter.setClipping(False)
-        painter.setPen(QPen(QColor(255, 255, 255, 22), 1))
-        painter.setBrush(Qt.BrushStyle.NoBrush)
-        painter.drawPath(card)
+            # Drawn straight onto the widget, at the screen's own resolution: never through a
+            # smaller intermediate image, which would blur it on a high-density screen.
+            width = round(self.photo_width(area.width()))
+            box = QRectF(area.right() - width, area.top(), width, area.height())
+            painter.drawImage(box, self.photo, _cover(self.photo, box, self.top))
+            fade = QLinearGradient(box.left(), 0, box.left() + box.width() * self.FADE, 0)
+            solid, clear = QColor(self.fill), QColor(self.fill)
+            clear.setAlpha(0)
+            fade.setColorAt(0, solid)
+            fade.setColorAt(1, clear)
+            # From a pixel before the image, so its first column is covered too
+            band = QRectF(box.left() - 1, 0, box.width() * self.FADE + 1, area.height())
+            painter.fillRect(band, fade)
+        shade = QLinearGradient(area.left(), 0, area.left() + area.width() * 0.55, 0)
+        shade.setColorAt(0, QColor(0, 0, 0, 70))  # a little depth under the title
+        shade.setColorAt(1, QColor(0, 0, 0, 0))
+        painter.fillRect(area, shade)
         painter.end()
-
-    def _paint_photo(self, painter: QPainter, area: QRectF, theme: Theme) -> None:
-        """The blurred image covering the card, the sharp one melting into it on the right, and
-        a veil of the league's night on the left so the title stays readable."""
-        painter.save()
-        painter.setOpacity(0.55)
-        painter.drawImage(area, self._blurred, _cover(self._blurred, area, self.top))
-        painter.restore()
-        width = min(area.width() * self.PHOTO_SHARE, self.PHOTO_MAX_WIDTH)
-        box = QRectF(round(area.right() - width), area.top(), width, area.height())
-        painter.drawImage(box.topLeft(), _melting(self.photo, box.size().toSize(), self.top))
-        veil = QLinearGradient(area.left(), 0, area.left() + area.width() * 0.62, 0)
-        dark, clear = QColor(theme.night), QColor(theme.night)
-        dark.setAlpha(225)
-        clear.setAlpha(0)
-        veil.setColorAt(0, dark)
-        veil.setColorAt(1, clear)
-        painter.fillRect(area, QBrush(veil))
-        bottom = QLinearGradient(0, area.height() * 0.6, 0, area.height())
-        clear.setAlpha(0)
-        dark.setAlpha(140)
-        bottom.setColorAt(0, clear)
-        bottom.setColorAt(1, dark)
-        painter.fillRect(area, QBrush(bottom))  # under the source, in the corner
 
 
 def _cover(image: QImage, area: QRectF, top: float) -> QRectF:
@@ -588,50 +521,36 @@ def _cover(image: QImage, area: QRectF, top: float) -> QRectF:
     )
 
 
-_BLURRED: dict[int, QImage] = {}  # by the image's cache key: five league images at most
+_EDGES: dict[tuple[int, float], str] = {}  # by the image's cache key and strip
 
 
-def blurred(image: QImage) -> QImage:
-    """A soft, blurred copy of ``image``: shrunk to a few dozen pixels and enlarged again."""
-    key = image.cacheKey()
-    if key not in _BLURRED:
-        small = image.scaledToWidth(48, Qt.TransformationMode.SmoothTransformation)
-        middle = small.scaledToWidth(160, Qt.TransformationMode.SmoothTransformation)
-        _BLURRED[key] = middle.scaledToWidth(640, Qt.TransformationMode.SmoothTransformation)
-    return _BLURRED[key]
-
-
-def _melting(photo: QImage, size, top: float) -> QImage:
-    """The sharp image cut to ``size``, fully opaque on the right and transparent on the left
-    edge, so it melts into the blurred one with no seam."""
-    canvas = QImage(size, QImage.Format.Format_ARGB32_Premultiplied)
-    canvas.fill(Qt.GlobalColor.transparent)
-    painter = QPainter(canvas)
-    painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
-    area = QRectF(0, 0, size.width(), size.height())
-    painter.drawImage(area, photo, _cover(photo, area, top))
-    painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_DestinationIn)
-    mask = QLinearGradient(0, 0, size.width() * HeroBanner.FADE, 0)
-    mask.setColorAt(0, QColor(0, 0, 0, 0))
-    mask.setColorAt(1, QColor(0, 0, 0, 255))
-    painter.fillRect(area, QBrush(mask))
-    painter.end()
-    return canvas
+def edge_colour(image: QImage, top: float) -> str:
+    """The average colour of the left edge of the image's strip (the 3% of its width on the
+    left), deepened towards the night. Mixed with the league's deep colour, it is the fill the
+    image runs into, so the image seems lit from the right."""
+    key = (image.cacheKey(), top)
+    if key not in _EDGES:
+        strip_height = image.width() / 3.7  # the hero's proportions, roughly
+        y = min(image.height() * top, image.height() - strip_height)
+        edge = image.copy(0, round(y), max(1, image.width() // 33), round(strip_height))
+        small = edge.scaled(1, 1, mode=Qt.TransformationMode.SmoothTransformation)
+        _EDGES[key] = blend(small.pixelColor(0, 0).name(), "#0A0A0C", 0.3)
+    return _EDGES[key]
 
 
 class StatTile(QFrame):
-    """A large number with its name in small capitals under it, like a scoreboard."""
+    """A number read at a glance, its name above it."""
 
     def __init__(self, name: str) -> None:
         super().__init__()
         self.setProperty("role", "card")
         self.value_label = label("–", "stat")
-        self.name_label = label(name.upper(), "overline")
+        self.name_label = label(name, "caption")
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(22, 14, 22, 16)
-        layout.setSpacing(0)
-        layout.addWidget(self.value_label)
+        layout.setContentsMargins(20, 16, 20, 14)
+        layout.setSpacing(2)
         layout.addWidget(self.name_label)
+        layout.addWidget(self.value_label)
 
     def set_value(self, value: str) -> None:
         self.value_label.setText(value)
@@ -649,13 +568,13 @@ class BarRow:
 
 class ProbabilityBars(QWidget):
     """For each model, one bar split into home win, draw and away win, with the percentages
-    inside; the most likely outcome is in bold. A legend under the bars names the colours."""
+    inside; the most likely outcome is in bold. A legend under the bars names the colours: the
+    home win in the league's accent, the draw grey, the away win light, as one family of tones
+    rather than three loud colours."""
 
-    ROW_HEIGHT = 36
+    ROW_HEIGHT = 40
     LABEL_WIDTH = 150
     LEGEND_HEIGHT = 30
-    COLOURS = (HOME, DRAW, AWAY)
-    INKS = ("#FFFFFF", NIGHT, "#FFFFFF")  # the text on each segment
 
     def __init__(self) -> None:
         super().__init__()
@@ -689,17 +608,24 @@ class ProbabilityBars(QWidget):
             top = index * self.ROW_HEIGHT + 6
             painter.setFont(name_font)
             painter.setPen(QColor(current_theme().text))
-            painter.drawText(QRectF(0, top, left - 10, 24), LEFT, row.label)
-            self._paint_bar(painter, QRectF(left, top, width, 24), row)
+            painter.drawText(QRectF(0, top, left - 10, 28), LEFT, row.label)
+            self._paint_bar(painter, QRectF(left, top, width, 28), row)
         if self.rows:
             self._paint_legend(painter, len(self.rows) * self.ROW_HEIGHT + 8)
         painter.end()
 
+    @staticmethod
+    def colours() -> tuple[tuple[str, str], ...]:
+        """(fill, text) of the home win, the draw and the away win, in the league's accent."""
+        theme = current_theme()
+        return ((theme.accent, theme.accent_ink), ("#3A3A42", "#FFFFFF"), ("#E6E6EB", NIGHT))
+
     def _paint_bar(self, painter: QPainter, area: QRectF, row: BarRow) -> None:
         values = (row.home, row.draw, row.away)
         best = values.index(max(values))
+        colours = self.colours()
         outline = QPainterPath()
-        outline.addRoundedRect(area, 6, 6)
+        outline.addRoundedRect(area, 8, 8)
         painter.save()
         painter.setClipPath(outline)
         x = area.left()
@@ -708,14 +634,14 @@ class ProbabilityBars(QWidget):
             last = index == len(values) - 1
             width = area.right() - x if last else max(segment - 2, 0)  # a 2-pixel gap
             box = QRectF(x, area.top(), width, area.height())
-            painter.fillRect(box, QColor(self.COLOURS[index]))
+            painter.fillRect(box, QColor(colours[index][0]))
             text = percent(value)
             font = QFont(FONT_FAMILY)
             font.setPixelSize(12)
             font.setWeight(QFont.Weight.Bold if index == best else QFont.Weight.Medium)
             if QFontMetrics(font).horizontalAdvance(text) + 10 <= width:
                 painter.setFont(font)
-                painter.setPen(QColor(self.INKS[index]))
+                painter.setPen(QColor(colours[index][1]))
                 painter.drawText(box, Qt.AlignmentFlag.AlignCenter, text)
             x += segment
         painter.restore()
@@ -726,8 +652,10 @@ class ProbabilityBars(QWidget):
         painter.setFont(font)
         metrics = QFontMetrics(font)
         x = float(self.LABEL_WIDTH)
-        for colour, code in zip(self.COLOURS, ("H", "D", "A"), strict=True):
-            painter.fillRect(QRectF(x, top + 4, 10, 10), QColor(colour))
+        for (colour, _), code in zip(self.colours(), ("H", "D", "A"), strict=True):
+            dot = QPainterPath()
+            dot.addRoundedRect(QRectF(x, top + 4, 10, 10), 3, 3)
+            painter.fillPath(dot, QColor(colour))
             painter.setPen(QColor(current_theme().muted))
             name = OUTCOME_LABELS[code]
             painter.drawText(QPointF(x + 16, top + 13), name)
@@ -738,7 +666,7 @@ class FormStrip(QWidget):
     """The last results as coloured squares with V, E or Î, oldest first, like a form guide."""
 
     SQUARE = 24
-    GAP = 6
+    GAP = 5
     COLOURS = {"W": WIN, "D": FORM_DRAW, "L": LOSS}
 
     def __init__(self) -> None:
@@ -763,14 +691,14 @@ class FormStrip(QWidget):
     def paintEvent(self, event) -> None:  # noqa: N802 (Qt's name)
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        font = QFont(DISPLAY_FAMILY)
-        font.setPixelSize(15)
+        font = QFont(FONT_FAMILY)
+        font.setPixelSize(11)
         font.setWeight(QFont.Weight.Bold)
         painter.setFont(font)
         for index, result in enumerate(self.results):
             box = QRectF(index * (self.SQUARE + self.GAP), 0, self.SQUARE, self.SQUARE)
             path = QPainterPath()
-            path.addRoundedRect(box, 6, 6)
+            path.addRoundedRect(box, 7, 7)
             painter.fillPath(path, QColor(self.COLOURS[result]))
             painter.setPen(QColor("#FFFFFF"))
             painter.drawText(box, Qt.AlignmentFlag.AlignCenter, RESULT_LETTERS[result])
@@ -779,8 +707,10 @@ class FormStrip(QWidget):
 
 class LeagueButton(QAbstractButton):
     """A league in the side panel: its round flag, its name and its country; the chosen league is
-    tinted with the accent and marked on its left edge. ``compact`` shows the flag alone (a
-    narrow window), with the name as a tooltip."""
+    filled with its accent, as the chosen sport in the references. ``compact`` shows the flag
+    alone (a narrow window), with the name as a tooltip."""
+
+    HEIGHT = 56
 
     def __init__(self, code: str, name: str, country: str, flag: QPixmap) -> None:
         super().__init__()
@@ -792,11 +722,11 @@ class LeagueButton(QAbstractButton):
         self.setToolTip(f"{name} · {country}")
         self.setCheckable(True)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.setFixedHeight(54)
+        self.setFixedHeight(self.HEIGHT)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
     def sizeHint(self) -> QSize:  # noqa: N802 (Qt's name)
-        return QSize(60 if self.compact else 220, 54)
+        return QSize(60 if self.compact else 220, self.HEIGHT)
 
     def set_compact(self, compact: bool) -> None:
         if compact != self.compact:
@@ -816,39 +746,36 @@ class LeagueButton(QAbstractButton):
         theme = current_theme()
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        area = QRectF(self.rect()).adjusted(8, 3, -8, -3)
-        if self.isChecked() or self.underMouse():
+        area = QRectF(self.rect()).adjusted(12, 4, -12, -4)
+        chosen = self.isChecked()
+        if chosen or self.underMouse():
             path = QPainterPath()
             path.addRoundedRect(area, 14, 14)
-            fill = QColor(theme.accent if self.isChecked() else theme.surface_high)
-            fill.setAlpha(40 if self.isChecked() else 200)
-            painter.fillPath(path, fill)
-        if self.isChecked():
-            marker = QPainterPath()
-            stripe = QRectF(area.left() + 4, area.top() + 12, 4, area.height() - 24)
-            marker.addRoundedRect(stripe, 2, 2)
-            painter.fillPath(marker, QColor(theme.accent))
+            painter.fillPath(path, QColor(theme.accent if chosen else theme.surface_high))
         flag_size = self._flag.width() / self._flag.devicePixelRatio()
         if self.compact:
             centre = area.center()
             painter.drawPixmap(
-                QPointF(centre.x() - flag_size / 2 + 2, centre.y() - flag_size / 2), self._flag
+                QPointF(centre.x() - flag_size / 2, centre.y() - flag_size / 2), self._flag
             )
             painter.end()
             return
-        painter.drawPixmap(QPointF(area.left() + 14, area.center().y() - flag_size / 2), self._flag)
-        text_left = area.left() + 14 + flag_size + 12
+        painter.drawPixmap(QPointF(area.left() + 12, area.center().y() - flag_size / 2), self._flag)
+        text_left = area.left() + 12 + flag_size + 12
         name_font = QFont(FONT_FAMILY)
         name_font.setPixelSize(14)
-        name_font.setWeight(QFont.Weight.DemiBold)
+        name_font.setWeight(QFont.Weight.Bold if chosen else QFont.Weight.DemiBold)
         painter.setFont(name_font)
-        painter.setPen(QColor(theme.text if self.isChecked() or self.underMouse() else theme.muted))
-        painter.drawText(QRectF(text_left, area.top() + 7, area.width(), 20), LEFT, self.text())
+        ink = QColor(theme.accent_ink if chosen else theme.text)
+        painter.setPen(ink)
+        painter.drawText(QRectF(text_left, area.top() + 8, area.width(), 20), LEFT, self.text())
         country_font = QFont(FONT_FAMILY)
         country_font.setPixelSize(12)
         painter.setFont(country_font)
-        painter.setPen(QColor(theme.muted))
-        painter.drawText(QRectF(text_left, area.top() + 26, area.width(), 18), LEFT, self.country)
+        secondary = QColor(ink)
+        secondary.setAlphaF(0.7)
+        painter.setPen(secondary if chosen else QColor(theme.muted))
+        painter.drawText(QRectF(text_left, area.top() + 27, area.width(), 18), LEFT, self.country)
         painter.end()
 
 

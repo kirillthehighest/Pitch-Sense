@@ -129,7 +129,8 @@ def tile_path(rect: QRectF) -> QPainterPath:
 
 
 def paint_icon(painter: QPainter, rect: QRectF, theme: Theme | None = None) -> None:
-    """The app icon: the mark on a tile of the league's night, lit from its lower corner."""
+    """The app icon: the mark on a near-black tile, lit from its lower corner by the league's
+    deep colour."""
     theme = theme or current_theme()
     painter.save()
     painter.setRenderHint(QPainter.RenderHint.Antialiasing)
@@ -139,8 +140,8 @@ def paint_icon(painter: QPainter, rect: QRectF, theme: Theme | None = None) -> N
     night.setColorAt(1, QColor(theme.night))
     painter.fillPath(tile, QBrush(night))
     glow = QRadialGradient(rect.bottomRight(), rect.width() * 1.1)
-    light = QColor(theme.glow_primary)
-    light.setAlpha(150)
+    light = QColor(theme.brand).lighter(150)
+    light.setAlpha(210)
     glow.setColorAt(0, light)
     light.setAlpha(0)
     glow.setColorAt(1, light)
