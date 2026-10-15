@@ -122,13 +122,23 @@ STYLE = {
 }
 
 
-def on_surface(figure: Figure, colour: str, previous: str = SURFACE) -> Figure:
+def on_surface(
+    figure: Figure,
+    colour: str,
+    previous: str = SURFACE,
+    highlight: str | None = None,
+    previous_highlight: str = GOLD,
+) -> Figure:
     """Show ``figure`` on a card of another colour: its background becomes transparent, and every
     ring, edge and gap drawn in ``previous`` (the card colour it was built for) takes ``colour``.
+    With ``highlight``, what was drawn in ``previous_highlight`` (the chosen season or team, gold
+    when built) takes it: the accent of the league on screen.
 
     Returns the same figure, changed in place.
     """
-    old, new = np.array(to_rgba(previous)), to_rgba(colour)
+    changes = [(np.array(to_rgba(previous)), to_rgba(colour))]
+    if highlight is not None:
+        changes.append((np.array(to_rgba(previous_highlight)), to_rgba(highlight)))
     backgrounds = {id(figure.patch), *(id(axes.patch) for axes in figure.axes)}
     figure.patch.set_alpha(0.0)
     for axes in figure.axes:
@@ -145,14 +155,15 @@ def on_surface(figure: Figure, colour: str, previous: str = SURFACE) -> Figure:
                 colours = to_rgba_array(getter())
             except TypeError, ValueError:
                 continue  # not a colour (a colour map, for instance)
-            same = np.all(np.abs(colours - old) < 1 / 255, axis=1)
-            if not same.any():
-                continue
-            if len(colours) == 1:
-                setter(new)
-            else:
-                colours[same] = new
-                setter(colours)
+            changed = False
+            for old, new in changes:
+                same = np.all(np.abs(colours - old) < 1 / 255, axis=1)
+                if same.any():
+                    colours[same] = new
+                    changed = True
+                    break  # one change per colour: a new colour is never changed again
+            if changed:
+                setter(new if len(colours) == 1 else colours)
     return figure
 
 

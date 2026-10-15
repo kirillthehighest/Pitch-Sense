@@ -21,6 +21,7 @@ from app.visualization.charts import (
     confusion_chart,
     elo_history_chart,
     home_advantage_chart,
+    on_surface,
     score_heatmap,
     skill_chart,
     team_groups_chart,
@@ -162,6 +163,30 @@ def test_charts_are_dark_like_the_interface():
         if isinstance(child, Text) and child.get_text() == axes.get_title("left")
     )
     assert title.get_fontfamily() == ["Barlow Condensed"]
+
+
+def test_a_chart_moves_onto_a_card_of_another_league():
+    figure = elo_history_chart("Alpha", HISTORY, season="2007-08")
+    axes = figure.axes[0]
+
+    on_surface(figure, "#231236", highlight="#00FF85")
+
+    assert figure.patch.get_alpha() == 0 and axes.patch.get_alpha() == 0  # the card shows
+    assert to_rgba(axes.lines[1].get_color()) == to_rgba("#00FF85")  # the chosen season
+    assert to_rgba(axes.lines[0].get_color()) != to_rgba("#00FF85")
+    on_surface(figure, "#0C1C3C", "#231236", "#3DDCFF", "#00FF85")  # and on to another league
+    assert to_rgba(axes.lines[1].get_color()) == to_rgba("#3DDCFF")
+    render(figure)
+
+
+def test_rings_drawn_in_the_card_colour_follow_the_card():
+    figure = calibration_chart({"Elo": [calibration_bin(0.0, 10, 0.3, 0.25)]})
+    line = next(line for line in figure.axes[0].lines if line.get_marker() not in ("None", None))
+    assert to_rgba(line.get_markeredgecolor()) == to_rgba(SURFACE)
+
+    on_surface(figure, "#290B0F")
+
+    assert to_rgba(line.get_markeredgecolor()) == to_rgba("#290B0F")
 
 
 def test_heatmap_numbers_stay_readable_on_light_and_dark_cells():

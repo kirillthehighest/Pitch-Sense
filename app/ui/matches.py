@@ -40,6 +40,7 @@ from app.ui.widgets import FormStrip, ResponsiveBox, card, label
 DEFAULT_MODEL = ModelName.LOGISTIC_REGRESSION
 SIDE_WIDTH = 340
 COLUMNS_BREAKPOINT = 980  # narrower, "your team" and the table go under the matches
+CONTROLS_BREAKPOINT = 780  # narrower, the choice of model goes under the filters
 TABLE_ROWS = 6
 PREPARING = "Se pregătesc predicțiile…"
 NO_MATCHES = "Nu sunt meciuri în această zi."
@@ -180,16 +181,25 @@ class MatchesPage(QWidget):
         self.hypothetical_button.clicked.connect(self.open_hypothetical)
         self.day_label = label(role="section")
 
-        controls = QHBoxLayout()
-        controls.setSpacing(10)
-        controls.addWidget(self.day_label)
-        controls.addStretch()
-        controls.addWidget(self.all_button)
-        controls.addWidget(self.league_button)
-        controls.addSpacing(10)
-        controls.addWidget(label("Model", "caption"))
-        controls.addWidget(self.model_box)
-        controls.addWidget(self.hypothetical_button)
+        filters_widget = QWidget()
+        filters_row = QHBoxLayout(filters_widget)
+        filters_row.setContentsMargins(0, 0, 0, 0)
+        filters_row.setSpacing(8)
+        filters_row.addWidget(self.all_button)
+        filters_row.addWidget(self.league_button)
+        filters_row.addStretch()
+        model_widget = QWidget()
+        model_row = QHBoxLayout(model_widget)
+        model_row.setContentsMargins(0, 0, 0, 0)
+        model_row.setSpacing(8)
+        model_row.addWidget(label("Model", "caption"))
+        model_row.addWidget(self.model_box)
+        model_row.addWidget(self.hypothetical_button)
+        model_row.addStretch()
+        # The filters and the model share a line, or take one each in a narrow column.
+        self.controls = ResponsiveBox(CONTROLS_BREAKPOINT, spacing=10)
+        self.controls.add(filters_widget, stretch=1)
+        self.controls.add(model_widget, stretch=0)
 
         self.groups_layout = QVBoxLayout()
         self.groups_layout.setSpacing(16)
@@ -203,7 +213,8 @@ class MatchesPage(QWidget):
         listing = QVBoxLayout()
         listing.setSpacing(14)
         listing.addWidget(self.day_strip)
-        listing.addLayout(controls)
+        listing.addWidget(self.day_label)
+        listing.addWidget(self.controls)
         listing.addWidget(self.legend)
         listing.addWidget(ProbabilityHeading())
         listing.addWidget(self.empty_label)

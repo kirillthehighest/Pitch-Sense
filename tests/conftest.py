@@ -227,7 +227,7 @@ def errors() -> list[str]:
 
 @pytest.fixture
 def make_app_context(application, tmp_path: Path, errors: list[str]):
-    """Return a function that opens the services of the given leagues of a database, with tasks
+    """Yield a function that opens the services of the given leagues of a database, with tasks
     run at once, errors collected and preferences and logs kept in the test folder.
 
     The backtests evaluate 2007-08 and the models start after 3 earlier matches, so that both
@@ -292,7 +292,12 @@ def make_app_context(application, tmp_path: Path, errors: list[str]):
             report_error=errors.append,
         )
 
-    return make
+    yield make
+    # A window paints the whole interface in its league's colours; the next test starts again
+    # from the default league's.
+    from app.ui.themes import DEFAULT_THEME, set_current_theme
+
+    set_current_theme(DEFAULT_THEME)
 
 
 @pytest.fixture

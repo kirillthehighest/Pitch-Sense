@@ -31,6 +31,7 @@ from PySide6.QtWidgets import (
     QAbstractItemView,
     QBoxLayout,
     QFrame,
+    QGridLayout,
     QHBoxLayout,
     QHeaderView,
     QLabel,
@@ -53,6 +54,7 @@ from app.visualization.palette import (
     AWAY,
     DRAW,
     FORM_DRAW,
+    GOLD,
     HOME,
     LOSS,
     NIGHT,
@@ -197,6 +199,7 @@ class ChartView(QWidget):
         self._layout.addWidget(self.message_label)
         self._canvas: FigureCanvasQTAgg | None = None
         self._surface = SURFACE  # the colour the figure's rings and gaps were drawn in
+        self._highlight = GOLD  # and the colour of its chosen season or team
         self._stale = False  # recoloured while out of sight, not redrawn yet
 
     @property
@@ -209,6 +212,7 @@ class ChartView(QWidget):
         self._stale = False
         self.message_label.hide()
         self._surface = SURFACE
+        self._highlight = GOLD
         self._recolour(figure)
         self._canvas = FigureCanvasQTAgg(figure)
         self._canvas.setStyleSheet("background: transparent;")
@@ -237,9 +241,9 @@ class ChartView(QWidget):
         super().showEvent(event)
 
     def _recolour(self, figure: Figure) -> None:
-        surface = current_theme().surface
-        on_surface(figure, surface, previous=self._surface)
-        self._surface = surface
+        theme = current_theme()
+        on_surface(figure, theme.surface, self._surface, theme.accent, self._highlight)
+        self._surface, self._highlight = theme.surface, theme.accent
 
     def _remove_canvas(self) -> None:
         if self._canvas is not None:
@@ -384,6 +388,47 @@ def paint_league_card(painter: QPainter, area: QRectF, radius: float = 22) -> No
     painter.drawPath(path)
 
 
+class ReflowGrid(QWidget):
+    """Widgets in equal columns, as many as fit with at least ``column_width`` each; the rest go
+    on the next rows (five league cards: one row in a wide window, 3 + 2 in a narrow one)."""
+
+    def __init__(self, column_width: int, spacing: int = 14) -> None:
+        super().__init__()
+        self.column_width = column_width
+        self._grid = QGridLayout(self)
+        self._grid.setContentsMargins(0, 0, 0, 0)
+        self._grid.setSpacing(spacing)
+        self._grid.setSizeConstraint(QLayout.SizeConstraint.SetNoConstraint)
+        self.widgets: list[QWidget] = []
+        self.columns = 0
+
+    def add(self, widget: QWidget) -> None:
+        self.widgets.append(widget)
+        self.columns = 0
+        self._arrange(self.width())
+
+    def minimumSizeHint(self) -> QSize:  # noqa: N802 (Qt's name)
+        return QSize(self.column_width, super().minimumSizeHint().height())
+
+    def resizeEvent(self, event) -> None:  # noqa: N802 (Qt's name)
+        self._arrange(event.size().width())
+        super().resizeEvent(event)
+
+    def _arrange(self, width: int) -> None:
+        spacing = self._grid.horizontalSpacing()
+        fit = (width + spacing) // (self.column_width + spacing)
+        columns = max(1, min(len(self.widgets), fit))
+        if columns == self.columns:
+            return
+        self.columns = columns
+        for widget in self.widgets:
+            self._grid.removeWidget(widget)
+        for index, widget in enumerate(self.widgets):
+            self._grid.addWidget(widget, index // columns, index % columns)
+        for column in range(len(self.widgets)):
+            self._grid.setColumnStretch(column, 1 if column < columns else 0)
+
+
 class BrandStripe(QWidget):
     """The thin line under the top bar, from one of the league's glows to the other."""
 
@@ -441,6 +486,13 @@ class HeroBanner(QWidget):
     def show_page(self, title: str, subtitle: str) -> None:
         self.title_label.setText(title.upper())
         self.subtitle_label.setText(subtitle)
+
+    def resizeEvent(self, event) -> None:  # noqa: N802 (Qt's name)
+        """Keep the subtitle left of the sharp image, so no text crosses the players."""
+        width = event.size().width()
+        photo = min(width * self.PHOTO_SHARE, self.PHOTO_MAX_WIDTH) if self.photo else 0
+        self.subtitle_label.setMaximumWidth(int(max(280, min(620, width - photo - 40))))
+        super().resizeEvent(event)
 
     def show_league(
         self,

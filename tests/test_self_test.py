@@ -24,7 +24,7 @@ def test_every_check_passes_on_working_data(make_app_context, three_seasons, cap
     assert run_self_test(lambda: app_context) == 0
 
     lines = capsys.readouterr().out.splitlines()
-    assert len(lines) == 23
+    assert len(lines) == 25
     assert all(line.startswith("ok") for line in lines)
     assert "ok      season in progress (0 scheduled matches)" in lines
     for check in (

@@ -8,6 +8,7 @@ from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 from PySide6.QtCore import QCoreApplication, Qt, QThread
 from PySide6.QtGui import QColor, QImage
+from PySide6.QtWidgets import QWidget
 
 from app import __version__
 from app.data.live import update_live_data
@@ -17,11 +18,20 @@ from app.services.preferences import FavouriteTeam, Preferences
 from app.services.teams import FIRST_SEASON_NAME, GROUP_NAMES
 from app.ui.analysis import TABS
 from app.ui.brand import flag_pixmap
-from app.ui.main_window import UPDATE, MainWindow
+from app.ui.main_window import (
+    COMPACT_LOGO_WIDTH,
+    COMPACT_SIDE_PANEL_WIDTH,
+    COMPACT_WIDTH,
+    SIDE_PANEL_WIDTH,
+    UPDATE,
+    MainWindow,
+)
 from app.ui.match_detail import MODEL_EXPLANATIONS
 from app.ui.match_widgets import DayStrip, MatchRow, chip_text
 from app.ui.matches import NO_MATCHES, next_match_day
 from app.ui.team_page import GROUPS_IN_PROGRESS, SEASON_NOT_FINISHED
+from app.ui.theme import style_sheet
+from app.ui.themes import THEMES, current_theme
 from app.ui.widgets import (
     BarRow,
     ChartView,
@@ -29,12 +39,14 @@ from app.ui.widgets import (
     HeroBanner,
     LeagueButton,
     ProbabilityBars,
+    ReflowGrid,
+    ResponsiveBox,
     StatTile,
     fill_table,
     make_table,
 )
 from app.ui.worker import run_in_background, run_now
-from app.visualization.palette import GOLD_TINT, LOSS, WIN
+from app.visualization.palette import LOSS, WIN
 from tests.conftest import LIVE_TODAY
 
 PAGE_TITLES = ["MECIURI", "CLASAMENT", "ECHIPE", "ANALIZĂ"]
@@ -64,7 +76,7 @@ def highlighted(table):
     return [
         row
         for row in range(table.rowCount())
-        if table.item(row, 0).background().color() == QColor(GOLD_TINT)
+        if table.item(row, 0).background().color() == QColor(current_theme().accent_tint)
     ]
 
 
@@ -825,3 +837,169 @@ def test_the_hero_shows_the_league_photo_and_its_credit(application):
     assert hero.top == 0.3
     image = hero.grab().toImage()
     assert image.pixelColor(image.width() - 20, image.height() // 2) != image.pixelColor(10, 10)
+
+
+# --- the colours of the league and a window of any width (Phase 21) ---
+
+
+def test_choosing_a_league_paints_the_window_in_its_colours(two_league_context):
+    window = MainWindow(two_league_context)
+    assert current_theme() is THEMES["E0"]
+    assert window.styleSheet() == style_sheet(THEMES["E0"])
+
+    window.league_buttons["SP1"].click()
+
+    assert current_theme() is THEMES["SP1"]
+    assert window.styleSheet() == style_sheet(THEMES["SP1"])
+    assert window.reveal is None  # a window out of sight changes at once
+    window.close()
+
+
+def test_a_window_on_screen_reveals_the_new_colours_with_a_wave(two_league_context):
+    window = MainWindow(two_league_context)
+    window.show()
+    QCoreApplication.processEvents()
+
+    window.league_buttons["SP1"].click()
+    first = window.reveal
+    assert first is not None and first.isVisible()
+    assert first.edge == QColor(THEMES["SP1"].accent)
+    assert first.geometry() == window.rect()
+
+    window.league_buttons["E0"].click()  # before the wave has finished
+    assert window.reveal is not first and window.reveal is not None
+    assert first.isHidden()
+
+    window.reveal.finish()
+    assert window.reveal is None
+    window.animate = False
+    window.league_buttons["SP1"].click()
+    assert window.reveal is None
+    window.close()
+
+
+def test_a_narrow_window_keeps_only_the_flags_and_the_mark(window):
+    window.fit_width(COMPACT_LOGO_WIDTH - 1)
+
+    assert window.side_panel.width() == COMPACT_SIDE_PANEL_WIDTH
+    assert window.side_heading.isHidden() and window.version_note.isHidden()
+    assert all(button.compact for button in window.league_buttons.values())
+    assert window.lockup.compact
+
+    window.fit_width(COMPACT_WIDTH - 1)  # between the two: flags only, the whole logo
+    assert window.side_panel.width() == COMPACT_SIDE_PANEL_WIDTH
+    assert not window.lockup.compact
+
+    window.fit_width(COMPACT_WIDTH)
+    assert window.side_panel.width() == SIDE_PANEL_WIDTH
+    assert not any(button.compact for button in window.league_buttons.values())
+    assert window.minimumWidth() <= 1024
+
+
+@pytest.mark.parametrize("width", [1024, 1280, 1440])
+def test_no_screen_scrolls_sideways(window, width):
+    window.resize(width, 760)
+    window.show()
+    for index in range(len(window.pages)):
+        window.show_page(index)
+        for _ in range(3):
+            QCoreApplication.processEvents()
+        assert window.scrolls[index].horizontalScrollBar().maximum() == 0, window.pages[index]
+
+
+def test_a_responsive_box_stacks_its_widgets_when_narrow(application):
+    box = ResponsiveBox(500, spacing=10)
+    first, side = QWidget(), QWidget()
+    box.add(first, stretch=1)
+    box.add(side, stretch=0, width=200)
+
+    box.resize(800, 100)
+    box.show()
+    QCoreApplication.processEvents()
+    assert not box.stacked and side.width() == 200
+    assert first.geometry().right() < side.geometry().left()
+
+    box.resize(400, 300)
+    QCoreApplication.processEvents()
+    assert box.stacked
+    assert side.geometry().top() > first.geometry().top()
+    assert side.width() == first.width()  # the whole width
+    assert box.minimumSizeHint().width() <= 400
+    box.close()
+
+
+def test_a_reflow_grid_puts_on_each_row_as_many_widgets_as_fit(application):
+    grid = ReflowGrid(200, spacing=10)
+    for _ in range(5):
+        grid.add(QWidget())
+
+    grid.resize(1100, 100)
+    grid.show()
+    QCoreApplication.processEvents()
+    assert grid.columns == 5
+
+    grid.resize(640, 300)
+    QCoreApplication.processEvents()
+    assert grid.columns == 3
+    rows = sorted({widget.geometry().top() for widget in grid.widgets})
+    assert len(rows) == 2
+
+    grid.resize(150, 600)
+    QCoreApplication.processEvents()
+    assert grid.columns == 1
+    grid.close()
+
+
+def test_a_narrow_match_row_puts_the_probabilities_under_the_teams(window):
+    window.matches.show_day(date(2007, 9, 3))
+    row = MatchRow(day_rows(window.matches)[0].forecast, ModelName.ELO)
+
+    row.resize(MatchRow.NARROW + 100, MatchRow.HEIGHT)
+    row.show()
+    QCoreApplication.processEvents()
+    assert not row.stacked and row.height() == MatchRow.HEIGHT
+
+    row.resize(MatchRow.NARROW - 100, MatchRow.HEIGHT)
+    QCoreApplication.processEvents()
+    assert row.stacked and row.height() == MatchRow.STACKED_HEIGHT
+    assert not row.grab().isNull()
+    row.close()
+
+
+def test_the_last_match_of_a_league_draws_no_line_across_the_round_corners(window):
+    window.matches.show_day(date(2007, 9, 3))
+    rows = window.matches.groups[0].rows
+
+    assert rows[-1].last and not any(row.last for row in rows[:-1])
+
+
+def test_the_hero_keeps_its_subtitle_off_the_image(application):
+    hero = HeroBanner()
+    hero.show_league("La Liga", None, QImage(1600, 600, QImage.Format.Format_RGB32))
+    hero.resize(900, HeroBanner.HEIGHT)
+    hero.show()
+    QCoreApplication.processEvents()
+
+    image_left = 900 - min(900 * HeroBanner.PHOTO_SHARE, HeroBanner.PHOTO_MAX_WIDTH)
+    assert hero.subtitle_label.maximumWidth() <= image_left
+    hero.close()
+
+
+def test_a_hidden_chart_takes_the_new_colours_when_it_is_shown(application):
+    view = ChartView()
+    figure = Figure()
+    figure.add_subplot().plot([0, 1], [0, 1])
+    view.show_figure(figure)
+
+    draws = []
+    figure.canvas.mpl_connect("draw_event", lambda event: draws.append(event))
+
+    view.restyle()  # out of sight: not redrawn yet
+    QCoreApplication.processEvents()
+    assert draws == []
+
+    view.show()
+    for _ in range(3):
+        QCoreApplication.processEvents()
+    assert draws
+    view.close()

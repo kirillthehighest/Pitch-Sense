@@ -19,7 +19,9 @@ from app.data.paths import copy_bundled_results, user_data_dir
 from app.ui.brand import crest_image, league_photo
 from app.ui.context import AppContext, default_context
 from app.ui.main_window import MainWindow
-from app.ui.theme import apply_theme
+from app.ui.theme import apply_theme, style_sheet
+from app.ui.themes import current_theme, theme_for
+from app.ui.transition import ThemeReveal
 from app.ui.worker import run_now
 
 SHIPPED_CREST = "Barcelona"  # any club of the data; its crest proves the crests were packaged
@@ -99,6 +101,11 @@ def run_self_test(load_context: Callable[[], AppContext] = default_context) -> i
     for index, page in enumerate(window.pages):
         window.show_page(index)
         checks[f"{page.title} screen drawn"] = not window.grab().isNull()
+    checks["league colours"] = _colours_follow_the_league(window, context)
+    reveal = ThemeReveal(window, window.grab(), current_theme().accent)
+    reveal.progress = 0.5
+    checks["colour change wave"] = not reveal.grab().isNull() and not reveal.cover().isEmpty()
+    reveal.finish()
     window.close()
     application.processEvents()
 
@@ -107,6 +114,17 @@ def run_self_test(load_context: Callable[[], AppContext] = default_context) -> i
         + [f"error   {message}" for message in errors]
     )
     return 0 if all(checks.values()) and not errors else 1
+
+
+def _colours_follow_the_league(window: MainWindow, context: AppContext) -> bool:
+    """Choosing another league repaints the window in its palette, and back."""
+    first = window.current_league
+    other = next((code for code in context.competitions if code != first), first)
+    window.show_league(other)
+    changed = current_theme() is theme_for(other)
+    changed = changed and window.styleSheet() == style_sheet(theme_for(other))
+    window.show_league(first)
+    return changed and current_theme() is theme_for(first)
 
 
 def _report(lines: list[str]) -> None:
