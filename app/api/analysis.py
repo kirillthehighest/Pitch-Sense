@@ -26,6 +26,7 @@ from app.services.explanations import (
     SOURCES,
     crest_count,
     photo_credits,
+    stadium_photo_count,
 )
 from app.services.labels import MEASURE_LABELS, model_label, subset_label
 from app.services.leagues import LeaguesOverview
@@ -207,6 +208,7 @@ def add_analysis_routes(
             groups=GROUPS_EXPLANATION,
             sources=[schemas.Text(title=t, text=x) for t, x in SOURCES],
             crests=crest_count(),
+            stadiums=stadium_photo_count(),
             photos=photo_credits(),
             images_note=IMAGES_NOTE,
         )

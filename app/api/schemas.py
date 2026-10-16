@@ -335,6 +335,7 @@ class About(Schema):
     groups: str  # what the K-Means profiles of the team pages are
     sources: list[Text]
     crests: int
+    stadiums: int  # stadium photos
     photos: list[str]
     images_note: str
 

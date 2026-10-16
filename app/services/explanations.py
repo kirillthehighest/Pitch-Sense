@@ -10,7 +10,7 @@ from datetime import timedelta
 from app.data.competitions import competition
 from app.prediction.outputs import ModelName
 from app.services.formatting import date_text
-from app.services.images import CRESTS_DIR, LEAGUE_PHOTOS_DIR
+from app.services.images import CRESTS_DIR, LEAGUE_PHOTOS_DIR, STADIUMS_DIR
 from app.services.labels import model_label, outcome_label
 from app.services.predictions import MatchForecast
 
@@ -169,6 +169,13 @@ SOURCES = (
         "privat. Fiecare stemă, cu articolul și fișierul ei: app/ui/assets/crests/sources.json.",
     ),
     (
+        "Fotografiile stadioanelor",
+        "Wikipedia și Wikimedia Commons: fotografia din articolul stadionului fiecărui club, la "
+        "1024 px. Fotografiile aparțin autorilor lor; sunt folosite doar în acest proiect "
+        "universitar privat și nu se publică. Fiecare fotografie, cu stadionul și fișierul ei: "
+        "app/ui/assets/stadiums/sources.json.",
+    ),
+    (
         "Literele",
         "Kanit (sigla), Barlow Condensed și Plus Jakarta Sans, SIL Open Font License 1.1.",
     ),
@@ -183,6 +190,11 @@ IMAGES_NOTE = (
 def crest_count() -> int:
     """How many club crests the application carries."""
     return len(list(CRESTS_DIR.glob("*.png")))
+
+
+def stadium_photo_count() -> int:
+    """How many stadium photos the application carries."""
+    return len(list(STADIUMS_DIR.glob("*.jpg")))
 
 
 def photo_credits() -> list[str]:

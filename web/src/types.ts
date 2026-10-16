@@ -238,6 +238,7 @@ export interface About {
   groups: string;
   sources: { title: string; text: string }[];
   crests: number;
+  stadiums: number;
   photos: string[];
   images_note: string;
 }

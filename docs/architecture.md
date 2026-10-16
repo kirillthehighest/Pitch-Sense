@@ -1071,6 +1071,26 @@ Echipa a cerut imagini cu stadioane și jucători și a permis imagini protejate
 
 `python packaging/build.py` reconstruiește datele, construiește serverul cu PyInstaller (`packaging/server.spec`: fără Qt și matplotlib) și fereastra cu Tauri, cu serverul ca resursă și versiunea din `app/__init__.py`: pe macOS `PitchSense.app` într-un `.dmg`, pe Windows un program de instalare (NSIS). `--window` construiește încă fereastra PySide6. Fluxul GitHub Actions pentru Windows rulează ambele suite de teste, construiește pachetul, încearcă `--update` și `--self-test` ale serverului împachetat, instalează pachetul fără întrebări și rulează autoverificarea serverului instalat.
 
+### 18.7. Verificare
+
+Rulări din 2026-10-16:
+
+- **Teste.** Toate cele 849 de teste Python trec, pe macOS și pe Windows (GitHub Actions); `ruff check` și `ruff format --check` nu găsesc nimic. Serverul este verificat de `tests/test_api.py` și `tests/test_api_analysis.py` (fiecare rută, pe datele sintetice: pagina meciului și meciul ipotetic, clasamentul, pagina echipei, predicțiile față de rezultate, Analiză și backtestul ei, actualizarea reușită sau eșuată, preferințele, imaginile, oprirea odată cu fereastra, scrierea UTF-8 pe orice consolă, așteptarea unei pregătiri pornite, autoverificarea), `tests/test_services.py` verifică `PredictionService.review`, iar `tests/test_architecture.py` și `tests/test_environment.py` verifică straturile, versiunile fixe și versiunea unică. Interfața web are 17 teste Vitest (scrierea românească, culorile celulelor și contrastul lor în fiecare ligă, sigla stemelor întunecate, valul, filtrele ecranului Predicții, nota actualizării), iar `npm run build` verifică tipurile TypeScript. Codul Rust trece `cargo fmt --check` și `cargo clippy -- -D warnings`.
+- **Verificare vizuală.** Fiecare ecran a fost deschis cu datele reale, în browser, la 1440 × 900 și la 1024 × 700: Meciuri, pagina meciului (jucat, programat, ipotetic), Clasament, Echipe (cu ambele grafice), Predicții, cele cinci file ale Analizei, dialogurile „Alt meci” și „Echipa ta”, valul schimbării ligii (oprit la jumătate). La 1024 px niciun ecran și niciun tabel nu se derulează în lateral. Fereastra Tauri a fost verificată din `tauri dev`, dintr-o aplicație de test și din pachet.
+- **Procese.** Serverul și procesul lui de lucru se opresc când fereastra se închide din meniu și când este oprită forțat (`kill -9`).
+- **Pachete.** Versiunea a rămas 0.3.0.
+  - macOS: `.dmg` de 86 MB (aplicația 141 MB, din care serverul 91 MB). Autoverificarea serverului trece 13 din 13 din `dist/` și din imaginea `.dmg` montată doar pentru citire; aplicația deschisă din `dist/` își pornește serverul și arată ecranele, iar la închidere nu rămâne niciun proces.
+  - Windows (GitHub Actions): toate testele trec, programul de instalare are 68 MB. Serverul împachetat descarcă sezonul în desfășurare (`--update`: 297 de meciuri jucate și 1.455 programate în 5 ligi), autoverificarea lui trece, iar după instalarea fără întrebări în *Program Files* trece și autoverificarea serverului instalat.
+
+### 18.8. Limitări
+
+- Valul schimbării ligii cere tranzițiile de vizualizare ale browserului: în fereastra de macOS ele există de la Safari 18 (WebKit-ul sistemului); cu unul mai vechi, schimbarea este imediată.
+- Un meci ipotetic este calculat la cerere, în 3–8 secunde pe datele reale, cât folosește toate meciurile de până la acea zi.
+- Ecranele arată o ligă abia după ce i s-au calculat predicțiile (aproximativ 8 secunde pe ligă, la pornire).
+- Fotografiile arată stadionul de acum al fiecărui club, nu pe cel din sezonul ales; cinci cluburi nu au fotografie (Arles, Carpi, Evian Thonon Gaillard, Nancy, Numancia), iar capul lor păstrează culoarea ligii.
+- Pachetele nu sunt semnate. Pe Windows, fereastra are nevoie de WebView2 (inclus în Windows 10 și 11 actualizate; programul de instalare îl aduce dacă lipsește).
+- Interfața PySide6 este încă în depozit și în teste; scoaterea ei este hotărârea echipei.
+
 ## 19. Setul de date și perioadele
 
 Sursa datelor este Football-Data.co.uk: cinci ligi (Premier League, La Liga, Serie A, Bundesliga, Ligue 1), fiecare cu 20 de sezoane încheiate, 2006/07–2025/26 (36.197 de meciuri). Perioadele sunt aceleași pentru toate ligile. Sezonul în desfășurare (2026/27) este descărcat separat și nu face parte din evaluare (secțiunea 15).

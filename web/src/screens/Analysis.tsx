@@ -520,6 +520,9 @@ function Sources() {
           {source.title === "Stemele cluburilor" && (
             <p className="caption">{quantity(about.crests, "stemă", "steme")} în aplicație.</p>
           )}
+          {source.title === "Fotografiile stadioanelor" && (
+            <p className="caption">{quantity(about.stadiums, "fotografie", "fotografii")} în aplicație.</p>
+          )}
         </div>
       ))}
       <div className="source">

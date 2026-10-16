@@ -14,7 +14,7 @@ def test_the_explanations_and_the_sources(api_client):
     assert [e["title"] for e in about["explanations"]] == [title for title, _ in EXPLANATIONS]
     assert about["groups"] == GROUPS_EXPLANATION
     assert [s["title"] for s in about["sources"]] == [title for title, _ in SOURCES]
-    assert about["crests"] > 0 and about["images_note"]
+    assert about["crests"] > 0 and about["stadiums"] > 0 and about["images_note"]
 
 
 def test_without_a_downloaded_season_the_check_says_so(api_client):
