@@ -323,6 +323,19 @@ Componentele folosesc stilul Qt Fusion și o paletă Qt și o foaie de stil gene
 - **Bifa și crucea** de pe meciurile jucate urmează aceeași regulă: forma spune dacă predicția s-a nimerit, culoarea doar o repetă.
 - **Jetoanele zilelor fără meciuri** nu au fundal și au textul secundar: se pot alege și trebuie să se poată citi.
 
+### 5.9. Interfața web (Faza 22)
+
+Interfața web păstrează identitatea de mai sus: aceleași suprafețe, aceleași accente ale ligilor (variabile CSS în `web/src/theme.ts`, copiate din `app/ui/themes.py`), aceleași litere (Plus Jakarta Sans, Barlow Condensed, Kanit, incluse în `web/public/fonts/`) și aceeași siglă, desenată în SVG.
+
+- **Așezarea A**, aleasă de echipă dintre patru: o singură bară laterală, cu sigla, ecranele cu iconițe, ligile, „Echipa ta”, actualizarea și sursele; sub 1200 px rămân doar iconițele și steagurile.
+- **Meciuri** începe cu cardul „Meciul zilei” cu imaginea ligii; celelalte ecrane au un antet subțire cu imaginea ligii, steagul, titlul și o propoziție despre ecran.
+- **Capetele** unui meci și ale unui club sunt luminate de sus de culoarea adâncă a ligii, peste fotografia stadionului (a gazdelor, la un meci); textul alb are o umbră ușoară, ca să se citească pe orice fotografie.
+- **Tabelele** au coloane măsurate o dată pentru toate rândurile (`DataTable`): numele la stânga, numerele la dreapta, cu cifre de lățime egală; în tabelele late, coloanele numerice împart lățimea în mod egal.
+- **Cipurile** de probabilitate umplu cel mai probabil rezultat cu accentul și încercuiesc rezultatul care s-a întâmplat; bifa sau crucea spun dacă modelul a nimerit.
+- **Celulele colorate după valoare** (scorurile Poisson, matricea de confuzie) amestecă accentul ligii în culoarea cardului; cifrele lor sunt albe sau negre, cum se citesc mai bine, cu contrastul de cel puțin 4,5:1 verificat în `web/src/colour.test.ts`.
+- **Graficele** (Recharts) păstrează culorile modelelor și ale grupurilor din secțiunea 6; în graficul Elo, sezonul ales are accentul ligii, iar celelalte sezoane sunt gri, ca fundal (albastrul Elo era prea aproape de cianul Serie A). Fiecare grafic are legendă și indicii la trecerea mausului.
+- **Schimbarea ligii** are același val ca fereastra Qt (secțiunea 5.3), prin tranzițiile de vizualizare ale browserului; fără ele, sau cu mișcare redusă cerută de sistem, schimbarea este imediată.
+
 ## 6. Graficele
 
 Graficele au fundal transparent: stau pe card, în culorile oricărei ligi (`ChartView` și `on_surface` din `charts.py`). Au text deschis, textul cu Plus Jakarta Sans, titlurile cu Barlow Condensed și grile subțiri. Fiecare culoare are un singur rol:
@@ -399,4 +412,5 @@ Graficele se construiesc cu un auriu pentru evidențiere și cu culoarea cardulu
 - Pachetele au iconița în culorile La Ligii, pentru că sistemul o citește din pachet înainte ca aplicația să pornească. Fereastra ia apoi culorile ligii afișate.
 - Mesajele de la pornire, afișate înainte să existe fereastra, și indiciile de la trecerea mausului au culorile La Ligii.
 - Animația a fost măsurată pe o fereastră desenată fără ecran, la rezoluția Retina. Fluiditatea pe ecranul real depinde și de placa video și de sistem.
+- Fotografiile stadioanelor (Wikipedia, Faza 22) aparțin autorilor lor; sunt folosite doar în proiectul privat și nu se publică.
 - Stemele sunt mărci ale cluburilor. Sunt incluse doar în depozitul privat și în pachete, pentru recunoașterea echipelor, și nu trebuie publicate. Imaginile ligilor (DAZN) aparțin deținătorilor lor și, ca stemele, nu se publică.

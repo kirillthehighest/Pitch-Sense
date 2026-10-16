@@ -7,6 +7,7 @@ import { api } from "../api";
 import { Crest } from "../components/Crest";
 import { FormSquares } from "../components/FormSquares";
 import { MatchRow } from "../components/MatchRow";
+import { StadiumPhoto } from "../components/StadiumPhoto";
 import { number, seasonText } from "../format";
 import { themeFor } from "../theme";
 import type { Favourite, Forecast, League, TeamPage, TeamRecord } from "../types";
@@ -99,6 +100,7 @@ export function Team({ league, season, team, favourite, ready, onChoice, onOpenM
       {page && (
         <>
           <section className="team-head">
+            <StadiumPhoto team={page.team} className="beside" />
             <Crest team={page.team} size={104} ring={isFavourite} />
             <div className="team-head-text">
               <span className="eyebrow">{isFavourite ? `Echipa ta · ${league.name}` : league.name}</span>
@@ -107,6 +109,7 @@ export function Team({ league, season, team, favourite, ready, onChoice, onOpenM
                 {seasonText(page.season)} · locul {page.position} din {page.teams} ·{" "}
                 {page.in_progress ? "sezon în desfășurare" : "sezon încheiat"}
               </span>
+              {page.stadium && <span className="stadium-name">Stadion: {page.stadium}</span>}
             </div>
             <button
               className={`button${isFavourite ? "" : " primary"}`}
@@ -114,6 +117,7 @@ export function Team({ league, season, team, favourite, ready, onChoice, onOpenM
             >
               {isFavourite ? "★ Echipa ta" : "☆ Alege ca echipa ta"}
             </button>
+            {page.stadium && <span className="credit">Foto: Wikimedia Commons</span>}
           </section>
           <div className="tiles">
             {(

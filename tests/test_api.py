@@ -1,6 +1,7 @@
 """The local server of the web interface, over the synthetic seasons: every answer is the
 services' own, in the shapes the interface reads."""
 
+import json
 import os
 import threading
 from datetime import UTC, date, datetime
@@ -8,8 +9,10 @@ from datetime import UTC, date, datetime
 import pytest
 
 from app.api.__main__ import exit_with_window, option, port_of
+from app.api.self_test import run_self_test
 from app.data.live import UpdateSummary
 from app.prediction.outputs import ModelName
+from app.services.images import STADIUMS_DIR, stadium_name, stadium_path, stadium_teams
 
 
 def test_the_leagues_come_with_their_seasons_and_state(api_client):
@@ -220,6 +223,11 @@ def test_images_are_served_and_a_missing_one_is_404(api_client):
     assert api_client.get("/api/images/league/SP1").headers["content-type"] == "image/jpeg"
     assert api_client.get("/api/images/crest/Barcelona").headers["content-type"] == "image/png"
     assert api_client.get("/api/images/crest/Alpha").status_code == 404
+    stadium = api_client.get("/api/images/stadium/Barcelona")
+    assert (
+        stadium.headers["content-type"] == "image/jpeg" and stadium.content[:3] == b"\xff\xd8\xff"
+    )
+    assert api_client.get("/api/images/stadium/Alpha").status_code == 404
     assert api_client.get("/api/day/2007-09-03", params={"league": "XX"}).status_code == 404
 
 
@@ -263,3 +271,48 @@ def test_the_server_ends_when_its_window_closes():
         os.close(writing)  # the window's process ended
         watcher.join(timeout=5)
     assert ended.is_set()
+
+
+def test_the_self_test_asks_the_server_everything(api_backend):
+    for code in api_backend.competitions:
+        api_backend.league(code).evaluation.build_log()
+    api_backend.comparison.build_missing_logs()
+    lines: list[str] = []
+
+    result = run_self_test(api_backend, report=lines.append)
+
+    passed = {
+        line.split(":")[0].removeprefix("ok").strip() for line in lines if line.startswith("ok")
+    }
+    assert {
+        "predictions",
+        "leagues",
+        "day",
+        "match",
+        "standings",
+        "team",
+        "predictions review",
+        "evaluation",
+        "leagues comparison",
+        "explanations",
+        "league image",
+    } <= passed
+    # the synthetic clubs have neither crests nor stadium photos
+    assert any(line.startswith("FAILED  crest") for line in lines)
+    assert result == 1 and lines[-1].endswith("checks failed")
+
+
+def test_every_stadium_photo_has_its_source_and_is_used():
+    sources = json.loads((STADIUMS_DIR / "sources.json").read_text(encoding="utf-8"))
+    teams = [source["team"] for source in sources]
+    photos = {path.stem for path in STADIUMS_DIR.glob("*.jpg")}
+
+    assert len(teams) == len(set(teams)) and teams == sorted(teams)
+    assert {source["image"] for source in sources} == photos
+    for source in sources:
+        assert source["file"].startswith("https://commons.wikimedia.org/wiki/File:")
+        assert stadium_path(source["team"]) == STADIUMS_DIR / f"{source['image']}.jpg"
+        assert stadium_name(source["team"]) == source["stadium"].split(" (")[0]
+    assert stadium_teams() == teams
+    assert stadium_name("Ein Frankfurt") == "Waldstadion"
+    assert stadium_path("Alpha") is None and stadium_name("Alpha") is None

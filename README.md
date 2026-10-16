@@ -5,7 +5,7 @@ Aplicație desktop pentru analiza datelor istorice din fotbal și estimarea rezu
 Proiect de an la disciplina *Analiza și Proiectarea Algoritmilor* (APA), Universitatea Tehnică a Moldovei, Departamentul Ingineria Software și Automatică.
 Echipa (grupa TI-251): Goroșevschi Chiril, Cuzmici Nicolae, Păstru Alina.
 
-**Stadiu:** etapele 0–21 sunt încheiate (etapa 21, designul refăcut, pe 2026-10-16); etapa 22 (interfața web) este în pregătire. Versiunea curentă este 0.3.0. Etapele 18 (sezonul în desfășurare), 19 (interfață centrată pe meciuri) și 20 (pachete și versiunea 0.3.0) au fost adăugate de echipă și încheiate pe 2026-10-15. Fazele 0–12 (planificare și arhitectură, prelucrarea datelor istorice, statisticile echipelor, ratingul Elo, modelul Poisson, regresia logistică, K-Means, motorul de predicție, backtesting cronologic, metricile de evaluare, compararea algoritmilor, interfața grafică, vizualizarea) au fost încheiate pe 2026-10-04, fazele 13 (testare de integrare și finisare), 14 (pachete de instalare pentru macOS și Windows), 15 (cinci ligi) și 16 (identitate vizuală și interfață nouă, în limba română) pe 2026-10-05, iar faza 17 (pachete și versiunea 0.2.0) pe 2026-10-06. Aplicația se pornește cu `python -m app` sau din pachetele de instalare.
+**Stadiu:** etapele 0–21 sunt încheiate (etapa 21, designul refăcut, pe 2026-10-16); etapa 22 (interfața web: React și TypeScript într-o fereastră Tauri, peste un server Python local) este realizată și așteaptă acceptarea echipei. Versiunea curentă este 0.3.0. Etapele 18 (sezonul în desfășurare), 19 (interfață centrată pe meciuri) și 20 (pachete și versiunea 0.3.0) au fost adăugate de echipă și încheiate pe 2026-10-15. Fazele 0–12 (planificare și arhitectură, prelucrarea datelor istorice, statisticile echipelor, ratingul Elo, modelul Poisson, regresia logistică, K-Means, motorul de predicție, backtesting cronologic, metricile de evaluare, compararea algoritmilor, interfața grafică, vizualizarea) au fost încheiate pe 2026-10-04, fazele 13 (testare de integrare și finisare), 14 (pachete de instalare pentru macOS și Windows), 15 (cinci ligi) și 16 (identitate vizuală și interfață nouă, în limba română) pe 2026-10-05, iar faza 17 (pachete și versiunea 0.2.0) pe 2026-10-06. Aplicația se pornește cu `python -m app` sau din pachetele de instalare.
 
 ## Aplicația gata de instalat
 
@@ -26,6 +26,7 @@ Prima pornire durează până la aproximativ 30 de secunde, pentru că se pregă
 
 - Python 3.14 (PySide6 6.11 nu suportă încă Python 3.15)
 - macOS sau Windows
+- pentru interfața web (din etapa 22): Node 26 și, pentru fereastra de desktop, Rust (pe macOS: `brew install node rustup`, apoi `rustup default stable`)
 
 ## Instalare (din codul sursă)
 
@@ -49,6 +50,13 @@ python -m pip install -e ".[dev]"
 
 După orice modificare a fișierului `pyproject.toml`, rulați din nou ultima comandă.
 
+Pentru interfața web, o singură dată (și după orice modificare a fișierului `web/package.json`):
+
+```bash
+cd web
+npm ci
+```
+
 ## Verificare
 
 Cu mediul virtual activat:
@@ -59,7 +67,12 @@ python -m ruff check .
 python -m ruff format --check .
 ```
 
-Testele folosesc doar date sintetice. `tests/test_integration.py` rulează tot lanțul, de la fișierele CSV la fereastra aplicației, fără fereastră vizibilă.
+Testele folosesc doar date sintetice. `tests/test_integration.py` rulează tot lanțul, de la fișierele CSV la fereastra aplicației, fără fereastră vizibilă. Serverul interfeței web este verificat de `tests/test_api.py` și `tests/test_api_analysis.py`, iar interfața web, din folderul `web`, cu:
+
+```bash
+npm test
+npm run build
+```
 
 ## Date
 
@@ -87,7 +100,21 @@ Comanda verifică toate sezoanele și afișează câte meciuri a salvat din fiec
 
 ## Pornirea aplicației
 
-Cu mediul virtual activat și baza de date construită:
+**Interfața web (etapa 22).** Din folderul `web`, cu mediul virtual Python creat și baza de date construită:
+
+```bash
+npm run tauri dev
+```
+
+Comanda deschide fereastra de desktop, care pornește singură serverul local (`python -m app.api`) și îl oprește la închidere. Pentru lucrul doar în browser, serverul se poate porni separat, pe portul pe care îl caută interfața în dezvoltare, iar interfața cu `npm run dev` (la `http://localhost:1420`):
+
+```bash
+python -m app.api --port 8765
+```
+
+Bara laterală are ecranele Meciuri, Clasament, Echipe, Predicții și Analiză, ligile, „Echipa ta” și actualizarea datelor. Ecranul **Predicții** arată, pentru un sezon și un model, meciurile nimerite, ratate și surprizele (rezultate cărora modelul le dădea sub 20%). Detalii: [`docs/architecture.md`](docs/architecture.md), secțiunea 18.
+
+**Interfața PySide6 (până în etapa 21)** rămâne în depozit până când echipa hotărăște altfel. Cu mediul virtual activat și baza de date construită:
 
 ```bash
 python -m app

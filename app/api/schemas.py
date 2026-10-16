@@ -4,7 +4,7 @@ Romanian); names a person reads (models, outcomes, countries) come translated, f
 
 from datetime import date, datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from app.prediction.outputs import ModelPrediction
 from app.services.labels import model_label
@@ -14,7 +14,13 @@ from app.statistics.team_statistics import TeamStatistics
 SCORE_GRID_GOALS = 6  # the scores 0-0 to 6-6, as the window's heat map shows them
 
 
-class League(BaseModel):
+class Schema(BaseModel):
+    """An answer of the server; a field it does not declare is an error, never dropped."""
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class League(Schema):
     code: str
     name: str
     country: str
@@ -27,13 +33,13 @@ class League(BaseModel):
     problem: str | None  # why the season in progress could not be read
 
 
-class Status(BaseModel):
+class Status(Schema):
     prepared: dict[str, bool]
     preparing: str | None
     failures: dict[str, str]
 
 
-class Prediction(BaseModel):
+class Prediction(Schema):
     model: str  # the identifier: Elo, Poisson, Logistic regression
     label: str  # the Romanian name
     home: float
@@ -44,7 +50,7 @@ class Prediction(BaseModel):
     expected_goals: tuple[float, float] | None
 
 
-class Forecast(BaseModel):
+class Forecast(Schema):
     competition: str
     season: str
     date: date
@@ -60,7 +66,7 @@ class Forecast(BaseModel):
     predictions: list[Prediction]
 
 
-class LeagueDay(BaseModel):
+class LeagueDay(Schema):
     code: str
     name: str
     country: str
@@ -68,19 +74,19 @@ class LeagueDay(BaseModel):
     forecasts: list[Forecast]
 
 
-class Day(BaseModel):
+class Day(Schema):
     day: date
     leagues: list[LeagueDay]
     featured: Forecast | None
 
 
-class Days(BaseModel):
+class Days(Schema):
     days: list[date]
     today: date
     next_day: date | None
 
 
-class Record(BaseModel):
+class Record(Schema):
     played: int
     wins: int
     draws: int
@@ -91,14 +97,14 @@ class Record(BaseModel):
     points: int
 
 
-class StandingRow(BaseModel):
+class StandingRow(Schema):
     position: int
     team: str
     record: Record
     form: list[str]  # the last five results, W, D or L, oldest first
 
 
-class Standings(BaseModel):
+class Standings(Schema):
     competition: str
     season: str
     before: date
@@ -107,7 +113,7 @@ class Standings(BaseModel):
     rows: list[StandingRow]
 
 
-class TeamState(BaseModel):
+class TeamState(Schema):
     """How a team came into a match: its place, season so far, form and Elo rating."""
 
     team: str
@@ -117,19 +123,19 @@ class TeamState(BaseModel):
     rating: float
 
 
-class ScoreChance(BaseModel):
+class ScoreChance(Schema):
     home: int
     away: int
     probability: float
 
 
-class PoissonScores(BaseModel):
+class PoissonScores(Schema):
     expected_goals: tuple[float, float]
     top_scores: list[ScoreChance]
     grid: list[list[float]]  # grid[i][j]: the home team scores i and the away team j
 
 
-class MatchPage(BaseModel):
+class MatchPage(Schema):
     forecast: Forecast
     status: str  # Final, Programat, Amânat or Meci ipotetic
     knowledge: str  # which matches the predictions use
@@ -140,9 +146,10 @@ class MatchPage(BaseModel):
     teams: int  # in the season
     home: TeamState
     away: TeamState
+    stadium: str | None  # the home club's ground, when its photo is known
 
 
-class Shots(BaseModel):
+class Shots(Schema):
     """A team's averages per match, its own and its opponents' (None without statistics)."""
 
     matches: int  # with recorded statistics
@@ -152,30 +159,30 @@ class Shots(BaseModel):
     opponent_shots_on_target: float | None
 
 
-class RatingPoint(BaseModel):
+class RatingPoint(Schema):
     day: date
     rating: float
 
 
-class RatingSeason(BaseModel):
+class RatingSeason(Schema):
     season: str
     points: list[RatingPoint]  # the Elo rating before each of the team's matches
 
 
-class GroupPoint(BaseModel):
+class GroupPoint(Schema):
     team: str
     goals_scored: float
     goals_conceded: float
     group: int
 
 
-class GroupCentre(BaseModel):
+class GroupCentre(Schema):
     group: int
     goals_scored: float
     goals_conceded: float
 
 
-class Groups(BaseModel):
+class Groups(Schema):
     """A completed season's descriptive K-Means groups, in goals per match."""
 
     teams: list[GroupPoint]
@@ -183,7 +190,7 @@ class Groups(BaseModel):
     names: dict[int, str]
 
 
-class TeamPage(BaseModel):
+class TeamPage(Schema):
     competition: str
     team: str
     season: str
@@ -200,23 +207,24 @@ class TeamPage(BaseModel):
     elo: list[RatingSeason]
     groups: Groups | None
     groups_problem: str | None
+    stadium: str | None  # the club's ground, when its photo is known
 
 
-class ReviewedMatch(BaseModel):
+class ReviewedMatch(Schema):
     forecast: Forecast
     chance: float  # the probability the model gave the result that happened
     hit: bool
     surprise: bool
 
 
-class ResultReview(BaseModel):
+class ResultReview(Schema):
     result: str  # H, D or A
     label: str
     hits: int
     matches: int
 
 
-class Review(BaseModel):
+class Review(Schema):
     """One model's predictions of a season's played matches, against what happened."""
 
     competition: str
@@ -231,7 +239,7 @@ class Review(BaseModel):
     rows: list[ReviewedMatch]
 
 
-class SeasonDays(BaseModel):
+class SeasonDays(Schema):
     """What the form of a hypothetical match offers for a season."""
 
     season: str
@@ -241,16 +249,16 @@ class SeasonDays(BaseModel):
     suggested_day: date
 
 
-class Update(BaseModel):
+class Update(Schema):
     summary: str  # what the update brought, in Romanian
 
 
-class Favourite(BaseModel):
+class Favourite(Schema):
     competition: str
     team: str
 
 
-class Preferences(BaseModel):
+class Preferences(Schema):
     competition: str | None
     favourite: Favourite | None
 
@@ -315,12 +323,12 @@ def poisson_of(summary: ModelSummary) -> PoissonScores:
 # --- Analiză ---
 
 
-class Text(BaseModel):
+class Text(Schema):
     title: str
     text: str
 
 
-class About(BaseModel):
+class About(Schema):
     """How the algorithms work and where the data and images come from."""
 
     explanations: list[Text]
@@ -331,12 +339,12 @@ class About(BaseModel):
     images_note: str
 
 
-class Estimate(BaseModel):
+class Estimate(Schema):
     value: float
     margin: float | None  # the half-width of the 95% interval: 1.96 standard errors
 
 
-class ModelCheck(BaseModel):
+class ModelCheck(Schema):
     model: str
     label: str
     accuracy: float
@@ -344,7 +352,7 @@ class ModelCheck(BaseModel):
     log_loss: Estimate
 
 
-class SeasonCheck(BaseModel):
+class SeasonCheck(Schema):
     """The models on the season in progress, or why they cannot be shown yet."""
 
     competition: str
@@ -356,7 +364,7 @@ class SeasonCheck(BaseModel):
     models: list[ModelCheck]
 
 
-class Difference(BaseModel):
+class Difference(Schema):
     """A paired per-match difference between two models (first minus second)."""
 
     first: str
@@ -372,7 +380,7 @@ class Difference(BaseModel):
     better_label: str | None
 
 
-class CalibrationBin(BaseModel):
+class CalibrationBin(Schema):
     lower: float
     upper: float
     count: int
@@ -380,7 +388,7 @@ class CalibrationBin(BaseModel):
     observed: float | None
 
 
-class ModelEvaluation(BaseModel):
+class ModelEvaluation(Schema):
     model: str
     label: str
     matches: int
@@ -393,7 +401,7 @@ class ModelEvaluation(BaseModel):
     confusion: list[list[int]]  # rows actual, columns predicted: H, D, A
 
 
-class Subset(BaseModel):
+class Subset(Schema):
     key: str
     label: str
     matches: int
@@ -403,7 +411,7 @@ class Subset(BaseModel):
     real: bool  # the best model's lead over the runner-up is real
 
 
-class Agreement(BaseModel):
+class Agreement(Schema):
     first: str
     second: str
     first_label: str
@@ -412,7 +420,7 @@ class Agreement(BaseModel):
     distance: float  # the mean total variation distance
 
 
-class Evaluation(BaseModel):
+class Evaluation(Schema):
     """A league's chronological backtest, evaluated and compared."""
 
     competition: str
@@ -431,7 +439,7 @@ class Evaluation(BaseModel):
     all_agree: float | None
 
 
-class Character(BaseModel):
+class Character(Schema):
     matches: int
     home_win: float
     draw: float
@@ -442,7 +450,7 @@ class Character(BaseModel):
     other_seasons_home_win: float | None
 
 
-class LeagueResult(BaseModel):
+class LeagueResult(Schema):
     code: str
     name: str
     character: Character
@@ -453,7 +461,7 @@ class LeagueResult(BaseModel):
     differences: list[Difference]
 
 
-class LeaguesComparison(BaseModel):
+class LeaguesComparison(Schema):
     missing: list[str]  # leagues without a prediction log
     problem: str | None
     matches: int

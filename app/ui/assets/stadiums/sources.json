@@ -1,0 +1,1634 @@
+[
+ {
+  "team": "Aachen",
+  "competition": "D1",
+  "stadium": "New Tivoli",
+  "image": "new-tivoli",
+  "article": "https://en.wikipedia.org/wiki/New%20Tivoli",
+  "file": "https://commons.wikimedia.org/wiki/File:Aachen%2C_Neuer_Tivoli%2C_2009.jpg"
+ },
+ {
+  "team": "Ajaccio",
+  "competition": "F1",
+  "stadium": "Stade Michel Moretti",
+  "image": "stade-michel-moretti",
+  "article": "https://en.wikipedia.org/wiki/Stade%20Michel%20Moretti",
+  "file": "https://commons.wikimedia.org/wiki/File:Photo_6554010_DJI_410_jpg_4379466_0_2021820123014_photo_original.jpg"
+ },
+ {
+  "team": "Ajaccio GFCO",
+  "competition": "F1",
+  "stadium": "Stade Ange Casanova",
+  "image": "stade-ange-casanova",
+  "article": "https://en.wikipedia.org/wiki/Stade%20Ange%20Casanova",
+  "file": "https://commons.wikimedia.org/wiki/File:Stade_Ange-Casanova.jpg"
+ },
+ {
+  "team": "Alaves",
+  "competition": "SP1",
+  "stadium": "Mendizorrotza Stadium",
+  "image": "mendizorrotza-stadium",
+  "article": "https://en.wikipedia.org/wiki/Mendizorrotza%20Stadium",
+  "file": "https://commons.wikimedia.org/wiki/File:Mendizorrotza_diciembre_2021.jpg"
+ },
+ {
+  "team": "Almeria",
+  "competition": "SP1",
+  "stadium": "UD Almería Stadium",
+  "image": "ud-almer-a-stadium",
+  "article": "https://en.wikipedia.org/wiki/UD%20Almer%C3%ADa%20Stadium",
+  "file": "https://commons.wikimedia.org/wiki/File:PowerHorseStadium.jpg"
+ },
+ {
+  "team": "Amiens",
+  "competition": "F1",
+  "stadium": "Stade de la Licorne",
+  "image": "stade-de-la-licorne",
+  "article": "https://en.wikipedia.org/wiki/Stade%20de%20la%20Licorne",
+  "file": "https://commons.wikimedia.org/wiki/File:Stadlic3.JPG"
+ },
+ {
+  "team": "Angers",
+  "competition": "F1",
+  "stadium": "Stade Raymond Kopa",
+  "image": "stade-raymond-kopa",
+  "article": "https://en.wikipedia.org/wiki/Stade%20Raymond%20Kopa",
+  "file": "https://commons.wikimedia.org/wiki/File:Stade_Jean_Bouin_Angers_2.JPG"
+ },
+ {
+  "team": "Arsenal",
+  "competition": "E0",
+  "stadium": "Emirates Stadium",
+  "image": "emirates-stadium",
+  "article": "https://en.wikipedia.org/wiki/Emirates%20Stadium",
+  "file": "https://commons.wikimedia.org/wiki/File:London_Emirates_Stadium_arsenal.jpg"
+ },
+ {
+  "team": "Ascoli",
+  "competition": "I1",
+  "stadium": "Stadio Cino e Lillo Del Duca",
+  "image": "stadio-cino-e-lillo-del-duca",
+  "article": "https://en.wikipedia.org/wiki/Stadio%20Cino%20e%20Lillo%20Del%20Duca",
+  "file": "https://commons.wikimedia.org/wiki/File:Del_dica.jpeg"
+ },
+ {
+  "team": "Aston Villa",
+  "competition": "E0",
+  "stadium": "Villa Park",
+  "image": "villa-park",
+  "article": "https://en.wikipedia.org/wiki/Villa%20Park",
+  "file": "https://commons.wikimedia.org/wiki/File:Birmingham_aston_villa_park_stadium.jpg"
+ },
+ {
+  "team": "Atalanta",
+  "competition": "I1",
+  "stadium": "Stadio di Bergamo",
+  "image": "stadio-di-bergamo",
+  "article": "https://en.wikipedia.org/wiki/Stadio%20di%20Bergamo",
+  "file": "https://commons.wikimedia.org/wiki/File:The_outside_of_the_Gewiss_Stadium_in_2020.jpg"
+ },
+ {
+  "team": "Ath Bilbao",
+  "competition": "SP1",
+  "stadium": "San Mamés Stadium (2013)",
+  "image": "san-mam-s-stadium-2013",
+  "article": "https://en.wikipedia.org/wiki/San%20Mam%C3%A9s%20Stadium%20%282013%29",
+  "file": "https://commons.wikimedia.org/wiki/File:Panorama_im_San_Mam%C3%A9s_Stadion.jpg"
+ },
+ {
+  "team": "Ath Madrid",
+  "competition": "SP1",
+  "stadium": "Metropolitano Stadium",
+  "image": "metropolitano-stadium",
+  "article": "https://en.wikipedia.org/wiki/Metropolitano%20Stadium",
+  "file": "https://commons.wikimedia.org/wiki/File:Atleti_vs_Villarreal_-_September_2025.jpg"
+ },
+ {
+  "team": "Augsburg",
+  "competition": "D1",
+  "stadium": "WWK Arena",
+  "image": "wwk-arena",
+  "article": "https://en.wikipedia.org/wiki/WWK%20Arena",
+  "file": "https://commons.wikimedia.org/wiki/File:Germany_augsburg_stadium_wwk_arena.jpg"
+ },
+ {
+  "team": "Auxerre",
+  "competition": "F1",
+  "stadium": "Stade de l'Abbé-Deschamps",
+  "image": "stade-de-l-abb-deschamps",
+  "article": "https://en.wikipedia.org/wiki/Stade%20de%20l%27Abb%C3%A9-Deschamps",
+  "file": "https://commons.wikimedia.org/wiki/File:Panorama_du_Stade_de_l%27Abb%C3%A9_Deschamps.png"
+ },
+ {
+  "team": "Barcelona",
+  "competition": "SP1",
+  "stadium": "Camp Nou",
+  "image": "camp-nou",
+  "article": "https://en.wikipedia.org/wiki/Camp%20Nou",
+  "file": "https://commons.wikimedia.org/wiki/File:Camp_Nou_aerial.jpg"
+ },
+ {
+  "team": "Bari",
+  "competition": "I1",
+  "stadium": "Stadio San Nicola",
+  "image": "stadio-san-nicola",
+  "article": "https://en.wikipedia.org/wiki/Stadio%20San%20Nicola",
+  "file": "https://commons.wikimedia.org/wiki/File:Stadiosannicola2023.jpg"
+ },
+ {
+  "team": "Bastia",
+  "competition": "F1",
+  "stadium": "Stade Armand-Cesari",
+  "image": "stade-armand-cesari",
+  "article": "https://en.wikipedia.org/wiki/Stade%20Armand-Cesari",
+  "file": "https://commons.wikimedia.org/wiki/File:Stade_Armand-Cesari_vu_du_ciel.jpg"
+ },
+ {
+  "team": "Bayern Munich",
+  "competition": "D1",
+  "stadium": "Allianz Arena",
+  "image": "allianz-arena",
+  "article": "https://en.wikipedia.org/wiki/Allianz%20Arena",
+  "file": "https://commons.wikimedia.org/wiki/File:Allianz_Arena_2008-02-09.jpg"
+ },
+ {
+  "team": "Benevento",
+  "competition": "I1",
+  "stadium": "Stadio Ciro Vigorito",
+  "image": "stadio-ciro-vigorito",
+  "article": "https://en.wikipedia.org/wiki/Stadio%20Ciro%20Vigorito",
+  "file": "https://commons.wikimedia.org/wiki/File:Curva_nord_Stadio_Vigorito.jpg"
+ },
+ {
+  "team": "Betis",
+  "competition": "SP1",
+  "stadium": "Estadio La Cartuja",
+  "image": "estadio-la-cartuja",
+  "article": "https://en.wikipedia.org/wiki/Estadio%20La%20Cartuja",
+  "file": "https://commons.wikimedia.org/wiki/File:Betis_Girona_23_nov_2025_003.jpg"
+ },
+ {
+  "team": "Bielefeld",
+  "competition": "D1",
+  "stadium": "SchücoArena",
+  "image": "sch-coarena",
+  "article": "https://en.wikipedia.org/wiki/Sch%C3%BCcoArena",
+  "file": "https://commons.wikimedia.org/wiki/File:Germany_bielefeld_sch%C3%BCco_arena_stadium.jpg"
+ },
+ {
+  "team": "Birmingham",
+  "competition": "E0",
+  "stadium": "St Andrew's (stadium)",
+  "image": "st-andrew-s-stadium",
+  "article": "https://en.wikipedia.org/wiki/St%20Andrew%27s%20%28stadium%29",
+  "file": "https://commons.wikimedia.org/wiki/File:TiltonRoadEnd01.JPG"
+ },
+ {
+  "team": "Blackburn",
+  "competition": "E0",
+  "stadium": "Ewood Park",
+  "image": "ewood-park",
+  "article": "https://en.wikipedia.org/wiki/Ewood%20Park",
+  "file": "https://commons.wikimedia.org/wiki/File:Ewood_Park_2011.jpg"
+ },
+ {
+  "team": "Blackpool",
+  "competition": "E0",
+  "stadium": "Bloomfield Road",
+  "image": "bloomfield-road",
+  "article": "https://en.wikipedia.org/wiki/Bloomfield%20Road",
+  "file": "https://commons.wikimedia.org/wiki/File:The_Armfield_South_Stand_at_Bloomfield_Road_-_geograph.org.uk_-_6245667.jpg"
+ },
+ {
+  "team": "Bochum",
+  "competition": "D1",
+  "stadium": "Vonovia Ruhrstadion",
+  "image": "vonovia-ruhrstadion",
+  "article": "https://en.wikipedia.org/wiki/Vonovia%20Ruhrstadion",
+  "file": "https://commons.wikimedia.org/wiki/File:Vonovia_Ruhrstadion_04.jpg"
+ },
+ {
+  "team": "Bologna",
+  "competition": "I1",
+  "stadium": "Stadio Renato Dall'Ara",
+  "image": "stadio-renato-dall-ara",
+  "article": "https://en.wikipedia.org/wiki/Stadio%20Renato%20Dall%27Ara",
+  "file": "https://commons.wikimedia.org/wiki/File:Stadio_Dall%27Ara_01-02-2020.jpg"
+ },
+ {
+  "team": "Bolton",
+  "competition": "E0",
+  "stadium": "Toughsheet Community Stadium",
+  "image": "toughsheet-community-stadium",
+  "article": "https://en.wikipedia.org/wiki/Toughsheet%20Community%20Stadium",
+  "file": "https://commons.wikimedia.org/wiki/File:Bolton_macron_wanderers_stadium.jpg"
+ },
+ {
+  "team": "Bordeaux",
+  "competition": "F1",
+  "stadium": "Nouveau Stade de Bordeaux",
+  "image": "nouveau-stade-de-bordeaux",
+  "article": "https://en.wikipedia.org/wiki/Nouveau%20Stade%20de%20Bordeaux",
+  "file": "https://commons.wikimedia.org/wiki/File:Stade_Matmut_Atlantique_2023.jpg"
+ },
+ {
+  "team": "Boulogne",
+  "competition": "F1",
+  "stadium": "Stade de la Libération",
+  "image": "stade-de-la-lib-ration",
+  "article": "https://en.wikipedia.org/wiki/Stade%20de%20la%20Lib%C3%A9ration",
+  "file": "https://commons.wikimedia.org/wiki/File:Boulogne-sur-Mer_Stade_de_la_Liberation_%285%29.jpg"
+ },
+ {
+  "team": "Bournemouth",
+  "competition": "E0",
+  "stadium": "Dean Court",
+  "image": "dean-court",
+  "article": "https://en.wikipedia.org/wiki/Dean%20Court",
+  "file": "https://commons.wikimedia.org/wiki/File:Deancourt_14092013_vblackpool.jpg"
+ },
+ {
+  "team": "Braunschweig",
+  "competition": "D1",
+  "stadium": "Eintracht-Stadion",
+  "image": "eintracht-stadion",
+  "article": "https://en.wikipedia.org/wiki/Eintracht-Stadion",
+  "file": "https://commons.wikimedia.org/wiki/File:BS_Eintracht_Stadion_P.JPG"
+ },
+ {
+  "team": "Brentford",
+  "competition": "E0",
+  "stadium": "Brentford Community Stadium",
+  "image": "brentford-community-stadium",
+  "article": "https://en.wikipedia.org/wiki/Brentford%20Community%20Stadium",
+  "file": "https://commons.wikimedia.org/wiki/File:Brentford_Community_Stadium_2020.jpg"
+ },
+ {
+  "team": "Brescia",
+  "competition": "I1",
+  "stadium": "Stadio Mario Rigamonti",
+  "image": "stadio-mario-rigamonti",
+  "article": "https://en.wikipedia.org/wiki/Stadio%20Mario%20Rigamonti",
+  "file": "https://commons.wikimedia.org/wiki/File:Stadio_Brescia_dalla_curva_sud_%282024%29.jpg"
+ },
+ {
+  "team": "Brest",
+  "competition": "F1",
+  "stadium": "Stade Francis-Le Blé",
+  "image": "stade-francis-le-bl",
+  "article": "https://en.wikipedia.org/wiki/Stade%20Francis-Le%20Bl%C3%A9",
+  "file": "https://commons.wikimedia.org/wiki/File:Vue_panoramique_du_stade_depuis_tribune_Eurodif.jpg"
+ },
+ {
+  "team": "Brighton",
+  "competition": "E0",
+  "stadium": "Falmer Stadium",
+  "image": "falmer-stadium",
+  "article": "https://en.wikipedia.org/wiki/Falmer%20Stadium",
+  "file": "https://commons.wikimedia.org/wiki/File:Amex_Community_Stadium.jpg"
+ },
+ {
+  "team": "Burnley",
+  "competition": "E0",
+  "stadium": "Turf Moor",
+  "image": "turf-moor",
+  "article": "https://en.wikipedia.org/wiki/Turf%20Moor",
+  "file": "https://commons.wikimedia.org/wiki/File:Turf_Moor_-_Harry_Potts_Way_%28east%29.jpg"
+ },
+ {
+  "team": "Cadiz",
+  "competition": "SP1",
+  "stadium": "Nuevo Mirandilla",
+  "image": "nuevo-mirandilla",
+  "article": "https://en.wikipedia.org/wiki/Nuevo%20Mirandilla",
+  "file": "https://commons.wikimedia.org/wiki/File:EstadioCarranza1.jpg"
+ },
+ {
+  "team": "Caen",
+  "competition": "F1",
+  "stadium": "Stade Michel d'Ornano",
+  "image": "stade-michel-d-ornano",
+  "article": "https://en.wikipedia.org/wiki/Stade%20Michel%20d%27Ornano",
+  "file": "https://commons.wikimedia.org/wiki/File:Vue_densemble_dornano.JPG"
+ },
+ {
+  "team": "Cagliari",
+  "competition": "I1",
+  "stadium": "Unipol Domus",
+  "image": "unipol-domus",
+  "article": "https://en.wikipedia.org/wiki/Unipol%20Domus",
+  "file": "https://commons.wikimedia.org/wiki/File:Unipol_Domus_from_Distinti_2026.jpg"
+ },
+ {
+  "team": "Cardiff",
+  "competition": "E0",
+  "stadium": "Cardiff City Stadium",
+  "image": "cardiff-city-stadium",
+  "article": "https://en.wikipedia.org/wiki/Cardiff%20City%20Stadium",
+  "file": "https://commons.wikimedia.org/wiki/File:Cardiff_City_Stadium_Pitch.jpg"
+ },
+ {
+  "team": "Catania",
+  "competition": "I1",
+  "stadium": "Stadio Angelo Massimino",
+  "image": "stadio-angelo-massimino",
+  "article": "https://en.wikipedia.org/wiki/Stadio%20Angelo%20Massimino",
+  "file": "https://commons.wikimedia.org/wiki/File:Stadio_Angelo_Massimino_202302_CurvaNordPartita.jpg"
+ },
+ {
+  "team": "Celta",
+  "competition": "SP1",
+  "stadium": "Balaídos Stadium",
+  "image": "bala-dos-stadium",
+  "article": "https://en.wikipedia.org/wiki/Bala%C3%ADdos%20Stadium",
+  "file": "https://commons.wikimedia.org/wiki/File:Balaidos_hoy.jpg"
+ },
+ {
+  "team": "Cesena",
+  "competition": "I1",
+  "stadium": "Stadio Dino Manuzzi",
+  "image": "stadio-dino-manuzzi",
+  "article": "https://en.wikipedia.org/wiki/Stadio%20Dino%20Manuzzi",
+  "file": "https://commons.wikimedia.org/wiki/File:Orogel_Stadium.jpg"
+ },
+ {
+  "team": "Charlton",
+  "competition": "E0",
+  "stadium": "The Valley (stadium)",
+  "image": "the-valley-stadium",
+  "article": "https://en.wikipedia.org/wiki/The%20Valley%20%28stadium%29",
+  "file": "https://commons.wikimedia.org/wiki/File:Charlton_Athletic_football_ground.jpg"
+ },
+ {
+  "team": "Chelsea",
+  "competition": "E0",
+  "stadium": "Stamford Bridge (stadium)",
+  "image": "stamford-bridge-stadium",
+  "article": "https://en.wikipedia.org/wiki/Stamford%20Bridge%20%28stadium%29",
+  "file": "https://commons.wikimedia.org/wiki/File:London_Stamford_Bridge.jpg"
+ },
+ {
+  "team": "Chievo",
+  "competition": "I1",
+  "stadium": "Stadio Marcantonio Bentegodi",
+  "image": "stadio-marcantonio-bentegodi",
+  "article": "https://en.wikipedia.org/wiki/Stadio%20Marcantonio%20Bentegodi",
+  "file": "https://commons.wikimedia.org/wiki/File:Italy_-_Verona_-_Stadio_Marcantonio_Bentegodi.jpg"
+ },
+ {
+  "team": "Clermont",
+  "competition": "F1",
+  "stadium": "Stade Gabriel-Montpied",
+  "image": "stade-gabriel-montpied",
+  "article": "https://en.wikipedia.org/wiki/Stade%20Gabriel-Montpied",
+  "file": "https://commons.wikimedia.org/wiki/File:Stade_Gabriel-Montpied%2C_tribune_Gergovie_2017-06-25.jpg"
+ },
+ {
+  "team": "Como",
+  "competition": "I1",
+  "stadium": "Stadio Giuseppe Sinigaglia",
+  "image": "stadio-giuseppe-sinigaglia",
+  "article": "https://en.wikipedia.org/wiki/Stadio%20Giuseppe%20Sinigaglia",
+  "file": "https://commons.wikimedia.org/wiki/File:Stadio_Sinigaglia_Como_16-07-2025.jpg"
+ },
+ {
+  "team": "Cordoba",
+  "competition": "SP1",
+  "stadium": "Estadio Nuevo Arcángel",
+  "image": "estadio-nuevo-arc-ngel",
+  "article": "https://en.wikipedia.org/wiki/Estadio%20Nuevo%20Arc%C3%A1ngel",
+  "file": "https://commons.wikimedia.org/wiki/File:ArcangelCordoba2Lega3.jpg"
+ },
+ {
+  "team": "Cottbus",
+  "competition": "D1",
+  "stadium": "Stadion der Freundschaft (Cottbus)",
+  "image": "stadion-der-freundschaft-cottbus",
+  "article": "https://en.wikipedia.org/wiki/Stadion%20der%20Freundschaft%20%28Cottbus%29",
+  "file": "https://commons.wikimedia.org/wiki/File:Cottbus_Stadion_der_Freundschaft.jpg"
+ },
+ {
+  "team": "Coventry",
+  "competition": "E0",
+  "stadium": "Coventry Building Society Arena",
+  "image": "coventry-building-society-arena",
+  "article": "https://en.wikipedia.org/wiki/Coventry%20Building%20Society%20Arena",
+  "file": "https://commons.wikimedia.org/wiki/File:Coventry_Derby_October_2021_-_2.jpg"
+ },
+ {
+  "team": "Cremonese",
+  "competition": "I1",
+  "stadium": "Stadio Giovanni Zini",
+  "image": "stadio-giovanni-zini",
+  "article": "https://en.wikipedia.org/wiki/Stadio%20Giovanni%20Zini",
+  "file": "https://commons.wikimedia.org/wiki/File:Panorama_Stadio_Zini_Cremona_9_feb_2025_01.jpg"
+ },
+ {
+  "team": "Crotone",
+  "competition": "I1",
+  "stadium": "Stadio Ezio Scida",
+  "image": "stadio-ezio-scida",
+  "article": "https://en.wikipedia.org/wiki/Stadio%20Ezio%20Scida",
+  "file": "https://commons.wikimedia.org/wiki/File:Stadio_EZIO_SCIDA.jpg"
+ },
+ {
+  "team": "Crystal Palace",
+  "competition": "E0",
+  "stadium": "Selhurst Park",
+  "image": "selhurst-park",
+  "article": "https://en.wikipedia.org/wiki/Selhurst%20Park",
+  "file": "https://commons.wikimedia.org/wiki/File:2023_09_09_arne_mueseler_17_18_07_00743-Verbessert-RR_%2853283239217%29.jpg"
+ },
+ {
+  "team": "Darmstadt",
+  "competition": "D1",
+  "stadium": "Merck-Stadion am Böllenfalltor",
+  "image": "merck-stadion-am-b-llenfalltor",
+  "article": "https://en.wikipedia.org/wiki/Merck-Stadion%20am%20B%C3%B6llenfalltor",
+  "file": "https://commons.wikimedia.org/wiki/File:Gegengerade_des_Stadions_am_B%C3%B6llenfalltor_in_Darmstadt_gegen_Dortmund_am_13._Januar_2024.jpg"
+ },
+ {
+  "team": "Derby",
+  "competition": "E0",
+  "stadium": "Pride Park Stadium",
+  "image": "pride-park-stadium",
+  "article": "https://en.wikipedia.org/wiki/Pride%20Park%20Stadium",
+  "file": "https://commons.wikimedia.org/wiki/File:2023_08_02_arne_mueseler_00196-Verbessert-RR_%2853106400184%29.jpg"
+ },
+ {
+  "team": "Dijon",
+  "competition": "F1",
+  "stadium": "Stade Gaston Gérard",
+  "image": "stade-gaston-g-rard",
+  "article": "https://en.wikipedia.org/wiki/Stade%20Gaston%20G%C3%A9rard",
+  "file": "https://commons.wikimedia.org/wiki/File:Stade_Gaston_G%C3%A9rard.jpg"
+ },
+ {
+  "team": "Dortmund",
+  "competition": "D1",
+  "stadium": "Westfalenstadion",
+  "image": "westfalenstadion",
+  "article": "https://en.wikipedia.org/wiki/Westfalenstadion",
+  "file": "https://commons.wikimedia.org/wiki/File:Signal_iduna_park_stadium_dortmund_4.jpg"
+ },
+ {
+  "team": "Duisburg",
+  "competition": "D1",
+  "stadium": "MSV-Arena",
+  "image": "msv-arena",
+  "article": "https://en.wikipedia.org/wiki/MSV-Arena",
+  "file": "https://commons.wikimedia.org/wiki/File:Wedau_MSV-Arena.jpg"
+ },
+ {
+  "team": "Eibar",
+  "competition": "SP1",
+  "stadium": "Ipurua Municipal Stadium",
+  "image": "ipurua-municipal-stadium",
+  "article": "https://en.wikipedia.org/wiki/Ipurua%20Municipal%20Stadium",
+  "file": "https://commons.wikimedia.org/wiki/File:Eibar1-0Lega20183.jpg"
+ },
+ {
+  "team": "Ein Frankfurt",
+  "competition": "D1",
+  "stadium": "Waldstadion (Frankfurt)",
+  "image": "waldstadion-frankfurt",
+  "article": "https://en.wikipedia.org/wiki/Waldstadion%20%28Frankfurt%29",
+  "file": "https://commons.wikimedia.org/wiki/File:Deutsche_bank_park.jpg"
+ },
+ {
+  "team": "Elche",
+  "competition": "SP1",
+  "stadium": "Estadio Martínez Valero",
+  "image": "estadio-mart-nez-valero",
+  "article": "https://en.wikipedia.org/wiki/Estadio%20Mart%C3%ADnez%20Valero",
+  "file": "https://commons.wikimedia.org/wiki/File:Panor%C3%A1mica_del_estadio_Mart%C3%ADnez_Valero.jpg"
+ },
+ {
+  "team": "Elversberg",
+  "competition": "D1",
+  "stadium": "Waldstadion an der Kaiserlinde",
+  "image": "waldstadion-an-der-kaiserlinde",
+  "article": "https://en.wikipedia.org/wiki/Waldstadion%20an%20der%20Kaiserlinde",
+  "file": "https://commons.wikimedia.org/wiki/File:UrsapharmArena.jpg"
+ },
+ {
+  "team": "Empoli",
+  "competition": "I1",
+  "stadium": "Stadio Carlo Castellani",
+  "image": "stadio-carlo-castellani",
+  "article": "https://en.wikipedia.org/wiki/Stadio%20Carlo%20Castellani",
+  "file": "https://commons.wikimedia.org/wiki/File:Stadio_carlo_castellani_empoli.jpg"
+ },
+ {
+  "team": "Espanol",
+  "competition": "SP1",
+  "stadium": "RCDE Stadium",
+  "image": "rcde-stadium",
+  "article": "https://en.wikipedia.org/wiki/RCDE%20Stadium",
+  "file": "https://commons.wikimedia.org/wiki/File:Stage_Front_Stadium.jpg"
+ },
+ {
+  "team": "Everton",
+  "competition": "E0",
+  "stadium": "Hill Dickinson Stadium",
+  "image": "hill-dickinson-stadium",
+  "article": "https://en.wikipedia.org/wiki/Hill%20Dickinson%20Stadium",
+  "file": "https://commons.wikimedia.org/wiki/File:Hill_Dickinson_Stadium%2C_Liverpool_Waterfront_-_geograph.org.uk_-_8170881.jpg"
+ },
+ {
+  "team": "FC Koln",
+  "competition": "D1",
+  "stadium": "RheinEnergieStadion",
+  "image": "rheinenergiestadion",
+  "article": "https://en.wikipedia.org/wiki/RheinEnergieStadion",
+  "file": "https://commons.wikimedia.org/wiki/File:Drohnenaufnahme_RheinEnergieStadion_im_Sportpark_M%C3%BCngersdorf-0551.jpg"
+ },
+ {
+  "team": "Fiorentina",
+  "competition": "I1",
+  "stadium": "Stadio Artemio Franchi",
+  "image": "stadio-artemio-franchi",
+  "article": "https://en.wikipedia.org/wiki/Stadio%20Artemio%20Franchi",
+  "file": "https://commons.wikimedia.org/wiki/File:Firenze%2C_stadio_artemio_franchi%2C_campo_da_gioco%2C_10%2C0.jpg"
+ },
+ {
+  "team": "Fortuna Dusseldorf",
+  "competition": "D1",
+  "stadium": "Merkur Spiel-Arena",
+  "image": "merkur-spiel-arena",
+  "article": "https://en.wikipedia.org/wiki/Merkur%20Spiel-Arena",
+  "file": "https://commons.wikimedia.org/wiki/File:Merkur-Spiel-Arena.jpg"
+ },
+ {
+  "team": "Freiburg",
+  "competition": "D1",
+  "stadium": "Europa-Park Stadion",
+  "image": "europa-park-stadion",
+  "article": "https://en.wikipedia.org/wiki/Europa-Park%20Stadion",
+  "file": "https://commons.wikimedia.org/wiki/File:Europa_Park_Stadion_in_Freiburg_von_der_Georges-K%C3%B6hler-Allee_gesehen_8.jpg"
+ },
+ {
+  "team": "Frosinone",
+  "competition": "I1",
+  "stadium": "Stadio Benito Stirpe",
+  "image": "stadio-benito-stirpe",
+  "article": "https://en.wikipedia.org/wiki/Stadio%20Benito%20Stirpe",
+  "file": "https://commons.wikimedia.org/wiki/File:Benito_Stirpe_brescia_panoramica_ternana_sud_ospiti_main_notturna.jpg"
+ },
+ {
+  "team": "Fulham",
+  "competition": "E0",
+  "stadium": "Craven Cottage",
+  "image": "craven-cottage",
+  "article": "https://en.wikipedia.org/wiki/Craven%20Cottage",
+  "file": "https://commons.wikimedia.org/wiki/File:Craven_Cottage_-_geograph.org.uk_-_7559163.jpg"
+ },
+ {
+  "team": "Genoa",
+  "competition": "I1",
+  "stadium": "Stadio Luigi Ferraris",
+  "image": "stadio-luigi-ferraris",
+  "article": "https://en.wikipedia.org/wiki/Stadio%20Luigi%20Ferraris",
+  "file": "https://commons.wikimedia.org/wiki/File:Stadio_Luigi_Ferraris_di_Genova_con_il_quartiere_Marassi_%28cropped%29.jpg"
+ },
+ {
+  "team": "Getafe",
+  "competition": "SP1",
+  "stadium": "Estadio Coliseum",
+  "image": "estadio-coliseum",
+  "article": "https://en.wikipedia.org/wiki/Estadio%20Coliseum",
+  "file": "https://commons.wikimedia.org/wiki/File:Getafe0-0Lega2018.jpg"
+ },
+ {
+  "team": "Gimnastic",
+  "competition": "SP1",
+  "stadium": "Nou Estadi Costa Daurada",
+  "image": "nou-estadi-costa-daurada",
+  "article": "https://en.wikipedia.org/wiki/Nou%20Estadi%20Costa%20Daurada",
+  "file": "https://commons.wikimedia.org/wiki/File:Nastic-Lega2016.jpg"
+ },
+ {
+  "team": "Girona",
+  "competition": "SP1",
+  "stadium": "Estadi Montilivi",
+  "image": "estadi-montilivi",
+  "article": "https://en.wikipedia.org/wiki/Estadi%20Montilivi",
+  "file": "https://commons.wikimedia.org/wiki/File:Estadio_montilivi_02-12-2018.jpg"
+ },
+ {
+  "team": "Granada",
+  "competition": "SP1",
+  "stadium": "Nuevo Estadio de Los Cármenes",
+  "image": "nuevo-estadio-de-los-c-rmenes",
+  "article": "https://en.wikipedia.org/wiki/Nuevo%20Estadio%20de%20Los%20C%C3%A1rmenes",
+  "file": "https://commons.wikimedia.org/wiki/File:Estadio_Nuevo_Los_C%C3%A1rmenes.jpg"
+ },
+ {
+  "team": "Grenoble",
+  "competition": "F1",
+  "stadium": "Stade des Alpes",
+  "image": "stade-des-alpes",
+  "article": "https://en.wikipedia.org/wiki/Stade%20des%20Alpes",
+  "file": "https://commons.wikimedia.org/wiki/File:Stade_des_Alpes_nc38.JPG"
+ },
+ {
+  "team": "Greuther Furth",
+  "competition": "D1",
+  "stadium": "Sportpark Ronhof Thomas Sommer",
+  "image": "sportpark-ronhof-thomas-sommer",
+  "article": "https://en.wikipedia.org/wiki/Sportpark%20Ronhof%20Thomas%20Sommer",
+  "file": "https://commons.wikimedia.org/wiki/File:Sportpark_Ronhof_Thomas_Sommer.jpg"
+ },
+ {
+  "team": "Guingamp",
+  "competition": "F1",
+  "stadium": "Stade de Roudourou",
+  "image": "stade-de-roudourou",
+  "article": "https://en.wikipedia.org/wiki/Stade%20de%20Roudourou",
+  "file": "https://commons.wikimedia.org/wiki/File:Roudourou-ensemble.JPG"
+ },
+ {
+  "team": "Hamburg",
+  "competition": "D1",
+  "stadium": "Volksparkstadion",
+  "image": "volksparkstadion",
+  "article": "https://en.wikipedia.org/wiki/Volksparkstadion",
+  "file": "https://commons.wikimedia.org/wiki/File:RK_1009_9831_Volksparkstadion.jpg"
+ },
+ {
+  "team": "Hannover",
+  "competition": "D1",
+  "stadium": "Heinz von Heiden Arena",
+  "image": "heinz-von-heiden-arena",
+  "article": "https://en.wikipedia.org/wiki/Heinz%20von%20Heiden%20Arena",
+  "file": "https://commons.wikimedia.org/wiki/File:Hanover_stadium.jpg"
+ },
+ {
+  "team": "Hansa Rostock",
+  "competition": "D1",
+  "stadium": "Ostseestadion",
+  "image": "ostseestadion",
+  "article": "https://en.wikipedia.org/wiki/Ostseestadion",
+  "file": "https://commons.wikimedia.org/wiki/File:Ostsee_Stadion.jpg"
+ },
+ {
+  "team": "Heidenheim",
+  "competition": "D1",
+  "stadium": "Voith-Arena",
+  "image": "voith-arena",
+  "article": "https://en.wikipedia.org/wiki/Voith-Arena",
+  "file": "https://commons.wikimedia.org/wiki/File:Voith_Arena_Panorama.jpg"
+ },
+ {
+  "team": "Hercules",
+  "competition": "SP1",
+  "stadium": "Estadio José Rico Pérez",
+  "image": "estadio-jos-rico-p-rez",
+  "article": "https://en.wikipedia.org/wiki/Estadio%20Jos%C3%A9%20Rico%20P%C3%A9rez",
+  "file": "https://commons.wikimedia.org/wiki/File:Estadio_Jose_Rico_Perez.JPG"
+ },
+ {
+  "team": "Hertha",
+  "competition": "D1",
+  "stadium": "Olympiastadion (Berlin)",
+  "image": "olympiastadion-berlin",
+  "article": "https://en.wikipedia.org/wiki/Olympiastadion%20%28Berlin%29",
+  "file": "https://commons.wikimedia.org/wiki/File:Olympiastadion_Berlin-Marathontor-msu-2020-3139.jpg"
+ },
+ {
+  "team": "Hoffenheim",
+  "competition": "D1",
+  "stadium": "Rhein-Neckar-Arena",
+  "image": "rhein-neckar-arena",
+  "article": "https://en.wikipedia.org/wiki/Rhein-Neckar-Arena",
+  "file": "https://commons.wikimedia.org/wiki/File:PreZero_Arena_wiki.jpg"
+ },
+ {
+  "team": "Holstein Kiel",
+  "competition": "D1",
+  "stadium": "Holstein-Stadion",
+  "image": "holstein-stadion",
+  "article": "https://en.wikipedia.org/wiki/Holstein-Stadion",
+  "file": "https://commons.wikimedia.org/wiki/File:Holstein-Stadion_Luftbild_2019.jpg"
+ },
+ {
+  "team": "Huddersfield",
+  "competition": "E0",
+  "stadium": "Kirklees Stadium",
+  "image": "kirklees-stadium",
+  "article": "https://en.wikipedia.org/wiki/Kirklees%20Stadium",
+  "file": "https://commons.wikimedia.org/wiki/File:Huddersfield_the-john-smiths-stadium.jpg"
+ },
+ {
+  "team": "Huesca",
+  "competition": "SP1",
+  "stadium": "Estadio El Alcoraz",
+  "image": "estadio-el-alcoraz",
+  "article": "https://en.wikipedia.org/wiki/Estadio%20El%20Alcoraz",
+  "file": "https://commons.wikimedia.org/wiki/File:Alcoraz%2C_Uesca.jpg"
+ },
+ {
+  "team": "Hull",
+  "competition": "E0",
+  "stadium": "MKM Stadium",
+  "image": "mkm-stadium",
+  "article": "https://en.wikipedia.org/wiki/MKM%20Stadium",
+  "file": "https://commons.wikimedia.org/wiki/File:Match_day_at_the_KC_Stadium_-_geograph.org.uk_-_1497910.jpg"
+ },
+ {
+  "team": "Ingolstadt",
+  "competition": "D1",
+  "stadium": "Audi Sportpark",
+  "image": "audi-sportpark",
+  "article": "https://en.wikipedia.org/wiki/Audi%20Sportpark",
+  "file": "https://commons.wikimedia.org/wiki/File:2020-11-21_Audi_Sportpark_Ingolstadt_by_Sandro_Halank%E2%80%937.jpg"
+ },
+ {
+  "team": "Inter",
+  "competition": "I1",
+  "stadium": "San Siro",
+  "image": "san-siro",
+  "article": "https://en.wikipedia.org/wiki/San%20Siro",
+  "file": "https://commons.wikimedia.org/wiki/File:Stadio_Meazza_2021_3.jpg"
+ },
+ {
+  "team": "Ipswich",
+  "competition": "E0",
+  "stadium": "Portman Road",
+  "image": "portman-road",
+  "article": "https://en.wikipedia.org/wiki/Portman%20Road",
+  "file": "https://commons.wikimedia.org/wiki/File:Portman_Road_aerial_%28cropped%29.jpg"
+ },
+ {
+  "team": "Juventus",
+  "competition": "I1",
+  "stadium": "Juventus Stadium",
+  "image": "juventus-stadium",
+  "article": "https://en.wikipedia.org/wiki/Juventus%20Stadium",
+  "file": "https://commons.wikimedia.org/wiki/File:2021%E2%80%9322_UEFA_Women%27s_Champions_League_Final_in_Turin%2C_Italy_1.jpg"
+ },
+ {
+  "team": "Kaiserslautern",
+  "competition": "D1",
+  "stadium": "Fritz-Walter-Stadion",
+  "image": "fritz-walter-stadion",
+  "article": "https://en.wikipedia.org/wiki/Fritz-Walter-Stadion",
+  "file": "https://commons.wikimedia.org/wiki/File:Kaiserslautern_03.jpg"
+ },
+ {
+  "team": "Karlsruhe",
+  "competition": "D1",
+  "stadium": "Wildparkstadion",
+  "image": "wildparkstadion",
+  "article": "https://en.wikipedia.org/wiki/Wildparkstadion",
+  "file": "https://commons.wikimedia.org/wiki/File:KSC_HSV_06082023.jpg"
+ },
+ {
+  "team": "La Coruna",
+  "competition": "SP1",
+  "stadium": "Estadio Riazor",
+  "image": "estadio-riazor",
+  "article": "https://en.wikipedia.org/wiki/Estadio%20Riazor",
+  "file": "https://commons.wikimedia.org/wiki/File:Estadioriazor2023.jpg"
+ },
+ {
+  "team": "Las Palmas",
+  "competition": "SP1",
+  "stadium": "Estadio Gran Canaria",
+  "image": "estadio-gran-canaria",
+  "article": "https://en.wikipedia.org/wiki/Estadio%20Gran%20Canaria",
+  "file": "https://commons.wikimedia.org/wiki/File:Estadio_Gran_Canaria.jpg"
+ },
+ {
+  "team": "Lazio",
+  "competition": "I1",
+  "stadium": "Stadio Olimpico",
+  "image": "stadio-olimpico",
+  "article": "https://en.wikipedia.org/wiki/Stadio%20Olimpico",
+  "file": "https://commons.wikimedia.org/wiki/File:Stadio_Olimpico_2024.jpg"
+ },
+ {
+  "team": "Le Havre",
+  "competition": "F1",
+  "stadium": "Stade Océane",
+  "image": "stade-oc-ane",
+  "article": "https://en.wikipedia.org/wiki/Stade%20Oc%C3%A9ane",
+  "file": "https://commons.wikimedia.org/wiki/File:Br%C3%A9sil_Ghana_au_Havre.jpg"
+ },
+ {
+  "team": "Le Mans",
+  "competition": "F1",
+  "stadium": "Stade Marie-Marvingt",
+  "image": "stade-marie-marvingt",
+  "article": "https://en.wikipedia.org/wiki/Stade%20Marie-Marvingt",
+  "file": "https://commons.wikimedia.org/wiki/File:20110514163046089_ULM.jpg"
+ },
+ {
+  "team": "Lecce",
+  "competition": "I1",
+  "stadium": "Stadio Via del mare",
+  "image": "stadio-via-del-mare",
+  "article": "https://en.wikipedia.org/wiki/Stadio%20Via%20del%20mare",
+  "file": "https://commons.wikimedia.org/wiki/File:The_Via_Del_Mare_stadium_in_Lecce_during_a_Serie_A_match_between_Lecce_and_SPAL_Ferrara_in_February_2020.jpg"
+ },
+ {
+  "team": "Leeds",
+  "competition": "E0",
+  "stadium": "Elland Road",
+  "image": "elland-road",
+  "article": "https://en.wikipedia.org/wiki/Elland%20Road",
+  "file": "https://commons.wikimedia.org/wiki/File:Leeds_United_-_31559864360.jpg"
+ },
+ {
+  "team": "Leganes",
+  "competition": "SP1",
+  "stadium": "Estadio Municipal de Butarque",
+  "image": "estadio-municipal-de-butarque",
+  "article": "https://en.wikipedia.org/wiki/Estadio%20Municipal%20de%20Butarque",
+  "file": "https://commons.wikimedia.org/wiki/File:CD_Legan%C3%A9s_2-0_Elche_CF_2024.jpg"
+ },
+ {
+  "team": "Leicester",
+  "competition": "E0",
+  "stadium": "King Power Stadium",
+  "image": "king-power-stadium",
+  "article": "https://en.wikipedia.org/wiki/King%20Power%20Stadium",
+  "file": "https://commons.wikimedia.org/wiki/File:Leicester_city_king_power_stadium.jpg"
+ },
+ {
+  "team": "Lens",
+  "competition": "F1",
+  "stadium": "Stade Bollaert-Delelis",
+  "image": "stade-bollaert-delelis",
+  "article": "https://en.wikipedia.org/wiki/Stade%20Bollaert-Delelis",
+  "file": "https://commons.wikimedia.org/wiki/File:Stade_Bollaert_Delelis.JPG"
+ },
+ {
+  "team": "Levante",
+  "competition": "SP1",
+  "stadium": "Estadi Ciutat de València",
+  "image": "estadi-ciutat-de-val-ncia",
+  "article": "https://en.wikipedia.org/wiki/Estadi%20Ciutat%20de%20Val%C3%A8ncia",
+  "file": "https://commons.wikimedia.org/wiki/File:Estadi_Ciutat_de_Val%C3%A8ncia_-_nocturna.jpg"
+ },
+ {
+  "team": "Leverkusen",
+  "competition": "D1",
+  "stadium": "BayArena",
+  "image": "bayarena",
+  "article": "https://en.wikipedia.org/wiki/BayArena",
+  "file": "https://commons.wikimedia.org/wiki/File:Bayarena_Leverkusen_2020.jpg"
+ },
+ {
+  "team": "Lille",
+  "competition": "F1",
+  "stadium": "Stade Pierre-Mauroy",
+  "image": "stade-pierre-mauroy",
+  "article": "https://en.wikipedia.org/wiki/Stade%20Pierre-Mauroy",
+  "file": "https://commons.wikimedia.org/wiki/File:Lille_vs_PSG_2019_-_Stade_Pierre_Mauroy.jpg"
+ },
+ {
+  "team": "Liverpool",
+  "competition": "E0",
+  "stadium": "Anfield",
+  "image": "anfield",
+  "article": "https://en.wikipedia.org/wiki/Anfield",
+  "file": "https://commons.wikimedia.org/wiki/File:Liverpool_anfield_road_stadium.jpg"
+ },
+ {
+  "team": "Livorno",
+  "competition": "I1",
+  "stadium": "Stadio Armando Picchi",
+  "image": "stadio-armando-picchi",
+  "article": "https://en.wikipedia.org/wiki/Stadio%20Armando%20Picchi",
+  "file": "https://commons.wikimedia.org/wiki/File:Livorno_Stadio_2.JPG"
+ },
+ {
+  "team": "Lorient",
+  "competition": "F1",
+  "stadium": "Stade du Moustoir",
+  "image": "stade-du-moustoir",
+  "article": "https://en.wikipedia.org/wiki/Stade%20du%20Moustoir",
+  "file": "https://commons.wikimedia.org/wiki/File:Stade_du_Moustoir.jpg"
+ },
+ {
+  "team": "Luton",
+  "competition": "E0",
+  "stadium": "Kenilworth Road",
+  "image": "kenilworth-road",
+  "article": "https://en.wikipedia.org/wiki/Kenilworth%20Road",
+  "file": "https://commons.wikimedia.org/wiki/File:Luton_Town_FC_-_geograph.org.uk_-_1407783.jpg"
+ },
+ {
+  "team": "Lyon",
+  "competition": "F1",
+  "stadium": "Parc Olympique Lyonnais",
+  "image": "parc-olympique-lyonnais",
+  "article": "https://en.wikipedia.org/wiki/Parc%20Olympique%20Lyonnais",
+  "file": "https://commons.wikimedia.org/wiki/File:Olympique_lyonnais_-_Stade_rennais%2C_demi-finale_de_Coupe_de_France_2019.jpg"
+ },
+ {
+  "team": "M'gladbach",
+  "competition": "D1",
+  "stadium": "Borussia-Park",
+  "image": "borussia-park",
+  "article": "https://en.wikipedia.org/wiki/Borussia-Park",
+  "file": "https://commons.wikimedia.org/wiki/File:M%C3%B6nchengladbach_stadion.jpg"
+ },
+ {
+  "team": "Mainz",
+  "competition": "D1",
+  "stadium": "Mewa Arena",
+  "image": "mewa-arena",
+  "article": "https://en.wikipedia.org/wiki/Mewa%20Arena",
+  "file": "https://commons.wikimedia.org/wiki/File:Mewa_Arena1.jpg"
+ },
+ {
+  "team": "Malaga",
+  "competition": "SP1",
+  "stadium": "La Rosaleda Stadium",
+  "image": "la-rosaleda-stadium",
+  "article": "https://en.wikipedia.org/wiki/La%20Rosaleda%20Stadium",
+  "file": "https://commons.wikimedia.org/wiki/File:IMG-20220228-WA0055.jpg"
+ },
+ {
+  "team": "Mallorca",
+  "competition": "SP1",
+  "stadium": "Estadi Mallorca Son Moix",
+  "image": "estadi-mallorca-son-moix",
+  "article": "https://en.wikipedia.org/wiki/Estadi%20Mallorca%20Son%20Moix",
+  "file": "https://commons.wikimedia.org/wiki/File:Spain_mallorca_palma_stadium_Estadi_de_Son_Moix.jpg"
+ },
+ {
+  "team": "Man City",
+  "competition": "E0",
+  "stadium": "City of Manchester Stadium",
+  "image": "city-of-manchester-stadium",
+  "article": "https://en.wikipedia.org/wiki/City%20of%20Manchester%20Stadium",
+  "file": "https://commons.wikimedia.org/wiki/File:City_of_Manchester_Stadium_2023_cropped.jpg"
+ },
+ {
+  "team": "Man United",
+  "competition": "E0",
+  "stadium": "Old Trafford",
+  "image": "old-trafford",
+  "article": "https://en.wikipedia.org/wiki/Old%20Trafford",
+  "file": "https://commons.wikimedia.org/wiki/File:2023_07_31_arne_mueseler_00060-Verbessert-RR_%2853106651455%29.jpg"
+ },
+ {
+  "team": "Marseille",
+  "competition": "F1",
+  "stadium": "Stade Vélodrome",
+  "image": "stade-v-lodrome",
+  "article": "https://en.wikipedia.org/wiki/Stade%20V%C3%A9lodrome",
+  "file": "https://commons.wikimedia.org/wiki/File:Stade_V%C3%A9lodrome_en_novembre_2021_%281%29.jpg"
+ },
+ {
+  "team": "Messina",
+  "competition": "I1",
+  "stadium": "Stadio San Filippo",
+  "image": "stadio-san-filippo",
+  "article": "https://en.wikipedia.org/wiki/Stadio%20San%20Filippo",
+  "file": "https://commons.wikimedia.org/wiki/File:Curva_sud_contro_il_Torino--2007.jpg"
+ },
+ {
+  "team": "Metz",
+  "competition": "F1",
+  "stadium": "Stade Saint-Symphorien",
+  "image": "stade-saint-symphorien",
+  "article": "https://en.wikipedia.org/wiki/Stade%20Saint-Symphorien",
+  "file": "https://commons.wikimedia.org/wiki/File:Match_Football_FC_Metz_x_FC_Nantes_-_Stade_Saint_Symphorien_-_Longeville-l%C3%A8s-Metz_%28FR57%29_-_2022-02-27_-_16.jpg"
+ },
+ {
+  "team": "Middlesbrough",
+  "competition": "E0",
+  "stadium": "Riverside Stadium",
+  "image": "riverside-stadium",
+  "article": "https://en.wikipedia.org/wiki/Riverside%20Stadium",
+  "file": "https://commons.wikimedia.org/wiki/File:Middlesbrough_riverside_stadium.jpg"
+ },
+ {
+  "team": "Milan",
+  "competition": "I1",
+  "stadium": "San Siro",
+  "image": "san-siro",
+  "article": "https://en.wikipedia.org/wiki/San%20Siro",
+  "file": "https://commons.wikimedia.org/wiki/File:Stadio_Meazza_2021_3.jpg"
+ },
+ {
+  "team": "Monaco",
+  "competition": "F1",
+  "stadium": "Stade Louis II",
+  "image": "stade-louis-ii",
+  "article": "https://en.wikipedia.org/wiki/Stade%20Louis%20II",
+  "file": "https://commons.wikimedia.org/wiki/File:Panoramio_-_V%26A_Dudush_-_stade_Louis_II.jpg"
+ },
+ {
+  "team": "Montpellier",
+  "competition": "F1",
+  "stadium": "Stade de la Mosson",
+  "image": "stade-de-la-mosson",
+  "article": "https://en.wikipedia.org/wiki/Stade%20de%20la%20Mosson",
+  "file": "https://commons.wikimedia.org/wiki/File:Australie-Fidji.5.JPG"
+ },
+ {
+  "team": "Monza",
+  "competition": "I1",
+  "stadium": "Stadio Brianteo",
+  "image": "stadio-brianteo",
+  "article": "https://en.wikipedia.org/wiki/Stadio%20Brianteo",
+  "file": "https://commons.wikimedia.org/wiki/File:Stadio_Brianteo_2024_%28cropped%29.jpg"
+ },
+ {
+  "team": "Murcia",
+  "competition": "SP1",
+  "stadium": "Estadio Nueva Condomina",
+  "image": "estadio-nueva-condomina",
+  "article": "https://en.wikipedia.org/wiki/Estadio%20Nueva%20Condomina",
+  "file": "https://commons.wikimedia.org/wiki/File:Estadio_Nueva_Condomina.jpg"
+ },
+ {
+  "team": "Nantes",
+  "competition": "F1",
+  "stadium": "Stade de la Beaujoire",
+  "image": "stade-de-la-beaujoire",
+  "article": "https://en.wikipedia.org/wiki/Stade%20de%20la%20Beaujoire",
+  "file": "https://commons.wikimedia.org/wiki/File:Match_Football_FC_Nantes_x_RC_Lens_Stade_Beaujoire_-_Nantes_%28FR44%29_-_2022-09-18_-_51.jpg"
+ },
+ {
+  "team": "Napoli",
+  "competition": "I1",
+  "stadium": "Stadio Diego Armando Maradona",
+  "image": "stadio-diego-armando-maradona",
+  "article": "https://en.wikipedia.org/wiki/Stadio%20Diego%20Armando%20Maradona",
+  "file": "https://commons.wikimedia.org/wiki/File:Stadio_Maradona_Serie_A.jpg"
+ },
+ {
+  "team": "Newcastle",
+  "competition": "E0",
+  "stadium": "St James' Park",
+  "image": "st-james-park",
+  "article": "https://en.wikipedia.org/wiki/St%20James%27%20Park",
+  "file": "https://commons.wikimedia.org/wiki/File:Newcastle_st-james-park_stadium.jpg"
+ },
+ {
+  "team": "Nice",
+  "competition": "F1",
+  "stadium": "Allianz Riviera",
+  "image": "allianz-riviera",
+  "article": "https://en.wikipedia.org/wiki/Allianz%20Riviera",
+  "file": "https://commons.wikimedia.org/wiki/File:Allianzcoupdenvoi.jpg"
+ },
+ {
+  "team": "Nimes",
+  "competition": "F1",
+  "stadium": "Stade des Antonins",
+  "image": "stade-des-antonins",
+  "article": "https://en.wikipedia.org/wiki/Stade%20des%20Antonins",
+  "file": "https://commons.wikimedia.org/wiki/File:Stade_des_Antonins.jpg"
+ },
+ {
+  "team": "Norwich",
+  "competition": "E0",
+  "stadium": "Carrow Road",
+  "image": "carrow-road",
+  "article": "https://en.wikipedia.org/wiki/Carrow%20Road",
+  "file": "https://commons.wikimedia.org/wiki/File:2015-05-16_-11_-_Carrow_Road%2C_Norwich.JPG"
+ },
+ {
+  "team": "Nott'm Forest",
+  "competition": "E0",
+  "stadium": "City Ground",
+  "image": "city-ground",
+  "article": "https://en.wikipedia.org/wiki/City%20Ground",
+  "file": "https://commons.wikimedia.org/wiki/File:CityGroundFromAboveTrentBridgeCricketGround.jpg"
+ },
+ {
+  "team": "Novara",
+  "competition": "I1",
+  "stadium": "Stadio Silvio Piola (Novara)",
+  "image": "stadio-silvio-piola-novara",
+  "article": "https://en.wikipedia.org/wiki/Stadio%20Silvio%20Piola%20%28Novara%29",
+  "file": "https://commons.wikimedia.org/wiki/File:Silvio_piola_novara.jpg"
+ },
+ {
+  "team": "Nurnberg",
+  "competition": "D1",
+  "stadium": "Max-Morlock-Stadion",
+  "image": "max-morlock-stadion",
+  "article": "https://en.wikipedia.org/wiki/Max-Morlock-Stadion",
+  "file": "https://commons.wikimedia.org/wiki/File:Morlockstadion_Arena_Nbg_Juli_2021.jpg"
+ },
+ {
+  "team": "Osasuna",
+  "competition": "SP1",
+  "stadium": "El Sadar Stadium",
+  "image": "el-sadar-stadium",
+  "article": "https://en.wikipedia.org/wiki/El%20Sadar%20Stadium",
+  "file": "https://commons.wikimedia.org/wiki/File:Estadio_El_Sadar.jpg"
+ },
+ {
+  "team": "Oviedo",
+  "competition": "SP1",
+  "stadium": "Estadio Carlos Tartiere",
+  "image": "estadio-carlos-tartiere",
+  "article": "https://en.wikipedia.org/wiki/Estadio%20Carlos%20Tartiere",
+  "file": "https://commons.wikimedia.org/wiki/File:Carlos_Tartiere.jpg"
+ },
+ {
+  "team": "Paderborn",
+  "competition": "D1",
+  "stadium": "Home Deluxe Arena",
+  "image": "home-deluxe-arena",
+  "article": "https://en.wikipedia.org/wiki/Home%20Deluxe%20Arena",
+  "file": "https://commons.wikimedia.org/wiki/File:Paderborn_paragon_arena_2.jpg"
+ },
+ {
+  "team": "Palermo",
+  "competition": "I1",
+  "stadium": "Stadio Renzo Barbera",
+  "image": "stadio-renzo-barbera",
+  "article": "https://en.wikipedia.org/wiki/Stadio%20Renzo%20Barbera",
+  "file": "https://commons.wikimedia.org/wiki/File:Stadio_R_Barbera.JPG"
+ },
+ {
+  "team": "Paris FC",
+  "competition": "F1",
+  "stadium": "Stade Jean-Bouin (Paris)",
+  "image": "stade-jean-bouin-paris",
+  "article": "https://en.wikipedia.org/wiki/Stade%20Jean-Bouin%20%28Paris%29",
+  "file": "https://commons.wikimedia.org/wiki/File:Paris_Stade_Jean-Bouin_%28cropped%29.jpg"
+ },
+ {
+  "team": "Paris SG",
+  "competition": "F1",
+  "stadium": "Parc des Princes",
+  "image": "parc-des-princes",
+  "article": "https://en.wikipedia.org/wiki/Parc%20des%20Princes",
+  "file": "https://commons.wikimedia.org/wiki/File:Paris_Le_Parc_des_Princes.jpg"
+ },
+ {
+  "team": "Parma",
+  "competition": "I1",
+  "stadium": "Stadio Ennio Tardini",
+  "image": "stadio-ennio-tardini",
+  "article": "https://en.wikipedia.org/wiki/Stadio%20Ennio%20Tardini",
+  "file": "https://commons.wikimedia.org/wiki/File:Stadio_Ennio_Tardini_2026.jpg"
+ },
+ {
+  "team": "Pescara",
+  "competition": "I1",
+  "stadium": "Stadio Adriatico – Giovanni Cornacchia",
+  "image": "stadio-adriatico-giovanni-cornacchia",
+  "article": "https://en.wikipedia.org/wiki/Stadio%20Adriatico%20%E2%80%93%20Giovanni%20Cornacchia",
+  "file": "https://commons.wikimedia.org/wiki/File:Pescara_-_Stadio_Adriatico_01.JPG"
+ },
+ {
+  "team": "Pisa",
+  "competition": "I1",
+  "stadium": "Arena Garibaldi – Stadio Romeo Anconetani",
+  "image": "arena-garibaldi-stadio-romeo-anconetani",
+  "article": "https://en.wikipedia.org/wiki/Arena%20Garibaldi%20%E2%80%93%20Stadio%20Romeo%20Anconetani",
+  "file": "https://commons.wikimedia.org/wiki/File:Arena-Garibaldi-2026-di-Pisa.webp"
+ },
+ {
+  "team": "Portsmouth",
+  "competition": "E0",
+  "stadium": "Fratton Park",
+  "image": "fratton-park",
+  "article": "https://en.wikipedia.org/wiki/Fratton%20Park",
+  "file": "https://commons.wikimedia.org/wiki/File:Fratton_Park.jpg"
+ },
+ {
+  "team": "QPR",
+  "competition": "E0",
+  "stadium": "Loftus Road",
+  "image": "loftus-road",
+  "article": "https://en.wikipedia.org/wiki/Loftus%20Road",
+  "file": "https://commons.wikimedia.org/wiki/File:Loftus_Road_Stadium_25_April_2025.jpg"
+ },
+ {
+  "team": "RB Leipzig",
+  "competition": "D1",
+  "stadium": "Red Bull Arena (Leipzig)",
+  "image": "red-bull-arena-leipzig",
+  "article": "https://en.wikipedia.org/wiki/Red%20Bull%20Arena%20%28Leipzig%29",
+  "file": "https://commons.wikimedia.org/wiki/File:Leipzig_stadium.jpg"
+ },
+ {
+  "team": "Reading",
+  "competition": "E0",
+  "stadium": "Madejski Stadium",
+  "image": "madejski-stadium",
+  "article": "https://en.wikipedia.org/wiki/Madejski%20Stadium",
+  "file": "https://commons.wikimedia.org/wiki/File:Select_Car_Leasing.jpg"
+ },
+ {
+  "team": "Real Madrid",
+  "competition": "SP1",
+  "stadium": "Bernabéu (stadium)",
+  "image": "bernab-u-stadium",
+  "article": "https://en.wikipedia.org/wiki/Bernab%C3%A9u%20%28stadium%29",
+  "file": "https://commons.wikimedia.org/wiki/File:Estadio_Santiago_Bernab%C3%A9u_Madrid.jpg"
+ },
+ {
+  "team": "Recreativo",
+  "competition": "SP1",
+  "stadium": "Estadio Nuevo Colombino",
+  "image": "estadio-nuevo-colombino",
+  "article": "https://en.wikipedia.org/wiki/Estadio%20Nuevo%20Colombino",
+  "file": "https://commons.wikimedia.org/wiki/File:Nuevo_Colombino_Huelva_2.jpg"
+ },
+ {
+  "team": "Reggina",
+  "competition": "I1",
+  "stadium": "Stadio Oreste Granillo",
+  "image": "stadio-oreste-granillo",
+  "article": "https://en.wikipedia.org/wiki/Stadio%20Oreste%20Granillo",
+  "file": "https://commons.wikimedia.org/wiki/File:Stadio_Oreste_Granillo_Panoramic.jpg"
+ },
+ {
+  "team": "Reims",
+  "competition": "F1",
+  "stadium": "Stade Auguste-Delaune",
+  "image": "stade-auguste-delaune",
+  "article": "https://en.wikipedia.org/wiki/Stade%20Auguste-Delaune",
+  "file": "https://commons.wikimedia.org/wiki/File:Stade_Auguste_Delaune_-_Reims_%28FR51%29_-_2024-01-28_-_6.jpg"
+ },
+ {
+  "team": "Rennes",
+  "competition": "F1",
+  "stadium": "Roazhon Park",
+  "image": "roazhon-park",
+  "article": "https://en.wikipedia.org/wiki/Roazhon%20Park",
+  "file": "https://commons.wikimedia.org/wiki/File:Roazhon_Park_20190814.jpg"
+ },
+ {
+  "team": "Roma",
+  "competition": "I1",
+  "stadium": "Stadio Olimpico",
+  "image": "stadio-olimpico",
+  "article": "https://en.wikipedia.org/wiki/Stadio%20Olimpico",
+  "file": "https://commons.wikimedia.org/wiki/File:Stadio_Olimpico_2024.jpg"
+ },
+ {
+  "team": "Salernitana",
+  "competition": "I1",
+  "stadium": "Stadio Arechi",
+  "image": "stadio-arechi",
+  "article": "https://en.wikipedia.org/wiki/Stadio%20Arechi",
+  "file": "https://commons.wikimedia.org/wiki/File:Arechi_6_ottobre.jpg"
+ },
+ {
+  "team": "Sampdoria",
+  "competition": "I1",
+  "stadium": "Stadio Luigi Ferraris",
+  "image": "stadio-luigi-ferraris",
+  "article": "https://en.wikipedia.org/wiki/Stadio%20Luigi%20Ferraris",
+  "file": "https://commons.wikimedia.org/wiki/File:Stadio_Luigi_Ferraris_di_Genova_con_il_quartiere_Marassi_%28cropped%29.jpg"
+ },
+ {
+  "team": "Santander",
+  "competition": "SP1",
+  "stadium": "Campos de Sport de El Sardinero",
+  "image": "campos-de-sport-de-el-sardinero",
+  "article": "https://en.wikipedia.org/wiki/Campos%20de%20Sport%20de%20El%20Sardinero",
+  "file": "https://commons.wikimedia.org/wiki/File:Fotograf%C3%ADa_Eduardo_Berm%C3%BAdez_para_los_Campos_de_Sport_de_El_Sardinero.jpg"
+ },
+ {
+  "team": "Sassuolo",
+  "competition": "I1",
+  "stadium": "Mapei Stadium – Città del Tricolore",
+  "image": "mapei-stadium-citt-del-tricolore",
+  "article": "https://en.wikipedia.org/wiki/Mapei%20Stadium%20%E2%80%93%20Citt%C3%A0%20del%20Tricolore",
+  "file": "https://commons.wikimedia.org/wiki/File:Das_Mapei_Stadium_von_Reggio_nell%60Emilia_%282026%29.jpg"
+ },
+ {
+  "team": "Schalke 04",
+  "competition": "D1",
+  "stadium": "Arena AufSchalke",
+  "image": "arena-aufschalke",
+  "article": "https://en.wikipedia.org/wiki/Arena%20AufSchalke",
+  "file": "https://commons.wikimedia.org/wiki/File:Veltins_Arena_by_Arne_Mueseler.jpg"
+ },
+ {
+  "team": "Sedan",
+  "competition": "F1",
+  "stadium": "Stade Louis Dugauguez",
+  "image": "stade-louis-dugauguez",
+  "article": "https://en.wikipedia.org/wiki/Stade%20Louis%20Dugauguez",
+  "file": "https://commons.wikimedia.org/wiki/File:StadeLouisDugauguez.JPG"
+ },
+ {
+  "team": "Sevilla",
+  "competition": "SP1",
+  "stadium": "Ramón Sánchez-Pizjuán Stadium",
+  "image": "ram-n-s-nchez-pizju-n-stadium",
+  "article": "https://en.wikipedia.org/wiki/Ram%C3%B3n%20S%C3%A1nchez-Pizju%C3%A1n%20Stadium",
+  "file": "https://commons.wikimedia.org/wiki/File:2022-10-25_1_Estadio_Ram%C3%B3n_S%C3%A1nchez_Pizju%C3%A1n_%28Sevilla_FC%29.jpg"
+ },
+ {
+  "team": "Sheffield United",
+  "competition": "E0",
+  "stadium": "Bramall Lane",
+  "image": "bramall-lane",
+  "article": "https://en.wikipedia.org/wiki/Bramall%20Lane",
+  "file": "https://commons.wikimedia.org/wiki/File:2023_08_02_arne_mueseler_00138-Verbessert-RR_%2853106208941%29.jpg"
+ },
+ {
+  "team": "Siena",
+  "competition": "I1",
+  "stadium": "Stadio Artemio Franchi – Montepaschi Arena",
+  "image": "stadio-artemio-franchi-montepaschi-arena",
+  "article": "https://en.wikipedia.org/wiki/Stadio%20Artemio%20Franchi%20%E2%80%93%20Montepaschi%20Arena",
+  "file": "https://commons.wikimedia.org/wiki/File:Siena_artemio_franchi.jpg"
+ },
+ {
+  "team": "Sochaux",
+  "competition": "F1",
+  "stadium": "Stade Auguste Bonal",
+  "image": "stade-auguste-bonal",
+  "article": "https://en.wikipedia.org/wiki/Stade%20Auguste%20Bonal",
+  "file": "https://commons.wikimedia.org/wiki/File:Stade_Bonal%2C_vue_a%C3%A9rienne.jpg"
+ },
+ {
+  "team": "Sociedad",
+  "competition": "SP1",
+  "stadium": "Anoeta Stadium",
+  "image": "anoeta-stadium",
+  "article": "https://en.wikipedia.org/wiki/Anoeta%20Stadium",
+  "file": "https://commons.wikimedia.org/wiki/File:Anoeta_estadioa_31%2C_Donostia%2C_Gipuzkoa%2C_Euskal_Herria.jpg"
+ },
+ {
+  "team": "Southampton",
+  "competition": "E0",
+  "stadium": "St Mary's Stadium",
+  "image": "st-mary-s-stadium",
+  "article": "https://en.wikipedia.org/wiki/St%20Mary%27s%20Stadium",
+  "file": "https://commons.wikimedia.org/wiki/File:St_Mary%27s_Stadium_%28cropped%29.jpg"
+ },
+ {
+  "team": "Sp Gijon",
+  "competition": "SP1",
+  "stadium": "El Molinón",
+  "image": "el-molin-n",
+  "article": "https://en.wikipedia.org/wiki/El%20Molin%C3%B3n",
+  "file": "https://commons.wikimedia.org/wiki/File:Estadio_El_Molin%C3%B3n.jpg"
+ },
+ {
+  "team": "Spal",
+  "competition": "I1",
+  "stadium": "Stadio Paolo Mazza",
+  "image": "stadio-paolo-mazza",
+  "article": "https://en.wikipedia.org/wiki/Stadio%20Paolo%20Mazza",
+  "file": "https://commons.wikimedia.org/wiki/File:0_Stadio_Paolo_Mazza_-_Ferrara_-_SPAL_-_2018_-_07.jpg"
+ },
+ {
+  "team": "Spezia",
+  "competition": "I1",
+  "stadium": "Stadio Alberto Picco",
+  "image": "stadio-alberto-picco",
+  "article": "https://en.wikipedia.org/wiki/Stadio%20Alberto%20Picco",
+  "file": "https://commons.wikimedia.org/wiki/File:Stadio_Alberto_Picco_La_Spezia.jpg"
+ },
+ {
+  "team": "St Etienne",
+  "competition": "F1",
+  "stadium": "Stade Geoffroy-Guichard",
+  "image": "stade-geoffroy-guichard",
+  "article": "https://en.wikipedia.org/wiki/Stade%20Geoffroy-Guichard",
+  "file": "https://commons.wikimedia.org/wiki/File:St_Etienne_Stade_Geoffroy_Guichard.jpg"
+ },
+ {
+  "team": "St Pauli",
+  "competition": "D1",
+  "stadium": "Millerntor-Stadion",
+  "image": "millerntor-stadion",
+  "article": "https://en.wikipedia.org/wiki/Millerntor-Stadion",
+  "file": "https://commons.wikimedia.org/wiki/File:Germany_Hamburg_millerntorstadion.jpg"
+ },
+ {
+  "team": "Stoke",
+  "competition": "E0",
+  "stadium": "bet365 Stadium",
+  "image": "bet365-stadium",
+  "article": "https://en.wikipedia.org/wiki/bet365%20Stadium",
+  "file": "https://commons.wikimedia.org/wiki/File:Aerial_view_of_Bet_365_Stadium.jpg"
+ },
+ {
+  "team": "Strasbourg",
+  "competition": "F1",
+  "stadium": "Stade de la Meinau",
+  "image": "stade-de-la-meinau",
+  "article": "https://en.wikipedia.org/wiki/Stade%20de%20la%20Meinau",
+  "file": "https://commons.wikimedia.org/wiki/File:La_Meinau_en_National.jpg"
+ },
+ {
+  "team": "Stuttgart",
+  "competition": "D1",
+  "stadium": "MHPArena",
+  "image": "mhparena",
+  "article": "https://en.wikipedia.org/wiki/MHPArena",
+  "file": "https://commons.wikimedia.org/wiki/File:Stuttgart_stadium.jpg"
+ },
+ {
+  "team": "Sunderland",
+  "competition": "E0",
+  "stadium": "Stadium of Light",
+  "image": "stadium-of-light",
+  "article": "https://en.wikipedia.org/wiki/Stadium%20of%20Light",
+  "file": "https://commons.wikimedia.org/wiki/File:Sunderland_stadium_of_light.jpg"
+ },
+ {
+  "team": "Swansea",
+  "competition": "E0",
+  "stadium": "Swansea.com Stadium",
+  "image": "swansea-com-stadium",
+  "article": "https://en.wikipedia.org/wiki/Swansea.com%20Stadium",
+  "file": "https://commons.wikimedia.org/wiki/File:New_Morfa_Stadium_-_geograph.org.uk_-_32243.jpg"
+ },
+ {
+  "team": "Tenerife",
+  "competition": "SP1",
+  "stadium": "Estadio Heliodoro Rodríguez López",
+  "image": "estadio-heliodoro-rodr-guez-l-pez",
+  "article": "https://en.wikipedia.org/wiki/Estadio%20Heliodoro%20Rodr%C3%ADguez%20L%C3%B3pez",
+  "file": "https://commons.wikimedia.org/wiki/File:Estadio_Heliodoro.jpg"
+ },
+ {
+  "team": "Torino",
+  "competition": "I1",
+  "stadium": "Stadio Olimpico Grande Torino",
+  "image": "stadio-olimpico-grande-torino",
+  "article": "https://en.wikipedia.org/wiki/Stadio%20Olimpico%20Grande%20Torino",
+  "file": "https://commons.wikimedia.org/wiki/File:Stadio_Olimpico_Torino_2017_cropped.jpg"
+ },
+ {
+  "team": "Tottenham",
+  "competition": "E0",
+  "stadium": "Tottenham Hotspur Stadium",
+  "image": "tottenham-hotspur-stadium",
+  "article": "https://en.wikipedia.org/wiki/Tottenham%20Hotspur%20Stadium",
+  "file": "https://commons.wikimedia.org/wiki/File:London_Tottenham_Hotspur_Stadium.jpg"
+ },
+ {
+  "team": "Toulouse",
+  "competition": "F1",
+  "stadium": "Stadium de Toulouse",
+  "image": "stadium-de-toulouse",
+  "article": "https://en.wikipedia.org/wiki/Stadium%20de%20Toulouse",
+  "file": "https://commons.wikimedia.org/wiki/File:Stadium-Lory.jpg"
+ },
+ {
+  "team": "Troyes",
+  "competition": "F1",
+  "stadium": "Stade de l'Aube",
+  "image": "stade-de-l-aube",
+  "article": "https://en.wikipedia.org/wiki/Stade%20de%20l%27Aube",
+  "file": "https://commons.wikimedia.org/wiki/File:Stade_de_l%27Aube.jpg"
+ },
+ {
+  "team": "Udinese",
+  "competition": "I1",
+  "stadium": "Stadio Friuli",
+  "image": "stadio-friuli",
+  "article": "https://en.wikipedia.org/wiki/Stadio%20Friuli",
+  "file": "https://commons.wikimedia.org/wiki/File:DaciArena.jpg"
+ },
+ {
+  "team": "Union Berlin",
+  "competition": "D1",
+  "stadium": "Stadion An der Alten Försterei",
+  "image": "stadion-an-der-alten-f-rsterei",
+  "article": "https://en.wikipedia.org/wiki/Stadion%20An%20der%20Alten%20F%C3%B6rsterei",
+  "file": "https://commons.wikimedia.org/wiki/File:Berlin_alte_f%C3%B6rsterei.jpg"
+ },
+ {
+  "team": "Valencia",
+  "competition": "SP1",
+  "stadium": "Mestalla Stadium",
+  "image": "mestalla-stadium",
+  "article": "https://en.wikipedia.org/wiki/Mestalla%20Stadium",
+  "file": "https://commons.wikimedia.org/wiki/File:Mestalla_antes_del_partido_Valencia-Barcelona_LaLiga_2023-2024.jpg"
+ },
+ {
+  "team": "Valenciennes",
+  "competition": "F1",
+  "stadium": "Stade du Hainaut",
+  "image": "stade-du-hainaut",
+  "article": "https://en.wikipedia.org/wiki/Stade%20du%20Hainaut",
+  "file": "https://commons.wikimedia.org/wiki/File:Australia_vs_Italy_%28Women_World_Cup_France_2019_Valenciennes%29.jpg"
+ },
+ {
+  "team": "Valladolid",
+  "competition": "SP1",
+  "stadium": "José Zorrilla Stadium",
+  "image": "jos-zorrilla-stadium",
+  "article": "https://en.wikipedia.org/wiki/Jos%C3%A9%20Zorrilla%20Stadium",
+  "file": "https://commons.wikimedia.org/wiki/File:Valladolid-Lugo_02-05-2022.jpg"
+ },
+ {
+  "team": "Vallecano",
+  "competition": "SP1",
+  "stadium": "Vallecas Stadium",
+  "image": "vallecas-stadium",
+  "article": "https://en.wikipedia.org/wiki/Vallecas%20Stadium",
+  "file": "https://commons.wikimedia.org/wiki/File:Panoramica_estadio_de_vallecas.jpg"
+ },
+ {
+  "team": "Venezia",
+  "competition": "I1",
+  "stadium": "Stadio Pier Luigi Penzo",
+  "image": "stadio-pier-luigi-penzo",
+  "article": "https://en.wikipedia.org/wiki/Stadio%20Pier%20Luigi%20Penzo",
+  "file": "https://commons.wikimedia.org/wiki/File:Stadio_Pierluigi_Penzo.jpg"
+ },
+ {
+  "team": "Verona",
+  "competition": "I1",
+  "stadium": "Stadio Marcantonio Bentegodi",
+  "image": "stadio-marcantonio-bentegodi",
+  "article": "https://en.wikipedia.org/wiki/Stadio%20Marcantonio%20Bentegodi",
+  "file": "https://commons.wikimedia.org/wiki/File:Italy_-_Verona_-_Stadio_Marcantonio_Bentegodi.jpg"
+ },
+ {
+  "team": "Villarreal",
+  "competition": "SP1",
+  "stadium": "Estadio de la Cerámica",
+  "image": "estadio-de-la-cer-mica",
+  "article": "https://en.wikipedia.org/wiki/Estadio%20de%20la%20Cer%C3%A1mica",
+  "file": "https://commons.wikimedia.org/wiki/File:ESTADIO3.jpg"
+ },
+ {
+  "team": "Watford",
+  "competition": "E0",
+  "stadium": "Vicarage Road",
+  "image": "vicarage-road",
+  "article": "https://en.wikipedia.org/wiki/Vicarage%20Road",
+  "file": "https://commons.wikimedia.org/wiki/File:Vicarage_Road_2015.jpg"
+ },
+ {
+  "team": "Werder Bremen",
+  "competition": "D1",
+  "stadium": "Weser-Stadion",
+  "image": "weser-stadion",
+  "article": "https://en.wikipedia.org/wiki/Weser-Stadion",
+  "file": "https://commons.wikimedia.org/wiki/File:Germany_bremen_stadium.jpg"
+ },
+ {
+  "team": "West Brom",
+  "competition": "E0",
+  "stadium": "The Hawthorns",
+  "image": "the-hawthorns",
+  "article": "https://en.wikipedia.org/wiki/The%20Hawthorns",
+  "file": "https://commons.wikimedia.org/wiki/File:The_Hawthorns_2013-12-21.jpg"
+ },
+ {
+  "team": "West Ham",
+  "competition": "E0",
+  "stadium": "London Stadium",
+  "image": "london-stadium",
+  "article": "https://en.wikipedia.org/wiki/London%20Stadium",
+  "file": "https://commons.wikimedia.org/wiki/File:London_Olympic_Stadium_West_Ham.jpg"
+ },
+ {
+  "team": "Wigan",
+  "competition": "E0",
+  "stadium": "Brick Community Stadium",
+  "image": "brick-community-stadium",
+  "article": "https://en.wikipedia.org/wiki/Brick%20Community%20Stadium",
+  "file": "https://commons.wikimedia.org/wiki/File:Wigan_athletics_dw_stadium.jpg"
+ },
+ {
+  "team": "Wolfsburg",
+  "competition": "D1",
+  "stadium": "Volkswagen Arena",
+  "image": "volkswagen-arena",
+  "article": "https://en.wikipedia.org/wiki/Volkswagen%20Arena",
+  "file": "https://commons.wikimedia.org/wiki/File:Volkswagen_Arena_Spielfeld_2.jpg"
+ },
+ {
+  "team": "Wolves",
+  "competition": "E0",
+  "stadium": "Molineux Stadium",
+  "image": "molineux-stadium",
+  "article": "https://en.wikipedia.org/wiki/Molineux%20Stadium",
+  "file": "https://commons.wikimedia.org/wiki/File:MolineuxStadium2022.jpg"
+ },
+ {
+  "team": "Xerez",
+  "competition": "SP1",
+  "stadium": "Estadio Municipal de Chapín",
+  "image": "estadio-municipal-de-chap-n",
+  "article": "https://en.wikipedia.org/wiki/Estadio%20Municipal%20de%20Chap%C3%ADn",
+  "file": "https://commons.wikimedia.org/wiki/File:PanoChapin.jpg"
+ },
+ {
+  "team": "Zaragoza",
+  "competition": "SP1",
+  "stadium": "Ibercaja Stadium",
+  "image": "ibercaja-stadium",
+  "article": "https://en.wikipedia.org/wiki/Ibercaja%20Stadium",
+  "file": "https://commons.wikimedia.org/wiki/File:Ibercaja_estadio_8.08.2025.jpg"
+ }
+]

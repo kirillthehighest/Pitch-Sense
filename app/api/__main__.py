@@ -1,4 +1,6 @@
-"""Start the local server: ``python -m app.api [--port N] [--preferences FILE] [--with-window]``.
+"""Start the local server: ``python -m app.api [--port N] [--preferences FILE] [--with-window]``,
+check it: ``python -m app.api --self-test`` (``app/api/self_test.py``), or download the season in
+progress and exit: ``python -m app.api --update`` (0 on success; the packages are checked with it).
 
 The server listens on this computer only (127.0.0.1). With port 0 (the default) the system picks
 a free port; the first line written is ``PITCHSENSE_PORT=<port>``, which the desktop shell reads
@@ -19,10 +21,12 @@ from typing import BinaryIO
 import uvicorn
 
 from app.api.backend import Backend
+from app.api.self_test import run_self_test
 from app.api.server import create_app
 from app.data.live import copy_bundled_live
 from app.data.paths import copy_bundled_results
 from app.services.processes import stop_processes
+from app.services.updates import summary_text, update_season
 
 HOST = "127.0.0.1"
 
@@ -67,8 +71,16 @@ def exit_with_window(window: BinaryIO, end: Callable[[], None] = end_server) -> 
 def main(arguments: list[str]) -> int:
     copy_bundled_results()  # a package ships its prediction logs read-only
     copy_bundled_live()  # and a snapshot of the season in progress
+    if "--update" in arguments:
+        print(summary_text(update_season()), flush=True)
+        return 0
     preferences = option(arguments, "--preferences")  # developers: a file of their own
     backend = Backend.from_database(None if preferences is None else Path(preferences))
+    if "--self-test" in arguments:
+        try:
+            return run_self_test(backend)
+        finally:
+            stop_processes()
     listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     if os.name != "nt":  # a port just freed can be bound again; on Windows this would share it
         listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)

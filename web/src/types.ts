@@ -145,6 +145,7 @@ export interface MatchPage {
   teams: number;
   home: TeamState;
   away: TeamState;
+  stadium: string | null;
 }
 
 /** A match to open: of the calendar, or two teams of a season on a day (hypothetical). */
@@ -207,6 +208,7 @@ export interface TeamPage {
   elo: RatingSeason[];
   groups: Groups | null;
   groups_problem: string | null;
+  stadium: string | null;
 }
 
 export interface ReviewedMatch {

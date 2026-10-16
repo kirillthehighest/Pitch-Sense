@@ -370,7 +370,7 @@ button.standings-row:hover { background: var(--surface-high); }
 .team-screen { display: flex; flex-direction: column; gap: 16px; }
 .team-head {
   display: flex; align-items: center; gap: 24px; padding: 26px 28px; border-radius: var(--radius-card);
-  border: 1px solid var(--edge);
+  border: 1px solid var(--edge); position: relative; overflow: hidden; isolation: isolate; min-height: 168px;
   background: linear-gradient(180deg, color-mix(in srgb, var(--brand) 92%, transparent), transparent 85%), var(--surface);
 }
 .team-head-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; color: rgba(255, 255, 255, 0.82); }
@@ -431,8 +431,23 @@ button.standings-row:hover { background: var(--surface-high); }
 .back { font-size: 14px; }
 .match-head {
   border-radius: var(--radius-card); border: 1px solid var(--edge); padding: 20px 28px 28px;
-  background: linear-gradient(180deg, color-mix(in srgb, var(--brand) 92%, transparent), transparent 85%), var(--surface);
+  position: relative; overflow: hidden; isolation: isolate; background: var(--surface);
 }
+/* Over the home club's stadium: the league's colour from the top, the card's colour at the foot,
+   dark enough for white text wherever the photo is light */
+.head-shade {
+  position: absolute; inset: 0; z-index: -1;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--brand) 78%, transparent), color-mix(in srgb, var(--surface) 90%, transparent) 92%);
+}
+.stadium-photo { position: absolute; z-index: -2; object-fit: cover; opacity: 0; transition: opacity 400ms; }
+.stadium-photo.shown { opacity: 1; }
+.stadium-photo.behind { inset: 0; width: 100%; height: 100%; }
+.stadium-photo.beside {
+  top: 0; right: 0; bottom: 0; width: 58%; height: 100%; z-index: -1;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 45%); mask-image: linear-gradient(90deg, transparent, #000 45%);
+}
+.stadium-name { font-size: 13px; color: rgba(255, 255, 255, 0.72); }
+.match-head .head-team strong, .match-head .head-score strong, .team-head h2 { text-shadow: 0 2px 16px rgba(0, 0, 0, 0.45); }
 .match-head-top { display: flex; align-items: center; gap: 10px; color: #fff; font-weight: 600; font-size: 13px; opacity: 0.92; }
 .match-head-teams { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; margin-top: 18px; }
 .head-team {

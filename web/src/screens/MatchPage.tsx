@@ -9,6 +9,7 @@ import { Flag } from "../components/Flag";
 import { FormSquares } from "../components/FormSquares";
 import { ProbabilityBar } from "../components/ProbabilityBar";
 import { ScoreGrid } from "../components/ScoreGrid";
+import { StadiumPhoto } from "../components/StadiumPhoto";
 import { capitalised, dateText, integer, longDateText, number, parseDay, percent, seasonText } from "../format";
 import { MODEL_COLOURS, themeFor, themeStyle } from "../theme";
 import type { League, MatchKey, MatchPage as Page, Prediction, TeamState } from "../types";
@@ -82,10 +83,13 @@ function MatchHead({
   ];
   return (
     <section className="match-head">
+      <StadiumPhoto team={forecast.home_team} className="behind" />
+      <div className="head-shade" />
       <div className="match-head-top">
         <Flag code={league.code} size={20} />
         <span>
           {league.name} · {seasonText(forecast.season)} · {when}
+          {page.stadium && ` · ${page.stadium}`}
         </span>
       </div>
       <div className="match-head-teams">
@@ -105,6 +109,7 @@ function MatchHead({
           </span>
         </div>
       </div>
+      {page.stadium && <span className="credit">Foto: Wikimedia Commons</span>}
     </section>
   );
 }

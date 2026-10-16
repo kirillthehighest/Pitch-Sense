@@ -22,7 +22,14 @@ from app.services.explanations import (
     status_text,
     verdict_text,
 )
-from app.services.images import crest_path, league_photo_path, photo_credit, photo_top
+from app.services.images import (
+    crest_path,
+    league_photo_path,
+    photo_credit,
+    photo_top,
+    stadium_name,
+    stadium_path,
+)
 from app.services.labels import country_label, model_label, outcome_label
 from app.services.predictions import (
     SURPRISE_CHANCE,
@@ -265,6 +272,7 @@ def create_app(backend: Backend) -> FastAPI:
             teams=len(services.teams.standings(season)),
             home=team_state(services, season, home, before),
             away=team_state(services, season, away, before),
+            stadium=stadium_name(home),
         )
 
     def groups_of(services, season: str) -> tuple[schemas.Groups | None, str | None]:
@@ -348,6 +356,7 @@ def create_app(backend: Backend) -> FastAPI:
             ],
             groups=groups,
             groups_problem=problem,
+            stadium=stadium_name(team),
         )
 
     @app.get("/api/review/{code}", response_model=schemas.Review)
@@ -432,6 +441,13 @@ def create_app(backend: Backend) -> FastAPI:
         if path is None:
             raise HTTPException(404, f"no crest for {team!r}")
         return FileResponse(path, media_type="image/png")
+
+    @app.get("/api/images/stadium/{team}")
+    def stadium(team: str) -> FileResponse:
+        path = stadium_path(team)
+        if path is None:
+            raise HTTPException(404, f"no stadium photo for {team!r}")
+        return FileResponse(path, media_type="image/jpeg")
 
     @app.get("/api/images/league/{code}")
     def league_photo(code: str) -> FileResponse:
