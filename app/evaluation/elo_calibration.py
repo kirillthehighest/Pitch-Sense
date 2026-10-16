@@ -1,12 +1,14 @@
-"""Choose the Elo parameters K and H on the calibration seasons.
+"""Choose the Elo parameters K and H, and whether to weight the goal margin, on the calibration
+seasons.
 
 Run from the project folder with ``python -m app.evaluation.elo_calibration [CODE]`` (default
 SP1); ``python -m app.evaluation.league_calibration`` calibrates every model of every league.
 
 Elo runs over the warm-up and calibration seasons only; the evaluation seasons are never read.
-Every (K, H) pair of the grid is scored by the mean squared error between the actual score S_home
-and the expected score E_home over the calibration matches, and the pair with the smallest error
-is chosen.
+Every (K, H, goal margin) choice of the grid is scored by the mean squared error between the
+actual score S_home and the expected score E_home over the calibration matches, and the choice
+with the smallest error wins. The goal margin (Phase 23) is one more option of the same grid, so
+it is used only where it predicts the calibration seasons better.
 """
 
 import math
@@ -25,18 +27,26 @@ from app.prediction.elo_predictions import run_elo
 from app.prediction.settings import EloSettings
 
 COMPETITION = "SP1"
-K_FACTORS = (10, 15, 20, 25, 30, 35, 40)
+# 5 was added in Phase 23, when the goal margin (which multiplies K) made La Liga and the
+# Bundesliga choose 10, the grid's lowest value
+K_FACTORS = (5, 10, 15, 20, 25, 30, 35, 40)
 HOME_ADVANTAGES = (0, 20, 40, 60, 80, 100, 120, 140, 160)
+GOAL_MARGINS = (False, True)
 
 
 @dataclass(frozen=True, slots=True)
 class CalibrationResult:
-    """The score of one (K, H) pair on the calibration matches."""
+    """The score of one (K, H, goal margin) choice on the calibration matches."""
 
     k_factor: float
     home_advantage: float
+    goal_margin: bool
     mean_squared_error: float
     matches: int
+
+    @property
+    def settings(self) -> EloSettings:
+        return EloSettings(self.k_factor, self.home_advantage, self.goal_margin)
 
 
 def calibrate(
@@ -45,15 +55,16 @@ def calibrate(
     home_advantages: Sequence[float] = HOME_ADVANTAGES,
     warm_up_seasons: Sequence[str] = WARM_UP_SEASONS,
     calibration_seasons: Sequence[str] = CALIBRATION_SEASONS,
+    goal_margins: Sequence[bool] = GOAL_MARGINS,
 ) -> list[CalibrationResult]:
-    """Score every (K, H) pair on the calibration seasons and return the results, best first."""
+    """Score every (K, H, goal margin) choice on the calibration seasons, best first."""
     used_seasons = {*warm_up_seasons, *calibration_seasons}
     selected = [match for match in matches if match.season in used_seasons]
     if not any(match.season in calibration_seasons for match in selected):
         raise ValueError("there are no matches from the calibration seasons")
     results = []
-    for k_factor, home_advantage in product(k_factors, home_advantages):
-        run = run_elo(selected, EloSettings(k_factor, home_advantage))
+    for goal_margin, k_factor, home_advantage in product(goal_margins, k_factors, home_advantages):
+        run = run_elo(selected, EloSettings(k_factor, home_advantage, goal_margin))
         squared_errors = [
             (actual_score(p.match.home_goals, p.match.away_goals) - p.expected_home_score) ** 2
             for p in run.predictions
@@ -63,11 +74,15 @@ def calibrate(
             CalibrationResult(
                 k_factor=k_factor,
                 home_advantage=home_advantage,
+                goal_margin=goal_margin,
                 mean_squared_error=math.fsum(squared_errors) / len(squared_errors),
                 matches=len(squared_errors),
             )
         )
-    return sorted(results, key=lambda r: (r.mean_squared_error, r.k_factor, r.home_advantage))
+    return sorted(
+        results,
+        key=lambda r: (r.mean_squared_error, r.goal_margin, r.k_factor, r.home_advantage),
+    )
 
 
 def constant_prediction_error(
@@ -104,14 +119,21 @@ def main(database_path: Path = DATABASE_PATH, competition: str = COMPETITION) ->
         f"Elo calibration on {competition}: warm-up {', '.join(WARM_UP_SEASONS)}, "
         f"calibration {', '.join(CALIBRATION_SEASONS)} ({results[0].matches} matches)"
     )
-    print("   K      H    mean squared error")
+    print("   K      H  margin    mean squared error")
     for result in results[:10]:
-        print(f"{result.k_factor:4g} {result.home_advantage:6g}    {result.mean_squared_error:.5f}")
+        margin = "yes" if result.goal_margin else "no"
+        print(
+            f"{result.k_factor:4g} {result.home_advantage:6g}  {margin:6s}"
+            f"    {result.mean_squared_error:.5f}"
+        )
     print(
         f"Reference without ratings (constant prediction): {constant_prediction_error(matches):.5f}"
     )
     best = results[0]
-    print(f"Best: K = {best.k_factor:g}, H = {best.home_advantage:g}")
+    print(
+        f"Best: K = {best.k_factor:g}, H = {best.home_advantage:g}, "
+        f"goal margin {'yes' if best.goal_margin else 'no'}"
+    )
     return 0
 
 

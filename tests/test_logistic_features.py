@@ -5,7 +5,20 @@ import pytest
 
 from app.data.models import Match, MatchStatistics, Outcome
 from app.prediction.elo_predictions import run_elo
-from app.prediction.logistic_features import FEATURE_NAMES, build_features
+from app.prediction.logistic_features import (
+    ELO_GAP,
+    EXPECTED_GOALS_DIFFERENCE,
+    FEATURE_NAMES,
+    build_features,
+    feature_names,
+)
+from app.prediction.poisson_predictions import run_poisson
+from app.prediction.settings import EloSettings, LogisticSettings, PoissonSettings, settings_for
+
+POISSON = PoissonSettings(team_window=19, prior_matches=1, league_window=380)
+EXTENDED = LogisticSettings(
+    0.1, EloSettings(15, 80), 19, 380, (ELO_GAP, EXPECTED_GOALS_DIFFERENCE), POISSON
+)
 
 
 def make(
@@ -42,8 +55,12 @@ EARLIER = [
 ]
 
 
+# La Liga's calibrated settings with the five base features only
+BASE = replace(settings_for("SP1").logistic, extra_features=())
+
+
 def features_of(matches: list[Match], target: Match) -> tuple[float, ...]:
-    return next(f.values for f in build_features(matches) if f.match == target)
+    return next(f.values for f in build_features(matches, BASE) if f.match == target)
 
 
 def elo_difference(matches: list[Match], target: Match) -> float:
@@ -77,17 +94,78 @@ def test_league_averages_stand_in_for_a_team_without_history():
 
 
 def test_every_match_after_the_first_day_has_all_features():
-    features = build_features(EARLIER)
+    features = build_features(EARLIER, BASE)
+    calibrated = build_features(EARLIER)  # La Liga adds both extra features (Phase 23)
 
-    assert [f.match for f in features] == EARLIER[1:]
+    assert [f.match for f in features] == [f.match for f in calibrated] == EARLIER[1:]
     assert all(len(f.values) == len(FEATURE_NAMES) == 5 for f in features)
+    assert all(
+        len(f.values) == len(feature_names(settings_for("SP1").logistic)) == 7 for f in calibrated
+    )
 
 
 def test_input_order_does_not_matter(season_matches):
     assert build_features(reversed(season_matches)) == build_features(season_matches)
 
 
-def test_changing_a_match_never_changes_features_on_or_before_its_day(season_matches):
+def test_the_extra_features_follow_the_five(season_matches):
+    base = {
+        f.match: f.values
+        for f in build_features(season_matches, replace(EXTENDED, extra_features=()))
+    }
+    expected = {
+        p.match: p.distribution.home_expected_goals - p.distribution.away_expected_goals
+        for p in run_poisson(season_matches, POISSON)
+    }
+
+    features = build_features(season_matches, EXTENDED)
+
+    assert feature_names(EXTENDED) == (*FEATURE_NAMES, ELO_GAP, EXPECTED_GOALS_DIFFERENCE)
+    for f in features:
+        assert f.values[:5] == base[f.match]
+        assert f.values[5] == abs(f.values[0])
+        # On 2 September the league's only match was a 0-1: Poisson has no home goal to use yet,
+        # so the league's home minus away goals per match, -1, stands in.
+        assert f.values[6] == pytest.approx(expected.get(f.match, -1.0))
+    assert len(features) == len(expected) + 1
+
+
+def test_given_poisson_predictions_give_the_same_features(season_matches):
+    computed = build_features(season_matches, EXTENDED)
+    given = build_features(season_matches, EXTENDED, poisson=run_poisson(season_matches, POISSON))
+
+    assert given == computed
+
+
+def test_only_the_chosen_extra_features_are_added(season_matches):
+    only_gap = replace(EXTENDED, extra_features=(ELO_GAP,), poisson=None)
+
+    assert feature_names(only_gap) == (*FEATURE_NAMES, ELO_GAP)
+    assert all(len(f.values) == 6 for f in build_features(season_matches, only_gap))
+
+
+def test_before_the_poisson_model_predicts_the_league_goal_difference_stands_in():
+    goalless = make(1, "A", "B", 0, 0)
+    target = make(2, "C", "D", 1, 1)
+
+    (features,) = build_features([goalless, target], EXTENDED)
+
+    assert features.values[6] == 0.0  # no goals yet: home minus away goals per match is 0
+
+
+@pytest.mark.parametrize(
+    ("extra_features", "poisson", "message"),
+    [(("shots",), POISSON, "unknown"), ((EXPECTED_GOALS_DIFFERENCE,), None, "Poisson")],
+)
+def test_invalid_extra_features_are_rejected(season_matches, extra_features, poisson, message):
+    settings = replace(EXTENDED, extra_features=extra_features, poisson=poisson)
+
+    with pytest.raises(ValueError, match=message):
+        build_features(season_matches, settings)
+
+
+@pytest.mark.parametrize("settings", [None, EXTENDED])
+def test_changing_a_match_never_changes_features_on_or_before_its_day(season_matches, settings):
     target = season_matches[6]  # 7 September 2006
     changed = replace(
         target,
@@ -96,10 +174,10 @@ def test_changing_a_match_never_changes_features_on_or_before_its_day(season_mat
         statistics=MatchStatistics(*[9] * 12),
     )
 
-    original = {f.match.match_date: f.values for f in build_features(season_matches)}
+    original = {f.match.match_date: f.values for f in build_features(season_matches, settings)}
     after_change = {
         f.match.match_date: f.values
-        for f in build_features([*season_matches[:6], changed, *season_matches[7:]])
+        for f in build_features([*season_matches[:6], changed, *season_matches[7:]], settings)
     }
 
     for day in range(2, 8):

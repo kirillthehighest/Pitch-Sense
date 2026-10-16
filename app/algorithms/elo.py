@@ -8,11 +8,15 @@ Notation, as in docs/algorithms/elo.md:
                      E_home = 1 / (1 + 10^((R_away - R_home - H) / 400))
     S_home           actual score of the home team: 1 win, 0.5 draw, 0 loss   (Eq. 2)
     K                update factor
-    Delta            K * (S_home - E_home)                           (Eq. 3)
+    G                weight of the goal margin N = |home goals - away goals|, when used  (Eq. 7)
+                     1 for N <= 1, 1.5 for N = 2, (11 + N) / 8 for N >= 3; otherwise 1
+    Delta            K * G * (S_home - E_home)                       (Eq. 3)
                      R_home' = R_home + Delta,  R_away' = R_away - Delta
 
 The away team's expected and actual scores are 1 - E_home and 1 - S_home, so every update moves
 the same number of points from one team to the other and the league's total rating never changes.
+G (Phase 23, from the World Football Elo Ratings) lets a 4-0 move more points than a 1-0; it
+changes how far the ratings move, never their direction, and keeps every update zero-sum.
 
 E_home counts a draw as half a win, so it is not a probability of each outcome. The draw model
 turns it into home/draw/away probabilities, learned from past matches:
@@ -80,9 +84,21 @@ def actual_score(home_goals: int, away_goals: int) -> float:
     return 0.5
 
 
-def rating_change(expected: float, actual: float, k_factor: float) -> float:
-    """Eq. 3: Delta = K (S_home - E_home), gained by the home team and lost by the away team."""
-    return k_factor * (actual - expected)
+def margin_weight(home_goals: int, away_goals: int) -> float:
+    """Eq. 7: G, the weight of the goal margin N: 1 up to one goal, 1.5 for two, (11 + N) / 8."""
+    if home_goals < 0 or away_goals < 0:
+        raise ValueError(f"goals cannot be negative: {home_goals}-{away_goals}")
+    margin = abs(home_goals - away_goals)
+    if margin <= 1:
+        return 1.0
+    if margin == 2:
+        return 1.5
+    return (11 + margin) / 8
+
+
+def rating_change(expected: float, actual: float, k_factor: float, weight: float = 1.0) -> float:
+    """Eq. 3: Delta = K G (S_home - E_home), gained by the home team and lost by the away team."""
+    return k_factor * weight * (actual - expected)
 
 
 class EloRatings:
@@ -90,7 +106,8 @@ class EloRatings:
 
     Call ``start_season`` with the league's teams before the first match of every season, then
     ``update`` once per finished match. ``expected_home_score`` gives the prediction for a match
-    from the current ratings, so it must be called before that match's result is applied.
+    from the current ratings, so it must be called before that match's result is applied. With
+    ``goal_margin`` every update is weighted by the goal margin (Eq. 7).
     """
 
     def __init__(
@@ -98,6 +115,8 @@ class EloRatings:
         k_factor: float,
         home_advantage: float,
         initial_rating: float = DEFAULT_INITIAL_RATING,
+        *,
+        goal_margin: bool = False,
     ) -> None:
         if not (math.isfinite(k_factor) and k_factor > 0):
             raise ValueError(f"k_factor must be a positive number, got {k_factor}")
@@ -108,6 +127,7 @@ class EloRatings:
         self.k_factor = k_factor
         self.home_advantage = home_advantage
         self.initial_rating = initial_rating
+        self.goal_margin = goal_margin
         self._ratings: dict[str, float] = {}
         self._last_match_date: date | None = None
 
@@ -146,7 +166,7 @@ class EloRatings:
         return expected_score(self.rating(home_team), self.rating(away_team), self.home_advantage)
 
     def update(self, game: GameResult) -> float:
-        """Apply one finished match and return Delta, the home team's rating change (Eq. 3).
+        """Apply one finished match and return Delta, the home team's rating change (Eq. 3, 7).
 
         Matches must arrive in chronological order; several on the same date are allowed.
         """
@@ -157,7 +177,8 @@ class EloRatings:
             )
         expected = self.expected_home_score(game.home_team, game.away_team)
         actual = actual_score(game.home_goals, game.away_goals)
-        delta = rating_change(expected, actual, self.k_factor)
+        weight = margin_weight(game.home_goals, game.away_goals) if self.goal_margin else 1.0
+        delta = rating_change(expected, actual, self.k_factor, weight)
         self._ratings[game.home_team] += delta
         self._ratings[game.away_team] -= delta
         self._last_match_date = game.match_date

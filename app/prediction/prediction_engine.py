@@ -66,10 +66,14 @@ def predict_history(
     elo_run = run_elo(ordered, settings.elo)
     for prediction in elo_outcome_predictions(elo_run, min_matches=min_training_matches):
         collected[prediction.prediction.match][ModelName.ELO] = from_elo(prediction)
-    for prediction in run_poisson(ordered, settings.poisson):
+    poisson = run_poisson(ordered, settings.poisson)
+    for prediction in poisson:
         collected[prediction.match][ModelName.POISSON] = from_poisson(prediction)
     logistic = run_logistic_regression(
-        ordered, settings.logistic, min_training_matches=min_training_matches
+        ordered,
+        settings.logistic,
+        min_training_matches=min_training_matches,
+        poisson=poisson if settings.logistic.poisson == settings.poisson else None,
     )
     for prediction in logistic:
         collected[prediction.match][ModelName.LOGISTIC_REGRESSION] = from_logistic(prediction)

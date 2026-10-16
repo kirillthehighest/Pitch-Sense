@@ -1,8 +1,17 @@
 """Features for logistic regression, built for every match from data before its day.
 
-Each feature is a difference "home team minus away team", so a positive value favours the home
-side. A team without the needed history gets the league average at that moment instead, taken
-separately for home and away teams so that the home advantage is kept.
+Each of the five base features is a difference "home team minus away team", so a positive value
+favours the home side. A team without the needed history gets the league average at that moment
+instead, taken separately for home and away teams so that the home advantage is kept.
+
+Two more features (Phase 23) are added when a league's calibration chooses them:
+
+- ``elo_gap``, |Elo difference|: how close the teams are, whichever is stronger. The five base
+  features are linear in "home minus away", so the draw, most likely between close teams, could
+  only respond to a side's advantage; the gap lets it rise as the teams get closer.
+- ``expected_goals_difference``, the Poisson model's lambda_home - lambda_away for the match,
+  from matches before its day; before the Poisson model can predict, the league's home minus
+  away goals per match.
 """
 
 from collections.abc import Iterable, Sequence
@@ -11,6 +20,7 @@ from dataclasses import dataclass
 from app.data.models import Match, Outcome
 from app.data.preprocessing import sort_chronologically
 from app.prediction.elo_predictions import run_elo
+from app.prediction.poisson_predictions import PoissonPrediction, run_poisson
 from app.prediction.settings import LogisticSettings, settings_of
 from app.statistics.team_statistics import (
     DEFAULT_FORM_LENGTH,
@@ -27,11 +37,24 @@ FEATURE_NAMES = (
     "form_difference",
     "shots_on_target_difference",
 )
+ELO_GAP = "elo_gap"
+EXPECTED_GOALS_DIFFERENCE = "expected_goals_difference"
+EXTRA_FEATURES = (ELO_GAP, EXPECTED_GOALS_DIFFERENCE)
+
+
+def feature_names(settings: LogisticSettings) -> tuple[str, ...]:
+    """The names of the features ``build_features`` gives with these settings, in order."""
+    unknown = sorted(set(settings.extra_features) - set(EXTRA_FEATURES))
+    if unknown:
+        raise ValueError(f"unknown logistic regression features: {', '.join(unknown)}")
+    if EXPECTED_GOALS_DIFFERENCE in settings.extra_features and settings.poisson is None:
+        raise ValueError("the expected-goals difference needs the Poisson settings")
+    return (*FEATURE_NAMES, *(name for name in EXTRA_FEATURES if name in settings.extra_features))
 
 
 @dataclass(frozen=True, slots=True)
 class MatchFeatures:
-    """The feature values of one match, in the order of FEATURE_NAMES."""
+    """The feature values of one match, in the order of ``feature_names`` of its settings."""
 
     match: Match
     values: tuple[float, ...]
@@ -71,20 +94,32 @@ class _LeagueReference:
 
 
 def build_features(
-    matches: Iterable[Match], settings: LogisticSettings | None = None
+    matches: Iterable[Match],
+    settings: LogisticSettings | None = None,
+    *,
+    poisson: Sequence[PoissonPrediction] | None = None,
 ) -> list[MatchFeatures]:
     """Return the features of every match of one competition, in chronological order.
 
     Matches on the competition's first day have no earlier league matches and are left out.
-    Without ``settings`` the competition's calibrated Elo and windows are used.
+    Without ``settings`` the competition's calibrated Elo, windows and features are used.
+    ``poisson`` may give the Poisson predictions of the same matches with ``settings.poisson``,
+    already computed, for the expected-goals difference.
     """
     ordered = sort_chronologically(matches)
     settings = settings or settings_of(ordered).logistic
+    extras = feature_names(settings)[len(FEATURE_NAMES) :]
     history = MatchHistory(ordered)
     elo_differences = {
         _key(p.match): p.home_rating - p.away_rating
         for p in run_elo(ordered, settings.elo).predictions
     }
+    expected_differences = {}
+    if EXPECTED_GOALS_DIFFERENCE in extras:
+        expected_differences = {
+            _key(p.match): p.distribution.home_expected_goals - p.distribution.away_expected_goals
+            for p in (run_poisson(ordered, settings.poisson) if poisson is None else poisson)
+        }
     features = []
     for match in ordered:
         league_matches = history.league_matches_before(
@@ -96,7 +131,12 @@ def build_features(
         window = settings.venue_window
         home = _team_values(history, match, match.home_team, Venue.HOME, league, window)
         away = _team_values(history, match, match.away_team, Venue.AWAY, league, window)
-        values = (elo_differences[_key(match)], *(h - a for h, a in zip(home, away, strict=True)))
+        elo_difference = elo_differences[_key(match)]
+        values = (elo_difference, *(h - a for h, a in zip(home, away, strict=True)))
+        if ELO_GAP in extras:
+            values += (abs(elo_difference),)
+        if EXPECTED_GOALS_DIFFERENCE in extras:
+            values += (expected_differences.get(_key(match), league.home_goal_difference),)
         features.append(MatchFeatures(match=match, values=values))
     return features
 

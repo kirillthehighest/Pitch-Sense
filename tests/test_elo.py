@@ -10,6 +10,7 @@ from app.algorithms.elo import (
     GameResult,
     actual_score,
     expected_score,
+    margin_weight,
     rating_change,
 )
 
@@ -20,8 +21,10 @@ def game(day: int, home_team: str, away_team: str, home_goals: int, away_goals: 
     return GameResult(FIRST_DAY + timedelta(days=day), home_team, away_team, home_goals, away_goals)
 
 
-def new_league(k_factor: float = 20, home_advantage: float = 0, teams=("A", "B", "C", "D")):
-    elo = EloRatings(k_factor=k_factor, home_advantage=home_advantage)
+def new_league(
+    k_factor: float = 20, home_advantage: float = 0, teams=("A", "B", "C", "D"), goal_margin=False
+):
+    elo = EloRatings(k_factor=k_factor, home_advantage=home_advantage, goal_margin=goal_margin)
     elo.start_season(teams)
     return elo
 
@@ -52,6 +55,29 @@ def test_rating_change_is_k_times_the_surprise():
     assert rating_change(expected=0.5, actual=1.0, k_factor=20) == 10
     assert rating_change(expected=0.5, actual=0.5, k_factor=20) == 0
     assert rating_change(expected=0.75, actual=0.0, k_factor=40) == -30
+    assert rating_change(expected=0.5, actual=1.0, k_factor=20, weight=1.5) == 15
+
+
+@pytest.mark.parametrize(
+    ("home_goals", "away_goals", "weight"),
+    [
+        (0, 0, 1),
+        (1, 0, 1),
+        (0, 1, 1),
+        (2, 0, 1.5),
+        (1, 3, 1.5),
+        (3, 0, 1.75),
+        (0, 4, 1.875),
+        (7, 0, 2.25),
+    ],
+)
+def test_margin_weight_by_the_goal_margin(home_goals, away_goals, weight):
+    assert margin_weight(home_goals, away_goals) == weight
+
+
+def test_margin_weight_rejects_negative_goals():
+    with pytest.raises(ValueError, match="negative"):
+        margin_weight(-1, 0)
 
 
 # --- updates ---
@@ -97,10 +123,23 @@ def test_ratings_after_two_matches():
     assert (elo.rating("A"), elo.rating("D")) == (1510, 1500)
 
 
-def test_total_rating_never_changes():
+def test_a_wide_win_moves_more_points_only_with_the_goal_margin():
+    plain = new_league()
+    weighted = new_league(goal_margin=True)
+
+    assert plain.update(game(0, "A", "B", 4, 0)) == 10
+    assert weighted.update(game(0, "A", "B", 4, 0)) == 10 * 15 / 8  # G = (11 + 4) / 8
+    assert weighted.update(game(1, "C", "D", 1, 0)) == 10  # a one-goal win keeps G = 1
+    assert weighted.update(game(2, "B", "C", 2, 2)) == pytest.approx(
+        20 * (0.5 - expected_score(1481.25, 1510, 0))
+    )  # a draw is weighted 1: no margin
+
+
+@pytest.mark.parametrize("goal_margin", [False, True])
+def test_total_rating_never_changes(goal_margin):
     generator = random.Random(2006)
     teams = ("A", "B", "C", "D")
-    elo = new_league(k_factor=32, home_advantage=60, teams=teams)
+    elo = new_league(k_factor=32, home_advantage=60, teams=teams, goal_margin=goal_margin)
 
     for day in range(200):
         home_team, away_team = generator.sample(teams, 2)
