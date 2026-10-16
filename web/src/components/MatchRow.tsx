@@ -52,13 +52,36 @@ interface Props {
   forecast: Forecast;
   model: string;
   favourite?: string | null;
+  stacked?: boolean; // a narrow column: home over away, each with its goals, the chips below
   onOpen: (forecast: Forecast) => void;
 }
 
-export function MatchRow({ forecast, model, favourite, onOpen }: Props) {
+function StackedTeam({ team, goals, favourite, won }: { team: string; goals: number | null; favourite: boolean; won: boolean }) {
+  return (
+    <span className={`team${favourite ? " favourite" : ""}${won ? " won" : ""}`}>
+      <Crest team={team} size={22} ring={favourite} />
+      <span className="name">{team}</span>
+      {goals !== null && <b className="goals">{goals}</b>}
+    </span>
+  );
+}
+
+export function MatchRow({ forecast, model, favourite, stacked = false, onOpen }: Props) {
   const played = forecast.result !== null;
   const prediction = forecast.predictions.find((p) => p.model === model);
   const upcoming = !played && !forecast.postponed;
+  if (stacked) {
+    return (
+      <button className="match-row stacked" onClick={() => onOpen(forecast)} title="Deschide meciul">
+        <span className={`status${upcoming ? " upcoming" : ""}`}>{statusText(forecast)}</span>
+        <span className="stack">
+          <StackedTeam team={forecast.home_team} goals={forecast.home_goals} favourite={favourite === forecast.home_team} won={forecast.result === "H"} />
+          <StackedTeam team={forecast.away_team} goals={forecast.away_goals} favourite={favourite === forecast.away_team} won={forecast.result === "A"} />
+        </span>
+        <Chips prediction={prediction} />
+      </button>
+    );
+  }
   return (
     <button className="match-row" onClick={() => onOpen(forecast)} title="Deschide meciul">
       <span className={`status${upcoming ? " upcoming" : ""}`}>{statusText(forecast)}</span>

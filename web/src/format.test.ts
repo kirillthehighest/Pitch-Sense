@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
-  abbreviation, dateText, dayName, integer, number, parseDay, percent, quantity, seasonText,
-  shortDateText, signed,
+  abbreviation, dateText, dayName, integer, longDateText, number, parseDay, percent, quantity,
+  seasonText, shortDateText, signed,
 } from "./format";
 
 describe("Romanian writing, as app/services/formatting.py", () => {
@@ -21,6 +21,8 @@ describe("Romanian writing, as app/services/formatting.py", () => {
     const day = parseDay("2026-10-17");
     expect(dateText(day)).toBe("17.10.2026");
     expect(shortDateText(day)).toBe("sâm. 17 oct.");
+    expect(longDateText(day)).toBe("sâmbătă, 17 octombrie 2026");
+    expect(longDateText(parseDay("2026-05-24"))).toBe("duminică, 24 mai 2026");
     expect(dayName(day, parseDay("2026-10-17"))).toBe("Azi");
     expect(dayName(day, parseDay("2026-10-16"))).toBe("Mâine");
     expect(dayName(day, parseDay("2026-10-18"))).toBe("Ieri");

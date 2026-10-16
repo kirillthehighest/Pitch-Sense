@@ -14,6 +14,7 @@ from app import __version__
 from app.data.live import update_live_data
 from app.data.models import Outcome
 from app.prediction.outputs import ModelName
+from app.services.explanations import MODEL_EXPLANATIONS
 from app.services.preferences import FavouriteTeam, Preferences
 from app.services.teams import FIRST_SEASON_NAME, GROUP_NAMES
 from app.ui.analysis import TABS
@@ -26,7 +27,6 @@ from app.ui.main_window import (
     UPDATE,
     MainWindow,
 )
-from app.ui.match_detail import MODEL_EXPLANATIONS
 from app.ui.match_widgets import DayStrip, MatchRow, chip_text
 from app.ui.matches import NO_MATCHES, next_match_day
 from app.ui.team_page import GROUPS_IN_PROGRESS, SEASON_NOT_FINISHED

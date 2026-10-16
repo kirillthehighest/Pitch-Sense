@@ -5,6 +5,7 @@ import { api } from "../api";
 import { Crest } from "../components/Crest";
 import { DayStrip } from "../components/DayStrip";
 import { FeaturedMatch } from "../components/FeaturedMatch";
+import { FormSquares } from "../components/FormSquares";
 import { Flag } from "../components/Flag";
 import { MatchRow } from "../components/MatchRow";
 import { capitalised, dayName, parseDay, quantity, seasonText, shortDateText } from "../format";
@@ -197,25 +198,12 @@ function FavouriteCard({
         </div>
       </div>
       <FormSquares results={form} />
-      <div className="match-list compact">
+      <div className="match-list">
         {shown.map((forecast) => (
-          <MatchRow key={forecast.date} forecast={forecast} model={model} favourite={favourite.team} onOpen={onOpenMatch} />
+          <MatchRow key={forecast.date} forecast={forecast} model={model} favourite={favourite.team} stacked onOpen={onOpenMatch} />
         ))}
       </div>
     </section>
-  );
-}
-
-export function FormSquares({ results }: { results: string[] }) {
-  const letters: Record<string, string> = { W: "V", D: "E", L: "Î" };
-  return (
-    <div className="form">
-      {results.map((result, index) => (
-        <span key={index} className={`form-square ${result}`}>
-          {letters[result]}
-        </span>
-      ))}
-    </div>
   );
 }
 

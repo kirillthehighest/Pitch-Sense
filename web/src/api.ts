@@ -1,6 +1,17 @@
 // The client of the local server (app/api). In the desktop shell, Tauri starts the server and
 // tells its address; while developing, the address comes from VITE_BACKEND.
-import type { Day, Days, Forecast, League, Preferences, Standings, Status } from "./types";
+import type {
+  Day,
+  Days,
+  Forecast,
+  League,
+  MatchKey,
+  MatchPage,
+  Preferences,
+  SeasonDays,
+  Standings,
+  Status,
+} from "./types";
 
 declare global {
   interface Window {
@@ -30,7 +41,13 @@ export function backend(): Promise<string> {
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${await backend()}${path}`, init);
   if (!response.ok) {
-    throw new Error(`${response.status}: ${await response.text()}`);
+    let detail = await response.text();
+    try {
+      detail = JSON.parse(detail).detail ?? detail; // FastAPI's {"detail": "..."}
+    } catch {
+      // not JSON: keep the text
+    }
+    throw new Error(`${response.status}: ${detail}`);
   }
   return (await response.json()) as T;
 }
@@ -57,6 +74,12 @@ export const api = {
     request<Forecast[]>(
       `/api/team-matches/${code}?team=${encodeURIComponent(team)}${season ? `&season=${season}` : ""}`,
     ),
+  match: (key: MatchKey) => {
+    const query = new URLSearchParams({ season: key.season, day: key.day, home: key.home, away: key.away });
+    return request<MatchPage>(`/api/match/${key.code}?${query}`);
+  },
+  season: (code: string, season: string) =>
+    request<SeasonDays>(`/api/season/${code}?season=${encodeURIComponent(season)}`),
   preferences: () => request<Preferences>("/api/preferences"),
   setPreferences: (preferences: Preferences) =>
     request<Preferences>("/api/preferences", {

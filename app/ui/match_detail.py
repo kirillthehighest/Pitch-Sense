@@ -7,7 +7,7 @@ phases, and opens the answer on the same page.
 
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import date, timedelta
+from datetime import date
 
 from PySide6.QtCore import QDate, QRectF, Qt, Signal
 from PySide6.QtGui import QPainter
@@ -26,10 +26,15 @@ from PySide6.QtWidgets import (
 )
 
 from app.data.competitions import competition
-from app.data.preprocessing import season_date_window
-from app.prediction.outputs import ModelName
+from app.services.explanations import (
+    MODEL_EXPLANATIONS,
+    NO_POISSON,
+    knowledge_text,
+    status_text,
+    verdict_text,
+)
 from app.services.formatting import date_text, number, percent, season_text
-from app.services.labels import model_label, outcome_label
+from app.services.labels import model_label
 from app.services.predictions import MatchForecast, forecast_of, summarize
 from app.services.registry import LeagueServices
 from app.services.teams import TeamOverview
@@ -50,22 +55,6 @@ from app.ui.widgets import (
 from app.visualization.charts import score_heatmap
 
 CREST_SIZE = 96
-# What each model looks at, in a sentence anyone can follow (the details: Analiză).
-MODEL_EXPLANATIONS = {
-    ModelName.ELO: (
-        "Puterea fiecărei echipe, din toate rezultatele ei: o victorie contra unui adversar "
-        "puternic urcă ratingul mai mult."
-    ),
-    ModelName.POISSON: (
-        "Câte goluri marchează și primește fiecare echipă, acasă și în deplasare; din ele, "
-        "șansa fiecărui scor."
-    ),
-    ModelName.LOGISTIC_REGRESSION: (
-        "A învățat din meciurile trecute cât contează diferența de rating, punctele, golurile, "
-        "forma și șuturile pe poartă."
-    ),
-}
-NO_POISSON = "Nu există o predicție Poisson pentru acest meci."
 
 
 @dataclass(frozen=True, eq=False)
@@ -77,64 +66,6 @@ class MatchContext:
     home_rating: float
     away_rating: float
     teams: int
-
-
-def status_text(forecast: MatchForecast) -> str:
-    """What happened or will happen, under the score."""
-    if forecast.played is not None:
-        return "Final"
-    if forecast.hypothetical:
-        return "Meci ipotetic"
-    if forecast.postponed:
-        return "Amânat"
-    return "Programat"
-
-
-def knowledge_text(forecast: MatchForecast) -> str:
-    """Which matches the predictions use."""
-    if forecast.played is not None:
-        return (
-            f"Predicțiile au fost făcute din meciurile jucate înainte de "
-            f"{date_text(forecast.match_date)}, fără să știe rezultatul."
-        )
-    as_of = forecast.as_of or forecast.match_date
-    if forecast.hypothetical:
-        return (
-            f"Meci ipotetic: predicțiile folosesc meciurile jucate înainte de {date_text(as_of)}."
-        )
-    text = (
-        "Predicțiile folosesc toate meciurile jucate până acum (ultimele pe "
-        f"{date_text(as_of - timedelta(days=1))})."
-    )
-    if forecast.postponed:
-        text += (
-            " Data din calendar a trecut, dar rezultatul lipsește: meci amânat sau încă "
-            "neînregistrat."
-        )
-    return text
-
-
-def verdict_text(forecast: MatchForecast) -> str:
-    """For a played match: the result and which models expected it."""
-    played = forecast.played
-    right = [
-        model_label(str(model))
-        for model, prediction in forecast.predictions.items()
-        if prediction.probabilities.most_likely == played.result
-    ]
-    wrong = [
-        model_label(str(model))
-        for model, prediction in forecast.predictions.items()
-        if prediction.probabilities.most_likely != played.result
-    ]
-    text = (
-        f"Rezultat: {played.home_goals}–{played.away_goals} ({outcome_label(played.result.value)})."
-    )
-    if right:
-        text += f" L-au anticipat: {', '.join(right)}."
-    if wrong:
-        text += f" Nu l-au anticipat: {', '.join(wrong)}."
-    return text
 
 
 class MatchHero(QFrame):
@@ -478,13 +409,8 @@ class HypotheticalDialog(QDialog):
             box.clear()
             box.addItems(teams)
         self.away_box.setCurrentIndex(1 if len(teams) > 1 else 0)
-        first_day, last_day = season_date_window(season)
+        first_day, last_day, start = catalog.hypothetical_days(season)
         self.date_edit.setDateRange(_qdate(first_day), _qdate(last_day))
-        days = [match.match_date for match in catalog.season_matches(season)]
-        if season == catalog.current_season:
-            start = max(days) + timedelta(days=1)
-        else:
-            start = days[len(days) // 2]
         self.date_edit.setDate(_qdate(start))
 
 

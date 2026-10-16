@@ -8,8 +8,10 @@ from pydantic import BaseModel
 
 from app.prediction.outputs import ModelPrediction
 from app.services.labels import model_label
-from app.services.predictions import MatchForecast
+from app.services.predictions import MatchForecast, ModelSummary
 from app.statistics.team_statistics import TeamStatistics
+
+SCORE_GRID_GOALS = 6  # the scores 0-0 to 6-6, as the window's heat map shows them
 
 
 class League(BaseModel):
@@ -104,6 +106,51 @@ class Standings(BaseModel):
     rows: list[StandingRow]
 
 
+class TeamState(BaseModel):
+    """How a team came into a match: its place, season so far, form and Elo rating."""
+
+    team: str
+    position: int
+    record: Record
+    form: list[str]
+    rating: float
+
+
+class ScoreChance(BaseModel):
+    home: int
+    away: int
+    probability: float
+
+
+class PoissonScores(BaseModel):
+    expected_goals: tuple[float, float]
+    top_scores: list[ScoreChance]
+    grid: list[list[float]]  # grid[i][j]: the home team scores i and the away team j
+
+
+class MatchPage(BaseModel):
+    forecast: Forecast
+    status: str  # Final, Programat, Amânat or Meci ipotetic
+    knowledge: str  # which matches the predictions use
+    verdict: str | None  # once played: the result and which models expected it
+    explanations: dict[str, str]  # what each model looks at, by model identifier
+    poisson: PoissonScores | None
+    before: date  # the teams' state is the one before this day
+    teams: int  # in the season
+    home: TeamState
+    away: TeamState
+
+
+class SeasonDays(BaseModel):
+    """What the form of a hypothetical match offers for a season."""
+
+    season: str
+    teams: list[str]
+    first_day: date
+    last_day: date
+    suggested_day: date
+
+
 class Favourite(BaseModel):
     competition: str
     team: str
@@ -158,4 +205,13 @@ def forecast_of(forecast: MatchForecast) -> Forecast:
         as_of=forecast.as_of,
         hypothetical=forecast.hypothetical,
         predictions=[prediction_of(p, forecast) for p in forecast.predictions.values()],
+    )
+
+
+def poisson_of(summary: ModelSummary) -> PoissonScores:
+    shown = summary.score_probabilities[: SCORE_GRID_GOALS + 1, : SCORE_GRID_GOALS + 1]
+    return PoissonScores(
+        expected_goals=summary.expected_goals,
+        top_scores=[ScoreChance(home=h, away=a, probability=p) for h, a, p in summary.top_scores],
+        grid=shown.tolist(),
     )

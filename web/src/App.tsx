@@ -1,12 +1,14 @@
 // The window of the web interface (Phase 22): the side bar on the left (layout A), the screen on
 // the right. The chosen league's colours are set on the whole page; the predictions of every league
 // are prepared by the server, and the screens follow as each league becomes ready.
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { api } from "./api";
+import { OtherMatch } from "./components/OtherMatch";
 import { type ScreenName, SCREENS, Sidebar } from "./components/Sidebar";
+import { MatchPage } from "./screens/MatchPage";
 import { Matches } from "./screens/Matches";
 import { applyTheme } from "./theme";
-import type { Forecast, League, Preferences } from "./types";
+import type { Forecast, League, MatchKey, Preferences } from "./types";
 
 const COMPACT_WIDTH = 1200;
 
@@ -18,6 +20,10 @@ export default function App() {
   const [ready, setReady] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [compact, setCompact] = useState(window.innerWidth < COMPACT_WIDTH);
+  const [match, setMatch] = useState<MatchKey | null>(null);
+  const [otherMatch, setOtherMatch] = useState(false);
+  const scroller = useRef<HTMLElement>(null);
+  const screenScroll = useRef(0); // where the screen was when a match opened over it
 
   useEffect(() => {
     Promise.all([api.leagues(), api.preferences()])
@@ -68,17 +74,43 @@ export default function App() {
     [preferences],
   );
 
-  const openMatch = useCallback((forecast: Forecast) => {
-    // the match page comes with the next screens
-    console.info("open", forecast.home_team, forecast.away_team);
+  // A match opens over the screen, which stays as it was (its day, its scroll) for "Înapoi"
+  const showMatch = useCallback((key: MatchKey) => {
+    setMatch((open) => {
+      if (open === null) screenScroll.current = scroller.current?.scrollTop ?? 0;
+      return key;
+    });
+    setOtherMatch(false);
+  }, []);
+
+  const openMatch = useCallback(
+    (forecast: Forecast) =>
+      showMatch({
+        code: forecast.competition,
+        season: forecast.season,
+        day: forecast.date,
+        home: forecast.home_team,
+        away: forecast.away_team,
+      }),
+    [showMatch],
+  );
+
+  useLayoutEffect(() => {
+    if (scroller.current) scroller.current.scrollTop = match ? 0 : screenScroll.current;
+  }, [match]);
+
+  const chooseScreen = useCallback((name: ScreenName) => {
+    setMatch(null);
+    setScreen(name);
   }, []);
 
   const current = leagues.find((item) => item.code === league);
+  const about = SCREENS.find((item) => item.name === screen);
   return (
     <div className={`app${compact ? " compact" : ""}`}>
       <Sidebar
         screen={screen}
-        onScreen={setScreen}
+        onScreen={chooseScreen}
         leagues={leagues}
         league={league ?? ""}
         onLeague={chooseLeague}
@@ -87,28 +119,50 @@ export default function App() {
         onUpdate={() => undefined}
         updating={false}
       />
-      <main className="screen">
+      <main className="screen" ref={scroller}>
         <div className="screen-inner">
-          <div className="page-head">
-            <h1>{SCREENS.find((item) => item.name === screen)?.title}</h1>
-            <p>Meciurile fiecărei zile, cu predicțiile modelelor. Fiecare predicție folosește doar meciurile jucate înaintea ei.</p>
-          </div>
-          {error && <p className="caption">Serverul nu răspunde: {error}</p>}
-          {current && screen === "matches" && (
-            <Matches
+          {match && current && (
+            <MatchPage
+              matchKey={match}
               leagues={leagues}
-              league={current}
-              preferences={preferences}
-              ready={ready}
-              onOpenMatch={openMatch}
-              onStandings={(code) => {
-                chooseLeague(code);
-                setScreen("standings");
-              }}
+              favourite={preferences?.favourite?.team ?? null}
+              onBack={() => setMatch(null)}
+              onTeam={() => undefined}
+              onOther={() => setOtherMatch(true)}
             />
           )}
+          <div className="screen-page" hidden={match !== null}>
+            <div className="page-head">
+              <div>
+                <h1>{about?.title}</h1>
+                <p>{about?.description}</p>
+              </div>
+              {screen === "matches" && (
+                <button className="button" onClick={() => setOtherMatch(true)}>
+                  Alt meci…
+                </button>
+              )}
+            </div>
+            {error && <p className="problem">Serverul nu răspunde: {error}</p>}
+            {current && screen === "matches" && (
+              <Matches
+                leagues={leagues}
+                league={current}
+                preferences={preferences}
+                ready={ready}
+                onOpenMatch={openMatch}
+                onStandings={(code) => {
+                  chooseLeague(code);
+                  chooseScreen("standings");
+                }}
+              />
+            )}
+          </div>
         </div>
       </main>
+      {otherMatch && current && (
+        <OtherMatch leagues={leagues} league={current} onClose={() => setOtherMatch(false)} onOpen={showMatch} />
+      )}
     </div>
   );
 }

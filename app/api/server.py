@@ -11,9 +11,15 @@ from app import __version__
 from app.api import schemas
 from app.api.backend import Backend
 from app.data.competitions import competition
+from app.services.explanations import (
+    MODEL_EXPLANATIONS,
+    knowledge_text,
+    status_text,
+    verdict_text,
+)
 from app.services.images import crest_path, league_photo_path, photo_credit, photo_top
 from app.services.labels import country_label
-from app.services.predictions import featured_match
+from app.services.predictions import MatchForecast, featured_match, forecast_of, summarize
 from app.services.preferences import FavouriteTeam
 
 # The web interface is served by the desktop shell (Tauri) or, while developing, by Vite.
@@ -172,6 +178,81 @@ def create_app(backend: Backend) -> FastAPI:
         if not services.predictions.is_prepared:
             return []
         return [schemas.forecast_of(f) for f in services.predictions.team_matches(team, season)]
+
+    @app.get("/api/season/{code}", response_model=schemas.SeasonDays)
+    def season_days(code: str, season: str | None = None) -> schemas.SeasonDays:
+        services = league_of(code)
+        season = season_of(services, season)
+        first_day, last_day, suggested = services.catalog.hypothetical_days(season)
+        return schemas.SeasonDays(
+            season=season,
+            teams=services.catalog.teams(season),
+            first_day=first_day,
+            last_day=last_day,
+            suggested_day=suggested,
+        )
+
+    def find_forecast(services, season: str, day: date, home: str, away: str) -> MatchForecast:
+        """The match of the calendar, or a hypothetical match predicted on request."""
+        listed = services.predictions.on_day(day)
+        found = next(
+            (f for f in listed if (f.season, f.home_team, f.away_team) == (season, home, away)),
+            None,
+        )
+        if found is not None:
+            return found
+        teams = services.catalog.teams(season)
+        if home not in teams or away not in teams:
+            missing = home if home not in teams else away
+            raise HTTPException(404, f"no team {missing!r} in season {season}")
+        try:
+            return forecast_of(services.predictions.predict(season, home, away, day), services.code)
+        except ValueError as error:
+            raise HTTPException(422, str(error)) from None
+
+    def team_state(services, season: str, team: str, before: date) -> schemas.TeamState:
+        overview = services.teams.overview(season, team, before)
+        return schemas.TeamState(
+            team=team,
+            position=overview.position,
+            record=schemas.record_of(overview.record),
+            form=[result.value for result in overview.form],
+            rating=services.teams.rating_before(team, before),
+        )
+
+    @app.get("/api/match/{code}", response_model=schemas.MatchPage)
+    def match(code: str, season: str, day: date, home: str, away: str) -> schemas.MatchPage:
+        """Everything about one match: of the calendar, played or not, or any two teams of a
+        season on a day of it (a hypothetical match)."""
+        services = league_of(code)
+        season = season_of(services, season)
+        if home == away:
+            raise HTTPException(422, "a match needs two different teams")
+        if not services.predictions.is_prepared:
+            raise HTTPException(409, f"the predictions of {code} are being prepared")
+        forecast = find_forecast(services, season, day, home, away)
+        played = forecast.played is not None
+        before = forecast.match_date if played or not forecast.as_of else forecast.as_of
+        poisson = next(
+            (
+                summarize(p)
+                for p in forecast.predictions.values()
+                if p.score_distribution is not None
+            ),
+            None,
+        )
+        return schemas.MatchPage(
+            forecast=schemas.forecast_of(forecast),
+            status=status_text(forecast),
+            knowledge=knowledge_text(forecast),
+            verdict=verdict_text(forecast) if played and forecast.predictions else None,
+            explanations={str(model): text for model, text in MODEL_EXPLANATIONS.items()},
+            poisson=None if poisson is None else schemas.poisson_of(poisson),
+            before=before,
+            teams=len(services.teams.standings(season)),
+            home=team_state(services, season, home, before),
+            away=team_state(services, season, away, before),
+        )
 
     @app.get("/api/preferences", response_model=schemas.Preferences)
     def preferences() -> schemas.Preferences:

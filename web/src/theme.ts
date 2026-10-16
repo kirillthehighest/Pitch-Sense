@@ -30,3 +30,21 @@ export function applyTheme(code: string, root: HTMLElement = document.documentEl
   root.style.setProperty("--accent-text", theme.accentText);
   root.style.setProperty("--brand", theme.brand);
 }
+
+/** The models' identity colours (app/visualization/palette.py): fixed, never reassigned. */
+export const MODEL_COLOURS: Record<string, string> = {
+  Elo: "#4D8DFF",
+  Poisson: "#EF5A6F",
+  "Logistic regression": "#00A3A8",
+};
+
+/** A league's colours as CSS variables on one element: a match of another league in its own. */
+export function themeStyle(code: string): Record<string, string> {
+  const theme = themeFor(code);
+  return {
+    "--accent": theme.accent,
+    "--accent-ink": theme.accentInk,
+    "--accent-text": theme.accentText,
+    "--brand": theme.brand,
+  };
+}

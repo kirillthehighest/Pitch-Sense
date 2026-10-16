@@ -95,6 +95,52 @@ def test_the_match_of_the_day_is_your_teams(client):
     assert team in (featured["home_team"], featured["away_team"])
 
 
+def test_a_played_matchs_page_has_every_model_the_scores_and_both_teams(client, backend):
+    listed = client.get("/api/day/2007-09-03", params={"league": "SP1"}).json()
+    forecast = listed["leagues"][0]["forecasts"][0]
+    params = {
+        "season": forecast["season"],
+        "day": forecast["date"],
+        "home": forecast["home_team"],
+        "away": forecast["away_team"],
+    }
+
+    page = client.get("/api/match/SP1", params=params).json()
+
+    assert page["forecast"] == forecast  # the same match as in the day's list
+    assert page["status"] == "Final" and page["verdict"].startswith("Rezultat: ")
+    assert page["before"] == forecast["date"]
+    assert set(page["explanations"]) == {"Elo", "Poisson", "Logistic regression"}
+    grid = page["poisson"]["grid"]
+    assert len(grid) == 7 and all(len(row) == 7 for row in grid)
+    top = page["poisson"]["top_scores"][0]
+    assert grid[top["home"]][top["away"]] == pytest.approx(top["probability"])
+    assert top["probability"] == max(max(row) for row in grid)
+    teams = backend.league("SP1").teams
+    before = date.fromisoformat(forecast["date"])
+    assert page["home"]["rating"] == teams.rating_before(forecast["home_team"], before)
+    assert page["teams"] == len(teams.standings(forecast["season"]))
+    assert 1 <= page["away"]["position"] <= page["teams"]
+    assert len(page["home"]["form"]) <= 5 and set(page["home"]["form"]) <= {"W", "D", "L"}
+
+
+def test_any_two_teams_of_a_season_make_a_hypothetical_match(client):
+    window = client.get("/api/season/SP1", params={"season": "2006-07"}).json()
+    home, away = window["teams"][0], window["teams"][1]
+    assert window["first_day"] <= window["suggested_day"] <= window["last_day"]
+
+    params = {"season": "2006-07", "day": window["suggested_day"], "home": home, "away": away}
+    page = client.get("/api/match/SP1", params=params).json()
+
+    assert page["forecast"]["hypothetical"] is True
+    assert page["status"] == "Meci ipotetic" and page["verdict"] is None
+    assert page["forecast"]["predictions"]
+    same = client.get("/api/match/SP1", params={**params, "away": home})
+    assert same.status_code == 422
+    unknown = client.get("/api/match/SP1", params={**params, "home": "Nobody"})
+    assert unknown.status_code == 404
+
+
 def test_preferences_are_kept(client):
     assert client.get("/api/preferences").json() == {"competition": None, "favourite": None}
     answer = client.put(

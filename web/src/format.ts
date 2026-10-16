@@ -50,6 +50,17 @@ export function shortDateText(day: Date): string {
   return `${WEEKDAYS[weekday(day)]} ${day.getDate()} ${MONTHS[day.getMonth()]}`;
 }
 
+const LONG_WEEKDAYS = ["luni", "marți", "miercuri", "joi", "vineri", "sâmbătă", "duminică"];
+const LONG_MONTHS = [
+  "ianuarie", "februarie", "martie", "aprilie", "mai", "iunie",
+  "iulie", "august", "septembrie", "octombrie", "noiembrie", "decembrie",
+];
+
+/** duminică, 24 mai 2026 */
+export function longDateText(day: Date): string {
+  return `${LONG_WEEKDAYS[weekday(day)]}, ${day.getDate()} ${LONG_MONTHS[day.getMonth()]} ${day.getFullYear()}`;
+}
+
 export function daysBetween(first: Date, second: Date): number {
   return Math.round((second.getTime() - first.getTime()) / 86_400_000);
 }

@@ -110,3 +110,53 @@ export interface Standings {
   in_progress: boolean;
   rows: StandingRow[];
 }
+
+export interface TeamState {
+  team: string;
+  position: number;
+  record: TeamRecord;
+  form: string[];
+  rating: number;
+}
+
+export interface ScoreChance {
+  home: number;
+  away: number;
+  probability: number;
+}
+
+export interface PoissonScores {
+  expected_goals: [number, number];
+  top_scores: ScoreChance[];
+  grid: number[][]; // grid[i][j]: the home team scores i and the away team j
+}
+
+export interface MatchPage {
+  forecast: Forecast;
+  status: string;
+  knowledge: string;
+  verdict: string | null;
+  explanations: Record<string, string>;
+  poisson: PoissonScores | null;
+  before: string;
+  teams: number;
+  home: TeamState;
+  away: TeamState;
+}
+
+/** A match to open: of the calendar, or two teams of a season on a day (hypothetical). */
+export interface MatchKey {
+  code: string;
+  season: string;
+  day: string;
+  home: string;
+  away: string;
+}
+
+export interface SeasonDays {
+  season: string;
+  teams: string[];
+  first_day: string;
+  last_day: string;
+  suggested_day: string;
+}

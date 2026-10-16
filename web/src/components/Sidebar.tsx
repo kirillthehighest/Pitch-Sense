@@ -11,12 +11,37 @@ import { Lockup } from "./Logo";
 
 export type ScreenName = "matches" | "standings" | "team" | "predictions" | "analysis";
 
-export const SCREENS: { name: ScreenName; title: string; icon: () => ReactNode }[] = [
-  { name: "matches", title: "Meciuri", icon: MatchesIcon },
-  { name: "standings", title: "Clasament", icon: StandingsIcon },
-  { name: "team", title: "Echipe", icon: TeamIcon },
-  { name: "predictions", title: "Predicții", icon: PredictionsIcon },
-  { name: "analysis", title: "Analiză", icon: AnalysisIcon },
+export const SCREENS: { name: ScreenName; title: string; description: string; icon: () => ReactNode }[] = [
+  {
+    name: "matches",
+    title: "Meciuri",
+    description: "Meciurile fiecărei zile, cu predicțiile modelelor. Fiecare predicție folosește doar meciurile jucate înaintea ei.",
+    icon: MatchesIcon,
+  },
+  {
+    name: "standings",
+    title: "Clasament",
+    description: "Clasamentul oricărui sezon, la final sau înaintea oricărei zile, cu forma fiecărei echipe.",
+    icon: StandingsIcon,
+  },
+  {
+    name: "team",
+    title: "Echipe",
+    description: "Sezonul unei echipe: rezultate, formă, șuturi, ratingul Elo și profilul ei.",
+    icon: TeamIcon,
+  },
+  {
+    name: "predictions",
+    title: "Predicții",
+    description: "Ce au prezis modelele și ce s-a întâmplat: meciuri nimerite, ratate și surprize.",
+    icon: PredictionsIcon,
+  },
+  {
+    name: "analysis",
+    title: "Analiză",
+    description: "Cum lucrează modelele, cât de bine prezic și cum se compară ligile.",
+    icon: AnalysisIcon,
+  },
 ];
 
 interface Props {
