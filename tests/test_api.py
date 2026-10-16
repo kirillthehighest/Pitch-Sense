@@ -1,11 +1,14 @@
 """The local server of the web interface, over the synthetic seasons: every answer is the
 services' own, in the shapes the interface reads."""
 
+import os
+import threading
 from datetime import date
 
 import pytest
 from fastapi.testclient import TestClient
 
+from app.api.__main__ import exit_with_window, option, port_of
 from app.api.backend import Backend
 from app.api.server import create_app
 from app.services.preferences import Preferences
@@ -111,3 +114,24 @@ def test_images_are_served_and_a_missing_one_is_404(client):
     assert client.get("/api/images/crest/Barcelona").headers["content-type"] == "image/png"
     assert client.get("/api/images/crest/Alpha").status_code == 404
     assert client.get("/api/day/2007-09-03", params={"league": "XX"}).status_code == 404
+
+
+def test_the_command_line_options():
+    assert option(["--port", "8765", "--preferences", "a.json"], "--preferences") == "a.json"
+    assert option(["--port", "8765"], "--preferences") is None
+    assert port_of([]) == 0 and port_of(["--port", "8765"]) == 8765
+    with pytest.raises(SystemExit, match="needs a value"):
+        option(["--preferences"], "--preferences")
+    with pytest.raises(SystemExit, match="needs a number"):
+        port_of(["--port", "eight"])
+
+
+def test_the_server_ends_when_its_window_closes():
+    reading, writing = os.pipe()
+    ended = threading.Event()
+    with os.fdopen(reading, "rb") as window:
+        watcher = exit_with_window(window, end=ended.set)
+        assert not ended.wait(0.05)  # the window is still open
+        os.close(writing)  # the window's process ended
+        watcher.join(timeout=5)
+    assert ended.is_set()

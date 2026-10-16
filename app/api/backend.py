@@ -6,6 +6,7 @@ import pickle
 import threading
 from collections.abc import Callable
 from datetime import date
+from pathlib import Path
 from typing import Any
 
 from app.services.catalog import available_competitions
@@ -45,12 +46,14 @@ class Backend:
         self._worker: threading.Thread | None = None
 
     @classmethod
-    def from_database(cls) -> Backend:
-        """The real data; raises FileNotFoundError when the database has not been built."""
+    def from_database(cls, preferences: Path | None = None) -> Backend:
+        """The real data; raises FileNotFoundError when the database has not been built. The
+        preferences are the user's, unless another file is given."""
         competitions = tuple(available_competitions())
         if not competitions:
             raise FileNotFoundError("The database holds no known league. Run the database build.")
-        return cls(competitions)
+        chosen = None if preferences is None else Preferences(preferences)
+        return cls(competitions, preferences=chosen)
 
     def league(self, code: str) -> LeagueServices:
         """A league's services, opened the first time they are asked for."""
