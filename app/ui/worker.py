@@ -13,7 +13,10 @@ process; tests use it.
 """
 
 import multiprocessing
+import multiprocessing.connection
+import os
 import pickle
+import threading
 from collections.abc import Callable
 from concurrent.futures import ProcessPoolExecutor
 from typing import Any
@@ -102,7 +105,9 @@ def compute_in_process(job: Callable[[], Any]) -> bytes:
     global _processes
     if _processes is None:
         _processes = ProcessPoolExecutor(
-            max_workers=1, mp_context=multiprocessing.get_context("spawn")
+            max_workers=1,
+            mp_context=multiprocessing.get_context("spawn"),
+            initializer=_exit_with_parent,
         )
     return _processes.submit(_pickled, job).result()
 
@@ -122,6 +127,20 @@ def stop_processes() -> None:
     for process in processes:
         process.terminate()
     _processes = None
+
+
+def _exit_with_parent() -> None:
+    """In the worker process: end it as soon as the window's process ends, even when that one
+    was killed and could not stop it (an orphan would go on computing)."""
+    parent = multiprocessing.parent_process()
+    if parent is None:
+        return
+
+    def watch() -> None:
+        multiprocessing.connection.wait([parent.sentinel])
+        os._exit(0)
+
+    threading.Thread(target=watch, daemon=True).start()
 
 
 def _pickled(job: Callable[[], Any]) -> bytes:

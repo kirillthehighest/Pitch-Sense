@@ -243,7 +243,17 @@ Când utilizatorul alege altă ligă, fereastra trece la culorile ei:
 - sunt înalte de 18 px la pornire și se liniștesc la 4 px pe măsură ce cercul crește;
 - în urma marginii vin două unde mai slabe, în accentul noii ligi.
 
-**De ce sacada prima versiune.** Animația se desena ca un strat transparent peste fereastră. Pentru fiecare cadru, Qt redesena tot ce era sub el: cardurile, rândurile, imaginile, graficele. Acum stratul e opac și desenează doar cele două imagini ale ferestrei și linia valului. Un cadru durează 4–9 ms la rezoluția Retina (pragul pentru 60 de cadre pe secundă este 16,7 ms), măsurat pe datele reale, cu toate ecranele construite. Imaginea veche se desenează printr-o formă plină, nu printr-o mască de tăiere, ca pixelii să fie parcurși o singură dată.
+**De ce sacada animația.** Au fost două cauze.
+
+1. **Stratul transparent.** În prima versiune, animația era un strat transparent peste fereastră. Pentru fiecare cadru, Qt redesena tot ce era sub el. Acum stratul e opac și desenează doar cele două imagini ale ferestrei și linia valului, iar un cadru redesenează doar banda prin care a trecut marginea.
+2. **Predicțiile calculate în fundal.** Ele împărțeau interpretorul Python cu fereastra, care aștepta după calcul la fiecare pas. Acum se calculează într-un proces separat.
+
+Măsurat la rezoluția Retina, pe datele reale, cu o ligă în calcul în timpul animației:
+
+| | Animația | Blocajul ferestrei înainte de animație |
+|---|---|---|
+| Înainte | 11 cadre, cu goluri de până la 270 ms | 4,8 s |
+| Acum | 50 de cadre, la cel mult 17,6 ms unul de altul (60 pe secundă) | 0,5 s la prima deschidere a unei ligi |
 
 Imaginea veche lasă clicurile să treacă, deci fereastra se poate folosi în timpul animației. O fereastră care nu este pe ecran (testele, autoverificarea) se schimbă fără animație.
 

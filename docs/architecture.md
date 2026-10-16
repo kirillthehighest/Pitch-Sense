@@ -867,13 +867,13 @@ Regulile vizuale și motivele lor sunt în `docs/brand.md`.
 
 1. Dacă fereastra e pe ecran și liga are alte culori, păstrează o imagine a ei (`_snapshot`); o animație încă în curs e încheiată.
 2. Pune foaia de stil și paleta noii ligi pe fereastră și îi schimbă iconița (`_restyle`).
-3. Ecranele își schimbă conținutul.
+3. Ecranul afișat își schimbă conținutul. Ecranele ascunse îl schimbă după animație (`_after_reveal`) sau în momentul în care sunt deschise, ca să nu întârzie animația.
 4. După ce Qt livrează evenimentele amânate, păstrează o imagine a ferestrei noi. Aceste evenimente arată și așază rândurile noi; fără ele, imaginea ar fi prins fereastra fără rânduri.
 5. `ThemeReveal` (`app/ui/transition.py`) arată imaginea veche și deschide în ea un cerc spre imaginea nouă, din colțul din stânga sus, în 0,8 s (`QVariantAnimation`, mișcare `OutCubic`).
 
 **Marginea cercului.** Marginea are valuri, ca la Material You:
 
-- `wave_edge` dă punctele marginii, la câte 6 px de-a lungul ei;
+- `wave_edge` dă punctele marginii, la câte 8 px de-a lungul ei, calculate toate odată cu NumPy, o singură dată pe cadru;
 - `wave_offset` adună două valuri sinusoidale, de 120 px și de 68 px, care se mișcă în sensuri opuse;
 - `wave_amplitude` le scade înălțimea de la 18 la 4 px pe măsură ce cercul crește.
 
@@ -883,9 +883,25 @@ Regulile vizuale și motivele lor sunt în `docs/brand.md`.
 - imaginea veche, umplând partea încă acoperită (`cover`, un singur poligon) cu un pensul făcut din imagine, fără mască de tăiere;
 - linia valului și două unde.
 
-În prima versiune, stratul era transparent și desena doar imaginea veche. Pentru fiecare cadru, Qt redesena toată fereastra de sub el: carduri, rânduri, imaginea antetului, grafice. De aici venea sacadarea. Acum un cadru durează 4–9 ms la rezoluția Retina (`QT_SCALE_FACTOR=2`, 1440 × 900, datele reale), sub cele 16,7 ms ale unui cadru la 60 pe secundă. Schimbarea ligii, cu cele două imagini, durează aproximativ 0,3 s până pornește animația.
+Un cadru redesenează doar banda prin care a trecut marginea de la cadrul precedent (`band`: fâșii de 16 px între două cercuri), nu toată fereastra.
 
-**Comportamentul.** Stratul lasă clicurile să treacă. O fereastră care nu este pe ecran se schimbă fără animație, la fel și una cu `animate = False`.
+**De ce sacada animația.** Au fost două cauze, găsite una după alta.
+
+1. **Stratul transparent.** În prima versiune, stratul era transparent, așa că pentru fiecare cadru Qt redesena toată fereastra de sub el: carduri, rânduri, imaginea antetului, grafice.
+2. **Calculul în fundal.** Și după ce stratul a devenit opac, echipa a văzut animația sacadând în aplicația reală. Măsurătorile din fereastra desenată fără ecran nu prinseseră cauza, pentru că acolo predicțiile erau gata. În aplicația reală, după pornire se calculează predicțiile celor cinci ligi, aproximativ 7,5 s fiecare. Calculul rula pe un fir de execuție al aceluiași proces, deci împărțea interpretorul Python cu fereastra. Fereastra aștepta după el la fiecare apel spre Qt.
+
+   Măsurat la rezoluția Retina, cu o ligă în calcul:
+   - schimbarea ligii bloca fereastra 4,8 s;
+   - animația avea 11 cadre, la până la 270 ms unul de altul;
+   - scurtarea intervalului de comutare al interpretorului (`sys.setswitchinterval`) a ajutat puțin (1,8 s, 10 cadre).
+
+**Calculul în alt proces.** Acum predicțiile se calculează în alt proces (secțiunea 17.6), iar ecranele ascunse se schimbă după animație. În aceleași condiții:
+
+- 50 de cadre, la cel mult 17,6 ms unul de altul, adică 60 pe secundă;
+- un cadru se desenează în aproximativ 4 ms;
+- fereastra se blochează 0,5 s înaintea animației la prima deschidere a unei ligi și aproximativ 0,3 s după aceea.
+
+**Comportamentul.** Stratul lasă clicurile să treacă. O fereastră care nu este pe ecran se schimbă fără animație, la fel și una cu `animate = False`. Predicțiile unei ligi care sosesc în timpul animației se instalează după ea, ca transferul lor (aproximativ 0,14 s) să nu se vadă ca un salt.
 
 ### 17.3. Stilul și sigla
 
@@ -930,11 +946,38 @@ Regulile vizuale și motivele lor sunt în `docs/brand.md`.
 
 Pragurile fiecărui ecran sunt în `docs/brand.md`, secțiunea 5.5.
 
-### 17.6. Verificare
+### 17.6. Predicțiile, în alt proces
 
-Rulări din 2026-10-15:
+`PredictionService` are pasul lent despărțit în două:
 
-- **Teste.** Toate cele 809 teste trec; `ruff check` și `ruff format --check` nu găsesc nimic. Fișiere de test noi:
+- `preparation` dă calculul ca o sarcină care poate rula în alt proces: o funcție de modul (`compute_predictions`) cu argumente care sunt doar date;
+- `install` primește rezultatul (`PreparedPredictions`).
+
+`prepare` le face pe amândouă pe loc, ca înainte.
+
+`compute_in_process` (`app/ui/worker.py`) trimite sarcina unui singur proces de lucru, pornit o dată, cu metoda `spawn`, și o așteaptă dintr-un fir de execuție. Rezultatul se întoarce ca șir de octeți (`pickle`), aproximativ 30 MB pentru o ligă, iar fereastra îl despachetează când vrea. `AppContext.compute` alege unde se face calculul: testele folosesc `compute_here`, în același proces. La închiderea ferestrei, `stop_processes` oprește procesul de lucru fără să aștepte calculul în curs.
+
+Într-un pachet, procesul de lucru pornește din nou programul. `multiprocessing.freeze_support()` din `app/__main__.py` îl transformă în proces de lucru înainte să ruleze altceva. Autoverificarea pachetelor încearcă și acest drum, pentru că își pregătește predicțiile prin `context.compute`.
+
+### 17.7. Ce trece în Etapa 22
+
+După a doua versiune, echipa a mai cerut:
+
+- pe pagina echipei: cardul formei aranjat aliniat, iar cardul K-Means redenumit „Profilul echipei”, fără descriere;
+- în Analiză: fără spațiul gol de sub grafice și cu coloanele tabelelor de lățimi măsurate;
+- un layout cu o singură bară laterală (varianta A, aleasă de echipă dintre patru);
+- un card „Meciul zilei” cu imaginea ligii;
+- meciurile din sezoanele anterioare;
+- un ecran cu predicțiile nimerite, ratate și surprizele;
+- imagini cu stadioane și jucători.
+
+Echipa a hotărât apoi ca interfața să fie refăcută pe web, peste serviciile Python, într-o etapă nouă (22). Aceste cereri intră acolo. Etapa 21 se încheie cu culorile ligilor, sigla, stilul, adaptarea la lățime și animația reparată.
+
+### 17.8. Verificare
+
+Rulări din 2026-10-15 și 2026-10-16:
+
+- **Teste.** Toate cele 815 teste trec; `ruff check` și `ruff format --check` nu găsesc nimic. Fișiere de test noi:
   - `tests/test_themes.py`: suprafețele comune, accentele, contrastele tuturor textelor, inclusiv antetul cu imaginea reală a fiecărei ligi, barele de probabilitate și foaia de stil a fiecărei ligi;
   - `tests/test_transition.py`: cercul, valurile, partea acoperită, cele două imagini, stratul opac, încheierea animației.
 
@@ -942,7 +985,10 @@ Rulări din 2026-10-15:
   - `tests/test_brand.py` verifică noua siglă: tăietura, culorile în fiecare ligă, numele, varianta îngustă, iconița în culorile ligii, fonturile;
   - `tests/test_ui.py` verifică schimbarea culorilor ferestrei (cu și fără animație, inclusiv o schimbare întreruptă), fereastra îngustă, lipsa barei orizontale la 1024, 1280 și 1440 px, piesele adaptive, antetul și graficul ascuns;
   - `tests/test_charts.py` verifică trecerea unui grafic pe altă ligă;
-  - `tests/test_icons.py` verifică culorile iconiței pachetelor.
+  - `tests/test_icons.py` verifică culorile iconiței pachetelor;
+  - `tests/test_worker.py` verifică faptul că o sarcină rulată în alt proces dă exact același rezultat;
+  - `tests/test_services.py` verifică faptul că predicțiile calculate ca sarcină și instalate apoi sunt aceleași;
+  - `tests/test_ui.py` verifică faptul că ecranele ascunse și predicțiile sosite în timpul animației urmează după ea.
 - **Autoverificarea** are două verificări noi, culorile ligii și valul: 25 în total. Pe datele reale trece 25 din 25, iar aplicația pornește (`python -m app`) și rulează fără erori.
 - **Verificare vizuală.** Ecranele au fost desenate cu datele reale, la rezoluția Retina (`QT_SCALE_FACTOR=2`), și verificate:
   - Meciuri în fiecare ligă;
@@ -955,12 +1001,12 @@ Rulări din 2026-10-15:
   - macOS: `.dmg` de 79 MB, cu fontul Plus Jakarta Sans și iconița nouă. Autoverificarea trece 25 din 25 din `dist/` și din imaginea `.dmg` montată doar pentru citire.
   - Windows (GitHub Actions): toate cele 809 teste trec, `.zip` de 93 MB. Actualizarea cu `--update` din pachet reușește, iar autoverificarea trece 25 din 25.
 
-### 17.7. Limitări
+### 17.9. Limitări
 
 - Pachetele au iconița în culorile La Ligii: sistemul o citește din pachet înainte de pornire.
 - Mesajele de la pornire (dinaintea ferestrei) și indiciile de la trecerea mausului au culorile La Ligii, pentru că nu aparțin ferestrei.
-- Timpul unui cadru al animației a fost măsurat pe o fereastră desenată fără ecran; pe ecranul real depinde și de sistem.
-- Prima deschidere a unei ligi încă blochează fereastra până la 1 s înaintea animației, cât își citește jurnalul și își construiește ecranele.
+- Timpul unui cadru al animației a fost măsurat pe o fereastră desenată fără ecran, cu o ligă în calcul; pe ecranul real depinde și de sistem.
+- Prima deschidere a unei ligi blochează fereastra aproximativ 0,5 s înaintea animației, cât își deschide datele.
 
 ## 18. Setul de date și perioadele
 

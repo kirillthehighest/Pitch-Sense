@@ -1017,3 +1017,43 @@ def test_the_banner_shows_the_image_sharp_on_the_right_and_its_edge_colour_on_th
     left = image.pixelColor(60, HeroBanner.HEIGHT - 20)  # the fill: the image's edge, deepened
     assert left.red() < 0xC0 and left.red() > left.blue()
     assert hero.subtitle_label.maximumWidth() <= 1200 - hero.photo_width(1200)
+
+
+def test_hidden_screens_follow_the_league_after_the_wave_or_when_opened(two_league_context):
+    window = MainWindow(two_league_context)
+    window.show()
+    QCoreApplication.processEvents()
+    assert window.team_page.team_box.itemText(0) == "Echo"  # Premier League teams
+
+    window.league_buttons["SP1"].click()  # the colours change with the wave
+
+    assert window.reveal is not None
+    assert window.team_page.team_box.itemText(0) == "Echo"  # hidden: not yet changed
+    window.show_page(window.pages.index(window.standings))  # opened during the wave
+    assert cells(window.standings.table, 1)[0] in ("Alpha", "Bravo", "Charlie", "Delta")
+    window.reveal.finish()
+    for _ in range(3):
+        QCoreApplication.processEvents()
+    assert window.team_page.team_box.itemText(0) == "Alpha"  # changed after the wave
+    window.close()
+
+
+def test_predictions_ready_during_the_wave_are_installed_after_it(two_league_context):
+    tasks = []
+    two_league_context.run_task = lambda work, done, failed: tasks.append((work, done))
+    window = MainWindow(two_league_context)
+    window.show()
+    QCoreApplication.processEvents()
+    league = two_league_context.league(window.current_league)
+
+    window.league_buttons["SP1"].click()
+    while tasks:  # every computation, the first league's predictions too, ends during the wave
+        work, done = tasks.pop(0)
+        done(work())
+
+    assert window.reveal is not None and not league.predictions.is_prepared
+    window.reveal.finish()
+    for _ in range(3):
+        QCoreApplication.processEvents()
+    assert league.predictions.is_prepared
+    window.close()

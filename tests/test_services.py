@@ -638,3 +638,23 @@ def test_the_rating_before_a_day_is_the_one_after_the_last_match_before_it(two_s
     assert after_all == run_elo(two_seasons).final_ratings["Alpha"]
     with pytest.raises(ValueError, match="played no matches"):
         teams.rating_before("Echo", date(2009, 1, 1))
+
+
+def test_the_slow_step_runs_as_a_job_whose_result_another_service_installs(two_seasons):
+    import pickle
+
+    prepared_here = PredictionService(two_seasons, min_training_matches=3)
+    prepared_here.prepare()
+    elsewhere = PredictionService(two_seasons, min_training_matches=3)
+    job = elsewhere.preparation()
+
+    result = pickle.loads(pickle.dumps(job()))  # as it comes back from another process
+    assert not elsewhere.is_prepared
+    elsewhere.install(result)
+
+    assert elsewhere.is_prepared
+    assert elsewhere.match_days() == prepared_here.match_days()
+    for day in prepared_here.match_days():
+        assert [(f.home_team, f.away_team, numbers(f)) for f in elsewhere.on_day(day)] == [
+            (f.home_team, f.away_team, numbers(f)) for f in prepared_here.on_day(day)
+        ]
