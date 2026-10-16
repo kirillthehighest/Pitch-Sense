@@ -12,8 +12,7 @@ LAYERS = (
     "prediction",
     "evaluation",
     "services",
-    "visualization",
-    "ui",
+    "api",
 )
 QT_MODULES = {"PySide6", "shiboken6"}
 BANNED_LIBRARIES = {"sklearn", "scipy", "statsmodels"}
@@ -74,24 +73,16 @@ def test_algorithms_import_only_standard_library_and_numpy():
     assert violations == {}
 
 
-def test_only_ui_imports_qt():
-    violations = [
-        str(path.relative_to(APP_DIR))
+def test_no_module_imports_qt_or_matplotlib():
+    # The PySide6 window and its matplotlib charts were removed when the web interface replaced
+    # them (Phase 22); the tools that prepare the images may still use Qt, outside app/.
+    violations = {
+        str(path.relative_to(APP_DIR)): sorted(imports & (QT_MODULES | {"matplotlib"}))
         for path, imports in modules_in(APP_DIR).items()
-        if imports & QT_MODULES and layer_of(path) != "ui"
-    ]
+        if imports & (QT_MODULES | {"matplotlib"})
+    }
 
-    assert violations == []
-
-
-def test_matplotlib_is_imported_only_by_visualization_and_ui():
-    violations = [
-        str(path.relative_to(APP_DIR))
-        for path, imports in modules_in(APP_DIR).items()
-        if "matplotlib" in imports and layer_of(path) not in {"visualization", "ui"}
-    ]
-
-    assert violations == []
+    assert violations == {}
 
 
 def test_no_module_imports_banned_libraries():
@@ -102,3 +93,30 @@ def test_no_module_imports_banned_libraries():
     }
 
     assert violations == {}
+
+
+def imported_app_layers(source: str) -> set[str]:
+    """Return the layers of app/ a source file imports by absolute name (``app.<layer>``)."""
+    layers = set()
+    for node in ast.walk(ast.parse(source)):
+        names = []
+        if isinstance(node, ast.Import):
+            names = [alias.name for alias in node.names]
+        elif isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
+            names = [node.module]
+        layers.update(name.split(".")[1] for name in names if name.startswith("app."))
+    return layers
+
+
+def test_the_server_reads_services_and_never_algorithms():
+    violations = {
+        str(path.relative_to(APP_DIR)): sorted(layers & {"algorithms"})
+        for path in sorted((APP_DIR / "api").rglob("*.py"))
+        if (layers := imported_app_layers(path.read_text(encoding="utf-8"))) & {"algorithms"}
+    }
+
+    assert violations == {}
+    assert imported_app_layers("from app.services.predictions import X\nimport app.ui.brand") == {
+        "services",
+        "ui",
+    }

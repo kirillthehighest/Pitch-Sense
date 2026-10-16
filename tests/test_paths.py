@@ -5,7 +5,6 @@ from pathlib import Path
 import pytest
 
 from app.data import paths
-from app.ui import main_window
 
 HOME = Path("/home/someone")
 
@@ -34,17 +33,6 @@ def test_from_the_source_code_everything_lives_in_the_project_data_folder():
     assert paths.DATABASE_PATH.parent == paths.RESULTS_DIR.parent == paths.DATA_DIR
     assert paths.RESULTS_DIR == paths.BUNDLED_RESULTS_DIR
     assert paths.copy_bundled_results() == []
-
-
-def test_a_package_keeps_the_matplotlib_cache_in_the_user_folder(monkeypatch):
-    environ = {"MPLCONFIGDIR": "/tmp/pyinstaller-temporary"}
-
-    paths.use_persistent_matplotlib_cache(environ)
-    assert environ["MPLCONFIGDIR"] == "/tmp/pyinstaller-temporary"  # source code: unchanged
-    monkeypatch.setattr(paths, "PACKAGED", True)
-    paths.use_persistent_matplotlib_cache(environ)
-
-    assert environ["MPLCONFIGDIR"] == str(paths.user_data_dir() / "matplotlib")
 
 
 @pytest.fixture
@@ -102,53 +90,3 @@ def test_nothing_is_copied_without_shipped_results(tmp_path):
 def test_from_the_source_code_nothing_is_copied(shipped):
     assert paths.copy_bundled_results(shipped, shipped) == []
     assert not (shipped / paths.VERSION_FILE).exists()
-
-
-def test_start_up_copies_the_shipped_results_before_loading(application, monkeypatch, tmp_path):
-    calls = []
-    monkeypatch.setattr(main_window, "copy_bundled_results", lambda: calls.append("copy"))
-
-    def load():
-        calls.append("load")
-        raise FileNotFoundError("Database not found")
-
-    class MessageBox:
-        @staticmethod
-        def critical(parent, title, text):
-            calls.append("message")
-
-    monkeypatch.setattr(main_window, "default_context", load)
-    monkeypatch.setattr(main_window, "QMessageBox", MessageBox)
-
-    assert main_window.main() == 1
-    assert calls == ["copy", "load", "message"]
-
-
-def test_a_failed_copy_is_reported_and_start_up_goes_on(application, monkeypatch):
-    calls = []
-
-    def copy():
-        raise PermissionError("read-only folder")
-
-    class MessageBox:
-        @staticmethod
-        def warning(parent, title, text):
-            calls.append(text)
-
-        @staticmethod
-        def critical(parent, title, text):
-            calls.append("stopped: " + text)
-
-    def load():
-        raise FileNotFoundError("no database")
-
-    monkeypatch.setattr(main_window, "copy_bundled_results", copy)
-    monkeypatch.setattr(main_window, "default_context", load)
-    monkeypatch.setattr(main_window, "QMessageBox", MessageBox)
-
-    assert main_window.main() == 1
-    assert calls == [
-        "Jurnalele predicțiilor nu au putut fi copiate: read-only folder",
-        "stopped: Baza de date nu a fost găsită. Construiți-o cu comanda de mai jos și porniți "
-        "aplicația din nou.\n\nno database",
-    ]

@@ -1009,7 +1009,98 @@ Rulări din 2026-10-15 și 2026-10-16:
 - Timpul unui cadru al animației a fost măsurat pe o fereastră desenată fără ecran, cu o ligă în calcul; pe ecranul real depinde și de sistem.
 - Prima deschidere a unei ligi blochează fereastra aproximativ 0,5 s înaintea animației, cât își deschide datele.
 
-## 18. Setul de date și perioadele
+## 18. Interfața web (Faza 22)
+
+După Faza 21, echipa a hotărât ca ecranele să fie refăcute pe web, într-o fereastră de desktop, peste algoritmii și serviciile Python, care rămân neschimbate. Alegerile echipei din 2026-10-16: Tauri pentru fereastră (nu Electron), un server FastAPI local, grafice desenate în interfață (Recharts), Node și Rust instalate cu Homebrew. La acceptarea etapei, echipa a cerut ca interfața veche (PySide6) să fie scoasă (secțiunea 18.9).
+
+### 18.1. Straturile
+
+```
+fereastra (Tauri, Rust: web/src-tauri)
+  └─ interfața web (React + TypeScript: web/src) ── HTTP local ──┐
+                                                                 │
+serverul local (FastAPI: app/api) ───────────────────────────────┘
+  └─ serviciile (app/services) ─ predicțiile, echipele, evaluarea, ligile
+       └─ statistici, algoritmi, evaluare, date (neschimbate)
+```
+
+- **`app/api`** traduce rezultatele serviciilor în JSON (`schemas.py`, `server.py`, `analysis.py`) și nu calculează nimic. Testul de arhitectură verifică faptul că nu importă `algorithms/`, `ui/` sau `visualization/`; nu importă nici Qt, nici matplotlib.
+- **`web/`** doar afișează ce trimite serverul. Scrierea românească a numerelor și a datelor este copiată în `web/src/format.ts`; nimic nu este prezis, antrenat sau evaluat în TypeScript. Graficele desenează numere calculate de server.
+- Ce era în fereastra Qt și trebuia și serverului a trecut în servicii, ca ambele interfețe să folosească același cod: procesul de lucru (`app/services/processes.py`), deschiderea ligilor (`registry.py`), căile imaginilor (`images.py`), propozițiile paginilor (`explanations.py`), numele subseturilor evaluării (`labels.py`) și zilele unui meci ipotetic (`DataCatalog.hypothetical_days`).
+
+### 18.2. Serverul local
+
+`python -m app.api [--port N] [--preferences FIȘIER] [--with-window]` ascultă doar pe acest calculator (127.0.0.1). Cu portul 0 (implicit) alege sistemul un port liber, iar primul rând scris este `PITCHSENSE_PORT=<port>`, din care fereastra află adresa. Apoi calculează predicțiile fiecărei ligi în procesul de lucru, întâi liga aleasă ultima dată; `/api/status` spune care sunt gata, iar ecranele le arată pe măsură ce sosesc.
+
+| Rută | Ce întoarce |
+|---|---|
+| `/api/leagues`, `/api/status`, `/api/days`, `/api/day/{zi}` | ligile, starea predicțiilor, zilele cu meciuri, meciurile unei zile cu „meciul zilei” |
+| `/api/match/{ligă}` | pagina unui meci: fiecare model cu propoziția lui, scorurile Poisson 0–0…6–6, cum vin echipele; și meciurile ipotetice |
+| `/api/season/{ligă}` | echipele și zilele unui sezon (pentru „Alt meci”) |
+| `/api/standings/{ligă}` | clasamentul la final sau înaintea unei zile, cu forma |
+| `/api/team/{ligă}` | sezonul unui club: bilanț acasă, în deplasare și total, formă, șuturi, istoricul Elo, profilul K-Means, grupurile sezonului |
+| `/api/review/{ligă}` | predicțiile unui model pentru meciurile jucate ale unui sezon, față de rezultate |
+| `/api/about`, `/api/season-check/{ligă}`, `/api/evaluation/{ligă}`, `/api/leagues-comparison` | Analiză; ultimele două pot rula și backtestul (POST) |
+| `/api/update` (POST) | descarcă sezonul în desfășurare, la cererea utilizatorului, apoi recitește ligile |
+| `/api/preferences` | liga și echipa utilizatorului |
+| `/api/images/…` | stemele, imaginile ligilor și fotografiile stadioanelor |
+
+CORS permite doar originile ferestrei Tauri și pe cea a lui Vite din dezvoltare. Opțiunea `--with-window` (a ferestrei) oprește serverul când i se închide intrarea standard, adică atunci când procesul ferestrei se termină oricum, chiar oprit forțat (verificat cu `kill -9`); procesul de lucru se oprește odată cu serverul. `--self-test` (`app/api/self_test.py`) pornește serverul pe un port liber și îi pune fiecare tip de întrebare, iar `--update` descarcă sezonul în desfășurare și iese: cu ele se verifică pachetele, pentru că fereastra are nevoie de ecran.
+
+### 18.3. Fereastra
+
+`web/src-tauri/src/lib.rs` pornește serverul împachetat (`server/pitchsense-server`) sau, în dezvoltare, Python-ul din `.venv`, citește portul anunțat, îl dă interfeței prin comanda `backend_url` și oprește serverul la închidere. Politica de securitate a conținutului permite doar serverul local. Pe Windows, instalarea se face în Program Files, ca folderul `%LOCALAPPDATA%\PitchSense` să rămână doar al datelor utilizatorului.
+
+### 18.4. Ecranele
+
+Layoutul A, ales de echipă: o singură bară laterală cu sigla, ecranele cu iconițe (Meciuri · Clasament · Echipe · Predicții · Analiză), ligile, „Echipa ta”, actualizarea datelor și sursele. Culorile fiecărei ligi sunt variabile CSS (`web/src/theme.ts`, aceleași valori ca `app/ui/themes.py`).
+
+- **Meciuri.** Cardul „Meciul zilei” cu imaginea ligii, zilele, toate ligile (cea aleasă prima), orice sezon, modelul ales; în dreapta, „Echipa ta” (rândurile ei pun echipele una sub alta, ca numele să nu fie tăiate) și clasamentul pe scurt. „Alt meci…” prezice oricare două echipe ale unui sezon, la o zi aleasă.
+- **Pagina meciului.** Capul în culorile ligii meciului, peste fotografia stadionului gazdelor; fiecare model cu bara lui de probabilități și propoziția lui; cum vin echipele, față în față, cu valoarea mai bună evidențiată; golurile așteptate, cele mai probabile scoruri și toate scorurile 0–0…6–6. Cifrele fiecărei celule au culoarea (alb sau negru) care se citește mai bine pe ea, cu contrastul de cel puțin 4,5:1 verificat pentru fiecare ligă.
+- **Clasament.** Orice sezon, la final sau înaintea unei zile, cu stemele și forma; un clic deschide echipa.
+- **Echipe.** Capul clubului peste fotografia stadionului; bilanțul ca tabel aliniat (acasă, în deplasare, total); șuturile echipei față de ale adversarilor; meciurile (toate, la cerere); „Profilul echipei”, fără descrierea K-Means (rămasă în Analiză); graficele Elo și ale grupurilor (Recharts, încărcate la prima afișare). Sezonul ales este desenat în accentul ligii, celelalte în gri, ca fundal.
+- **Predicții** (cererea echipei). Pentru un sezon și un model: cât la sută din meciuri a nimerit, cum a anticipat fiecare fel de rezultat și lista meciurilor, filtrată (toate, nimerite, ratate, surprize) și ordonată (cele mai recente, cele mai mari surprize, cele mai sigure). O surpriză este un rezultat căruia modelul îi dădea sub 20% (`SURPRISE_CHANCE`). Fiecare listă încercuiește cipul rezultatului care s-a întâmplat.
+- **Analiză.** Cinci file: algoritmii pe înțeles (și profilurile K-Means), sezonul în desfășurare, modelele (tabele cu coloane măsurate, calibrarea și matricea de confuzie alăturate, defalcările, acordul), ligile (carduri, tabele ale căror coloane numerice împart lățimea, abilitatea și avantajul gazdelor) și sursele. Fiecare card se termină odată cu conținutul lui.
+- **Schimbarea ligii.** Ca în fereastra Qt: pagina în culorile noii ligi apare dintr-un cerc din colțul stânga-sus, cu marginea din două valuri care se calmează (0,8 s). Folosește tranzițiile de vizualizare ale browserului, cu un poligon al cărui număr de puncte rămâne același în fiecare cadru; unde ele lipsesc sau utilizatorul a cerut mai puțină mișcare, schimbarea este imediată.
+
+### 18.5. Fotografiile stadioanelor
+
+Echipa a cerut imagini cu stadioane și jucători și a permis imagini protejate în acest proiect privat. `tools/stadiums.py` citește terenul din articolul Wikipedia al fiecărui club (articolele găsite pentru steme), apoi imaginea principală a articolului stadionului (sau imaginea din infobox), la 1024 px lățime; desenele, siglele, hărțile și planurile sunt respinse. Cluburile cu același stadion împart fotografia. `app/assets/stadiums/sources.json` dă, pentru fiecare club, stadionul, articolul și fișierul. Fotografiile aparțin autorilor lor; sunt folosite doar în proiectul privat și nu se publică.
+
+### 18.6. Împachetarea
+
+`python packaging/build.py` reconstruiește datele, construiește serverul cu PyInstaller (`packaging/server.spec`: fără Qt și matplotlib) și fereastra cu Tauri, cu serverul ca resursă și versiunea din `app/__init__.py`: pe macOS `PitchSense.app` într-un `.dmg`, pe Windows un program de instalare (NSIS). Fluxul GitHub Actions pentru Windows rulează ambele suite de teste, construiește pachetul, încearcă `--update` și `--self-test` ale serverului împachetat, instalează pachetul fără întrebări și rulează autoverificarea serverului instalat.
+
+### 18.7. Verificare
+
+Rulări din 2026-10-16:
+
+- **Teste.** Toate cele 849 de teste Python trec, pe macOS și pe Windows (GitHub Actions); `ruff check` și `ruff format --check` nu găsesc nimic. Serverul este verificat de `tests/test_api.py` și `tests/test_api_analysis.py` (fiecare rută, pe datele sintetice: pagina meciului și meciul ipotetic, clasamentul, pagina echipei, predicțiile față de rezultate, Analiză și backtestul ei, actualizarea reușită sau eșuată, preferințele, imaginile, oprirea odată cu fereastra, scrierea UTF-8 pe orice consolă, așteptarea unei pregătiri pornite, autoverificarea), `tests/test_services.py` verifică `PredictionService.review`, iar `tests/test_architecture.py` și `tests/test_environment.py` verifică straturile, versiunile fixe și versiunea unică. Interfața web are 17 teste Vitest (scrierea românească, culorile celulelor și contrastul lor în fiecare ligă, sigla stemelor întunecate, valul, filtrele ecranului Predicții, nota actualizării), iar `npm run build` verifică tipurile TypeScript. Codul Rust trece `cargo fmt --check` și `cargo clippy -- -D warnings`.
+- **Verificare vizuală.** Fiecare ecran a fost deschis cu datele reale, în browser, la 1440 × 900 și la 1024 × 700: Meciuri, pagina meciului (jucat, programat, ipotetic), Clasament, Echipe (cu ambele grafice), Predicții, cele cinci file ale Analizei, dialogurile „Alt meci” și „Echipa ta”, valul schimbării ligii (oprit la jumătate). La 1024 px niciun ecran și niciun tabel nu se derulează în lateral. Fereastra Tauri a fost verificată din `tauri dev`, dintr-o aplicație de test și din pachet.
+- **Procese.** Serverul și procesul lui de lucru se opresc când fereastra se închide din meniu și când este oprită forțat (`kill -9`).
+- **Pachete.** Versiunea a rămas 0.3.0.
+  - macOS: `.dmg` de 86 MB (aplicația 141 MB, din care serverul 91 MB). Autoverificarea serverului trece 13 din 13 din `dist/` și din imaginea `.dmg` montată doar pentru citire; aplicația deschisă din `dist/` își pornește serverul și arată ecranele, iar la închidere nu rămâne niciun proces.
+  - Windows (GitHub Actions): toate testele trec, programul de instalare are 68 MB. Serverul împachetat descarcă sezonul în desfășurare (`--update`: 297 de meciuri jucate și 1.455 programate în 5 ligi), autoverificarea lui trece, iar după instalarea fără întrebări în *Program Files* trece și autoverificarea serverului instalat.
+
+### 18.8. Limitări
+
+- Valul schimbării ligii cere tranzițiile de vizualizare ale browserului: în fereastra de macOS ele există de la Safari 18 (WebKit-ul sistemului); cu unul mai vechi, schimbarea este imediată.
+- Un meci ipotetic este calculat la cerere, în 3–8 secunde pe datele reale, cât folosește toate meciurile de până la acea zi.
+- Ecranele arată o ligă abia după ce i s-au calculat predicțiile (aproximativ 8 secunde pe ligă, la pornire).
+- Fotografiile arată stadionul de acum al fiecărui club, nu pe cel din sezonul ales; cinci cluburi nu au fotografie (Arles, Carpi, Evian Thonon Gaillard, Nancy, Numancia), iar capul lor păstrează culoarea ligii.
+- Pachetele nu sunt semnate. Pe Windows, fereastra are nevoie de WebView2 (inclus în Windows 10 și 11 actualizate; programul de instalare îl aduce dacă lipsește).
+
+### 18.9. Scoaterea ferestrei PySide6
+
+La acceptarea etapei (2026-10-16), echipa a cerut ca fereastra PySide6 să fie scoasă, pentru că interfața web face tot ce făcea ea.
+
+- **Ce a plecat:** `app/ui/` (cu autoverificarea ei), `app/visualization/` (graficele matplotlib și paleta lor), `app/__main__.py` (`python -m app`), `packaging/pitchsense.spec`, `packaging/icons.py` și testele lor (`test_ui`, `test_themes`, `test_brand`, `test_transition`, `test_charts`, `test_self_test`, `test_main`, `test_icons` și testele de pornire ale ferestrei din `test_paths`). Iconițele ferestrei Tauri fuseseră desenate din aceeași siglă și rămân în `web/src-tauri/icons/`.
+- **Ce s-a mutat:** imaginile (steme, imaginile ligilor, fotografiile stadioanelor) în `app/assets/`. PySide6 și matplotlib nu mai sunt dependențe ale aplicației; Qt rămâne doar pentru instrumentele imaginilor (`tools/crests.py`, `tools/stadiums.py`), în opțiunea `tools` (`python -m pip install -e ".[tools]"`).
+- **Ce a preluat serverul:** comportamentul de la pornire al ferestrei. O copiere eșuată a jurnalelor livrate sau a sezonului în desfășurare este raportată, iar pornirea continuă. O bază de date lipsă este explicată, iar fereastra Tauri arată mesajul în loc să aștepte. Un backtest eșuat răspunde cu motivul, iar datele încărcate merg mai departe.
+- **Testele:** `tests/test_integration.py` parcurge acum lanțul până la răspunsurile serverului (fișiere brute → bază de date → jurnal → evaluare → server), cu aceleași verificări ca înainte. Testul de arhitectură cere ca nimic din `app/` să nu importe Qt sau matplotlib. Rămân 682 de teste Python, care rulează în aproximativ 10 secunde (înainte, 852 în aproximativ 52 de secunde), și 18 teste ale interfeței web.
+- **Verificare după scoatere (2026-10-16):** pe macOS, pachetul reconstruit de la zero (`.dmg` de 86 MB) își trece autoverificarea din `dist/` și din imaginea `.dmg` montată doar pentru citire; aplicația pornește normal, iar cu baza de date mutată temporar arată motivul în fereastră. Pe Windows (GitHub Actions) trec toate cele 682 de teste, programul de instalare are 67 MB, `--update` din pachet descarcă sezonul, iar autoverificarea trece atât pentru serverul din pachet, cât și pentru cel instalat.
+
+## 19. Setul de date și perioadele
 
 Sursa datelor este Football-Data.co.uk: cinci ligi (Premier League, La Liga, Serie A, Bundesliga, Ligue 1), fiecare cu 20 de sezoane încheiate, 2006/07–2025/26 (36.197 de meciuri). Perioadele sunt aceleași pentru toate ligile. Sezonul în desfășurare (2026/27) este descărcat separat și nu face parte din evaluare (secțiunea 15).
 
@@ -1019,15 +1110,15 @@ Sursa datelor este Football-Data.co.uk: cinci ligi (Premier League, La Liga, Ser
 | 2007/08–2009/10 | Calibrare: se aleg hiperparametrii; rezultatele nu sunt raportate. |
 | 2010/11–2025/26 | Evaluarea raportată: 16 sezoane; 6.080 de meciuri în fiecare ligă cu 20 de echipe, 4.896 în Bundesliga, 5.757 în Ligue 1; 28.893 în total. |
 
-## 19. Tehnologii
+## 20. Tehnologii
 
 | Componentă | Versiune | Rol |
 |---|---|---|
 | Python | 3.14 | limbajul aplicației |
-| PySide6-Essentials | 6.11.2 | interfața grafică (Qt) |
+| PySide6-Essentials | 6.11.2 | interfața grafică (Qt) până în Faza 22; acum doar pentru instrumentele imaginilor |
 | NumPy | 2.5.3 | calculele numerice din algoritmi |
 | pandas | 3.0.6 | citirea și prelucrarea datelor |
-| matplotlib | 3.11.2 | grafice |
+| matplotlib | 3.11.2 | grafice, până în Faza 22 (înlocuit de Recharts) |
 | SQLite (`sqlite3`, inclus în Python) | – | stocarea datelor prelucrate |
 | pytest | 9.1.1 | testare |
 | ruff | 0.16.10 | verificarea și formatarea codului |
@@ -1035,8 +1126,15 @@ Sursa datelor este Football-Data.co.uk: cinci ligi (Premier League, La Liga, Ser
 | Plus Jakarta Sans (font, SIL Open Font License 1.1) | cinci grosimi statice | textul interfeței și al graficelor (din Faza 21, în locul lui Libre Franklin), inclus în `app/ui/assets/fonts/` |
 | Barlow Condensed (font, SIL Open Font License 1.1) | patru grosimi statice | titlurile, cifrele mari, scorul și navigarea, inclus în `app/ui/assets/fonts/` |
 | Kanit (font, SIL Open Font License 1.1) | Black Italic și ExtraBold Italic | sigla și numele de lângă ea (Faza 21), inclus în `app/ui/assets/fonts/` |
+| FastAPI / uvicorn | 0.143.2 / 0.54.0 | serverul local al interfeței web (Faza 22) |
+| httpx2 | 2.13.1 | clientul de test al serverului (doar pentru teste; Starlette 1.8 avertizează cu httpx) |
+| Node / npm | 26.12 / 11.20 | construirea interfeței web |
+| React / TypeScript / Vite | 19.3.1 / 7.0.2 / 8.3.4 | interfața web |
+| Recharts | 3.10.1 | graficele interfeței web |
+| Vitest, Testing Library, jsdom | 5.0.5, 16.3.3, 30.1.3 | testele interfeței web |
+| Rust / Tauri | 1.99 / 2.12.4 | fereastra de desktop a interfeței web |
 
-## 20. Decizii tehnice
+## 21. Decizii tehnice
 
 | Decizie | Motiv |
 |---|---|
@@ -1120,3 +1218,9 @@ Sursa datelor este Football-Data.co.uk: cinci ligi (Premier League, La Liga, Ser
 | Animația desenează, pe un strat opac, imaginea nouă a ferestrei și imaginea veche în afara unui cerc cu valuri, calculat ca un singur poligon | Nimic de sub strat nu se redesenează în timpul animației (prima versiune, transparentă, redesena toată fereastra la fiecare cadru și sacada); un cadru durează 4–9 ms la rezoluția Retina. |
 | Antetul desenează imaginea ligii direct, la rezoluția ecranului, și o trece în culoarea propriei margini, nu o extinde cu inteligență artificială | Nimic nu este inventat în imagine și nu se pierde calitate (prima versiune, cu o imagine intermediară și o copie estompată, o desena la jumătate din rezoluție pe Retina). |
 | Piese adaptive (`ResponsiveBox`, `ReflowGrid`, rânduri care trec pe două linii) în locul unei lățimi minime mari | Aplicația se poate folosi pe ecrane de laptop mici, fără bară de derulare orizontală. |
+| Interfața refăcută pe web: React și TypeScript într-o fereastră Tauri, peste un server FastAPI local (Faza 22) | Decizia echipei: o interfață mai flexibilă decât Qt, cu aceleași servicii Python; Tauri folosește vizualizatorul web al sistemului, deci pachetul e mic, iar FastAPI validează răspunsurile cu aceleași tipuri. |
+| Serverul ascultă doar pe 127.0.0.1, pe un port ales de sistem, anunțat pe primul rând | Nimeni din afara calculatorului nu îl poate folosi, iar două aplicații pornite nu se ciocnesc la port. |
+| Serverul se oprește când i se închide intrarea standard | Nu rămâne niciun server pornit fără fereastră, nici când fereastra este oprită forțat. |
+| Graficele interfeței web sunt desenate în interfață (Recharts și grile CSS), cu numerele calculate de server | Decizia echipei; graficele urmează culorile ligii, au indicii la trecerea mausului și se încarcă doar când sunt afișate. |
+| Ecranul Predicții, cu surprizele definite ca rezultate cu șansă sub 20% | Cererea echipei; pragul este scris o singură dată (`SURPRISE_CHANCE`) și explicat pe ecran. |
+| Fotografiile stadioanelor de pe Wikipedia, cu sursa fiecăreia | Cererea echipei, care a permis imagini protejate în proiectul privat; aceeași metodă ca la steme. |

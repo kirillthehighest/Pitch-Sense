@@ -15,10 +15,10 @@ authors = [
 ]
 # Exact pins: upgrade deliberately and run the full test suite afterwards.
 dependencies = [
-    "PySide6-Essentials==6.11.2",
     "numpy==2.5.3",
     "pandas==3.0.6",
-    "matplotlib==3.11.2",
+    "fastapi==0.143.2",  # the local server the web interface reads (Phase 22)
+    "uvicorn==0.54.0",  # runs that server
 ]
 
 [project.optional-dependencies]
@@ -26,7 +26,11 @@ dev = [
     "pytest==9.1.1",
     "ruff==0.16.10",
     "pyinstaller==6.22.3",  # builds the macOS and Windows packages (Phase 14)
+    "httpx2==2.13.1",  # the test client of FastAPI (Starlette 1.8 asks for it; Phase 22)
 ]
+# Only for tools/crests.py and tools/stadiums.py, run by hand: Qt resizes the images and draws
+# the sheets they are checked on (the PySide6 window itself was removed in Phase 22).
+tools = ["PySide6-Essentials==6.11.2"]
 
 [tool.setuptools.dynamic]
 version = { attr = "app.__version__" }

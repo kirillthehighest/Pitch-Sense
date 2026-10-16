@@ -12,7 +12,7 @@ The matches screen (Phase 19) reads the cache day by day (``on_day``) and team b
 (``team_matches``); ``season_check`` scores the predictions of a season's matches played so far.
 
 The slow step can run anywhere: ``preparation`` gives it as a job that can be sent to another
-process (Phase 21: the window computes in a separate process, so the work never slows it), and
+process (Phase 21; the server computes in a separate process, so the work never slows it), and
 ``install`` takes the job's result.
 """
 
@@ -139,6 +139,46 @@ class SeasonCheck:
     models: tuple[ModelCheck, ...]
 
 
+# A played match is a surprise for a model when the result that happened had less than this
+# chance in its prediction (an upset: the model thought it would happen less than once in five).
+SURPRISE_CHANCE = 0.2
+
+
+@dataclass(frozen=True, eq=False)
+class ReviewedMatch:
+    """A played match as one model saw it before kickoff."""
+
+    forecast: MatchForecast
+    chance: float  # the probability the model gave the result that happened
+    hit: bool  # the model's most likely outcome happened
+    surprise: bool  # the result had less than SURPRISE_CHANCE
+
+
+@dataclass(frozen=True, eq=False)
+class SeasonReview:
+    """One model's predictions of a season's played matches, against what happened."""
+
+    season: str
+    model: ModelName
+    matches: tuple[ReviewedMatch, ...]  # in the order they were played
+
+    @property
+    def hits(self) -> int:
+        return sum(match.hit for match in self.matches)
+
+    @property
+    def surprises(self) -> int:
+        return sum(match.surprise for match in self.matches)
+
+    def by_result(self) -> dict[Outcome, tuple[int, int]]:
+        """For each result that happened: (matches the model got right, matches)."""
+        counts = {outcome: (0, 0) for outcome in Outcome}
+        for match in self.matches:
+            hits, total = counts[match.forecast.played.result]
+            counts[match.forecast.played.result] = (hits + match.hit, total + 1)
+        return counts
+
+
 @dataclass(frozen=True, slots=True)
 class PreparedPredictions:
     """The result of the slow step: every real match's predictions and every fixture's."""
@@ -158,6 +198,21 @@ def compute_predictions(
         return PreparedPredictions(tuple(results), tuple(upcoming))
     results = predict_history(matches, min_training_matches=min_training_matches)
     return PreparedPredictions(tuple(results), ())
+
+
+def featured_match(
+    forecasts: Sequence[MatchForecast],
+    strength: Callable[[MatchForecast], float],
+    favourite: str | None = None,
+) -> MatchForecast | None:
+    """The match of the day among ``forecasts`` (one league's matches of one day): the favourite
+    team's, else the one whose teams are strongest by ``strength`` (the sum of their ratings, for
+    instance); None without matches. Ties go to the earliest."""
+    if favourite is not None:
+        for forecast in forecasts:
+            if favourite in (forecast.home_team, forecast.away_team):
+                return forecast
+    return max(forecasts, key=strength) if forecasts else None
 
 
 def _forecast_order(forecast: MatchForecast) -> tuple[date, time, str]:
@@ -236,6 +291,15 @@ class PredictionService:
         self.prepare()
         return sorted(self._days)
 
+    def nearest_match_day(self, day: date) -> date | None:
+        """``day`` when it has matches, else the league's next day with matches, else its last
+        one; None without matches at all."""
+        days = self.match_days()
+        later = [found for found in days if found >= day]
+        if later:
+            return later[0]
+        return days[-1] if days else None
+
     def on_day(self, day: date) -> list[MatchForecast]:
         """The matches of one day, by kickoff time, then home team; empty without matches."""
         self.prepare()
@@ -253,6 +317,31 @@ class PredictionService:
             ),
             key=_forecast_order,
         )
+
+    def review(self, season: str, model: ModelName) -> SeasonReview:
+        """How ``model``'s predictions of the season's played matches turned out; matches the
+        model could not predict (too few earlier matches) are left out."""
+        self.prepare()
+        reviewed = []
+        for match in self._matches:
+            if match.season != season:
+                continue
+            predictions = self._history[match].predictions
+            prediction = predictions.get(model)
+            if prediction is None:
+                continue
+            probabilities = prediction.probabilities
+            chance = probabilities.of(match.result)
+            reviewed.append(
+                ReviewedMatch(
+                    forecast=self._played_forecast(match, predictions),
+                    chance=chance,
+                    hit=probabilities.most_likely == match.result,
+                    surprise=chance < SURPRISE_CHANCE,
+                )
+            )
+        reviewed.sort(key=lambda match: _forecast_order(match.forecast))
+        return SeasonReview(season, model, tuple(reviewed))
 
     def season_check(self, season: str) -> SeasonCheck:
         """Score every model on the season's played matches that all of them predicted."""

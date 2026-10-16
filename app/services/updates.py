@@ -1,4 +1,4 @@
-"""The update of the season in progress, as the window starts it and describes it in Romanian."""
+"""The update of the season in progress, as the interface starts it and describes it in Romanian."""
 
 from datetime import datetime
 from pathlib import Path

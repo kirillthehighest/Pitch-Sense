@@ -1,10 +1,9 @@
 """Shared fixtures: small synthetic seasons in the Football-Data.co.uk file format, and the
-services and Qt application that the GUI and end-to-end tests run on (off-screen)."""
+services and local server that the server and end-to-end tests run on."""
 
 import csv
 import io
 import json
-import os
 import urllib.error
 from collections.abc import Callable
 from datetime import date
@@ -19,8 +18,6 @@ from app.data.competitions import Competition
 from app.data.live import CALENDAR_URL, RESULTS_URL, update_live_data
 from app.data.models import Match
 from app.data.preprocessing import matches_from_frame
-
-os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")  # before Qt is first imported
 
 STATISTICS_HEADER = ("HS", "AS", "HST", "AST", "HF", "AF", "HC", "AC", "HY", "AY", "HR", "AR")
 TEAMS = ("Alpha", "Bravo", "Charlie", "Delta")
@@ -206,33 +203,22 @@ def live_dir(tmp_path: Path, fake_fetch, four_team_league) -> Path:
     return target
 
 
-@pytest.fixture(scope="session")
-def application():
-    """The Qt application of the GUI tests, with the PitchSense theme. Qt is imported here so
-    other tests never load it."""
-    from PySide6.QtWidgets import QApplication
-
-    from app.ui.theme import apply_theme
-
-    application = QApplication.instance() or QApplication([])
-    apply_theme(application)
-    return application
-
-
 @pytest.fixture
 def errors() -> list[str]:
-    """Collects the error messages the screens report."""
+    """Collects the error messages a command reports."""
     return []
 
 
 @pytest.fixture
-def make_app_context(application, tmp_path: Path, errors: list[str]):
-    """Yield a function that opens the services of the given leagues of a database, with tasks
-    run at once, errors collected and preferences and logs kept in the test folder.
+def make_backend(tmp_path: Path):
+    """A function that serves the given leagues of a database, as the local server does, with
+    the predictions computed in this process, preferences and logs kept in the test folder and
+    no network.
 
     The backtests evaluate 2007-08 and the models start after 3 earlier matches, so that both
     small seasons are useful.
     """
+    from app.api.backend import Backend
     from app.data.competitions import competition
     from app.evaluation.leagues import CLOSED_DOORS_SEASON
     from app.services.catalog import DataCatalog
@@ -240,9 +226,9 @@ def make_app_context(application, tmp_path: Path, errors: list[str]):
     from app.services.leagues import LeagueComparisonService
     from app.services.predictions import PredictionService
     from app.services.preferences import Preferences
+    from app.services.processes import Computer, compute_here
+    from app.services.registry import LeagueServices
     from app.services.teams import TeamService
-    from app.ui.context import AppContext, LeagueServices
-    from app.ui.worker import compute_here, run_now
 
     results_dir = tmp_path / "results"
 
@@ -254,8 +240,9 @@ def make_app_context(application, tmp_path: Path, errors: list[str]):
         competitions: tuple[str, ...] = ("SP1",),
         closed_doors_season: str = CLOSED_DOORS_SEASON,
         live_dir: Path | None = None,
-        update_data: Callable[[], object] = no_network,
-    ) -> AppContext:
+        compute: Computer = compute_here,
+        today: date = date(2007, 9, 4),
+    ) -> Backend:
         def open_league(code: str) -> LeagueServices:
             catalog = DataCatalog.load(database, competition=code, live_dir=live_dir)
             return LeagueServices(
@@ -275,8 +262,8 @@ def make_app_context(application, tmp_path: Path, errors: list[str]):
                 ),
             )
 
-        return AppContext(
-            competitions=competitions,
+        return Backend(
+            competitions,
             open_league=open_league,
             comparison=LeagueComparisonService(
                 competitions,
@@ -287,21 +274,27 @@ def make_app_context(application, tmp_path: Path, errors: list[str]):
                 closed_doors_season=closed_doors_season,
             ),
             preferences=Preferences(tmp_path / "preferences.json"),
-            update_data=update_data,
-            run_task=run_now,
-            compute=compute_here,
-            report_error=errors.append,
+            compute=compute,
+            update_data=no_network,
+            today=lambda: today,
         )
 
-    yield make
-    # A window paints the whole interface in its league's colours; the next test starts again
-    # from the default league's.
-    from app.ui.themes import DEFAULT_THEME, set_current_theme
-
-    set_current_theme(DEFAULT_THEME)
+    return make
 
 
 @pytest.fixture
-def app_context(make_app_context, database: Path):
-    """The services of the fixture database: one league, SP1, with two 4-team seasons."""
-    return make_app_context(database)
+def api_backend(make_backend, two_league_database):
+    """The local server's state over two synthetic leagues, predictions prepared."""
+    served = make_backend(two_league_database, ("E0", "SP1"))
+    served.prepare_all(wait=True)
+    return served
+
+
+@pytest.fixture
+def api_client(api_backend):
+    """FastAPI's test client over ``api_backend``."""
+    from fastapi.testclient import TestClient
+
+    from app.api.server import create_app
+
+    return TestClient(create_app(api_backend))

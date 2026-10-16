@@ -1,6 +1,6 @@
 """Download the season in progress of every league.
 
-Run from the project folder with ``python -m app.data.update`` (the window's "Actualizează
+Run from the project folder with ``python -m app.data.update`` (the interface's "Actualizează
 datele" button does the same). The results so far come from Football-Data.co.uk and the calendar
 from openfootball; both are checked before they replace the files of the previous update, so a
 failed download leaves the previous data as it was. See ``app/data/live.py``.

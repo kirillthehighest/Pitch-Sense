@@ -5,8 +5,9 @@ only what is displayed is translated, here, in one place.
 """
 
 from app.evaluation.backtesting import ALWAYS_HOME_WIN, PAST_FREQUENCIES
-from app.evaluation.comparison import Measure
+from app.evaluation.comparison import MATCHUP_TYPES, Measure
 from app.prediction.outputs import ModelName
+from app.services.formatting import season_text
 
 MODEL_LABELS = {
     str(ModelName.ELO): "Elo",
@@ -50,3 +51,25 @@ def team_abbreviation(team: str) -> str:
     if len(words) == 1:
         return words[0][:3].upper()
     return (words[0][0] + words[1][:2]).upper()
+
+
+# The types of match of the comparison's breakdown, in the order of MATCHUP_TYPES
+MATCHUP_LABELS = dict(
+    zip(
+        MATCHUP_TYPES,
+        (
+            "cu o echipă promovată",
+            "cu o echipă de elită",
+            "echipe din același grup",
+            "echipe din grupuri diferite",
+        ),
+        strict=True,
+    )
+)
+
+
+def subset_label(label_text: str) -> str:
+    """The Romanian name of a subset: a season, an actual result or a type of match."""
+    if label_text in OUTCOME_LABELS:
+        return OUTCOME_LABELS[label_text]
+    return MATCHUP_LABELS.get(label_text, season_text(label_text))

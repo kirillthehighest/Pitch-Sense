@@ -6,14 +6,14 @@ downloaded, is added to them: its matches played so far and the matches still to
 """
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 from app.data.competitions import COMPETITIONS
 from app.data.live import load_live_league
 from app.data.models import Fixture, Match
 from app.data.paths import DATABASE_PATH
-from app.data.preprocessing import DataValidationError
+from app.data.preprocessing import DataValidationError, season_date_window
 from app.data.repository import MatchRepository
 
 DEFAULT_COMPETITION = "SP1"
@@ -122,6 +122,16 @@ class DataCatalog:
         if not selected:
             raise ValueError(f"no matches in season {season!r}")
         return selected
+
+    def hypothetical_days(self, season: str) -> tuple[date, date, date]:
+        """The days a hypothetical match of the season may be on (first, last) and the day
+        offered first: the day after the last match played in the season in progress, the
+        middle of a completed season."""
+        first_day, last_day = season_date_window(season)
+        days = [match.match_date for match in self.season_matches(season)]
+        if season == self.current_season:
+            return first_day, last_day, max(days) + timedelta(days=1)
+        return first_day, last_day, days[len(days) // 2]
 
     def summary(self) -> CatalogSummary:
         seasons = self.seasons()

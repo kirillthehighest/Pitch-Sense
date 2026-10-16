@@ -1,0 +1,120 @@
+// The side bar (layout A, chosen by the team): the logo, the screens, the leagues, and at the
+// bottom "your team", the update of the season in progress and the sources.
+import type { ReactNode } from "react";
+import type { League, Preferences } from "../types";
+import { Crest } from "./Crest";
+import { Flag } from "./Flag";
+import {
+  AnalysisIcon, MatchesIcon, PredictionsIcon, RefreshIcon, StandingsIcon, TeamIcon,
+} from "./Icons";
+import { Lockup } from "./Logo";
+
+export type ScreenName = "matches" | "standings" | "team" | "predictions" | "analysis";
+
+export const SCREENS: { name: ScreenName; title: string; description: string; icon: () => ReactNode }[] = [
+  {
+    name: "matches",
+    title: "Meciuri",
+    description: "Meciurile fiecărei zile, cu predicțiile modelelor. Fiecare predicție folosește doar meciurile jucate înaintea ei.",
+    icon: MatchesIcon,
+  },
+  {
+    name: "standings",
+    title: "Clasament",
+    description: "Clasamentul oricărui sezon, la final sau înaintea oricărei zile, cu forma fiecărei echipe.",
+    icon: StandingsIcon,
+  },
+  {
+    name: "team",
+    title: "Echipe",
+    description: "Sezonul unei echipe: rezultate, formă, șuturi, ratingul Elo și profilul ei.",
+    icon: TeamIcon,
+  },
+  {
+    name: "predictions",
+    title: "Predicții",
+    description: "Ce au prezis modelele și ce s-a întâmplat: meciuri nimerite, ratate și surprize.",
+    icon: PredictionsIcon,
+  },
+  {
+    name: "analysis",
+    title: "Analiză",
+    description: "Cum lucrează modelele, cât de bine prezic și cum se compară ligile.",
+    icon: AnalysisIcon,
+  },
+];
+
+interface Props {
+  screen: ScreenName;
+  onScreen: (screen: ScreenName) => void;
+  leagues: League[];
+  league: string;
+  onLeague: (code: string) => void;
+  preferences: Preferences | null;
+  onFavourite: () => void;
+  onUpdate: () => void;
+  updating: boolean;
+  updatedAt: string | null; // when the season in progress was downloaded (UTC, ISO)
+}
+
+/** 15.10.2026, 16:01 in the computer's time zone, as docs/brand.md writes dates. */
+export function updatedText(iso: string): string {
+  const moment = new Date(iso);
+  const two = (value: number) => String(value).padStart(2, "0");
+  return `${two(moment.getDate())}.${two(moment.getMonth() + 1)}.${moment.getFullYear()}, ${two(moment.getHours())}:${two(moment.getMinutes())}`;
+}
+
+export function Sidebar(props: Props) {
+  const favourite = props.preferences?.favourite;
+  return (
+    <aside className="sidebar">
+      <Lockup />
+      <div className="sidebar-label">Meniu</div>
+      {SCREENS.map(({ name, title, icon: Icon }) => (
+        <button
+          key={name}
+          className={`side-item${props.screen === name ? " chosen" : ""}`}
+          onClick={() => props.onScreen(name)}
+          aria-label={title}
+        >
+          <Icon />
+          <span className="side-text">{title}</span>
+        </button>
+      ))}
+      <div className="sidebar-label">Competiții</div>
+      {props.leagues.map((league) => (
+        <button
+          key={league.code}
+          className={`side-item league-item${props.league === league.code ? " chosen" : ""}`}
+          onClick={() => props.onLeague(league.code)}
+          aria-label={`${league.name}, ${league.country}`}
+        >
+          <Flag code={league.code} size={26} />
+          <span className="side-text">
+            {league.name}
+            <br />
+            <span className="country">{league.country}</span>
+          </span>
+        </button>
+      ))}
+      <div className="spacer" />
+      <button className="side-item" onClick={props.onFavourite} aria-label="Echipa ta">
+        {favourite ? <Crest team={favourite.team} size={22} ring /> : <TeamIcon />}
+        <span className="side-text">{favourite ? favourite.team : "Alege echipa ta"}</span>
+      </button>
+      <button className="side-item" onClick={props.onUpdate} disabled={props.updating} aria-label="Actualizează datele">
+        <RefreshIcon />
+        <span className="side-text">{props.updating ? "Se actualizează…" : "Actualizează datele"}</span>
+      </button>
+      <div className="sidebar-note">
+        Rezultate: Football-Data.co.uk
+        <br />
+        Calendar: openfootball (CC0)
+        <br />
+        {props.updatedAt ? `Actualizat: ${updatedText(props.updatedAt)}` : "Sezonul curent: —"}
+        <br />
+        UTM · APA · TI-251
+      </div>
+    </aside>
+  );
+}

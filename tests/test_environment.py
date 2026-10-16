@@ -32,8 +32,29 @@ def test_installed_version_matches_pin(requirement):
     assert version(name.strip()) == pinned_version.strip()
 
 
-def test_matplotlib_qt_backend_loads_with_pyside6():
-    from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
-    from PySide6.QtWidgets import QWidget
+WEB = PYPROJECT.parent / "web"
 
-    assert issubclass(FigureCanvasQTAgg, QWidget)
+
+def test_the_web_interface_pins_every_package_exactly():
+    import json
+
+    package = json.loads((WEB / "package.json").read_text(encoding="utf-8"))
+    pins = {**package["dependencies"], **package["devDependencies"]}
+    loose = {name: pin for name, pin in pins.items() if not pin[0].isdigit()}
+
+    assert loose == {}
+    cargo = tomllib.loads((WEB / "src-tauri" / "Cargo.toml").read_text(encoding="utf-8"))
+    for name in ("tauri", "tauri-build"):
+        section = "dependencies" if name == "tauri" else "build-dependencies"
+        assert cargo[section][name]["version"].startswith("=")
+
+
+def test_the_window_carries_the_version_of_the_code():
+    import json
+
+    from app import __version__
+
+    cargo = tomllib.loads((WEB / "src-tauri" / "Cargo.toml").read_text(encoding="utf-8"))
+    config = json.loads((WEB / "src-tauri" / "tauri.conf.json").read_text(encoding="utf-8"))
+
+    assert cargo["package"]["version"] == config["version"] == __version__
