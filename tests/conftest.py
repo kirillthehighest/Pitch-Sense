@@ -307,3 +307,33 @@ def make_app_context(application, tmp_path: Path, errors: list[str]):
 def app_context(make_app_context, database: Path):
     """The services of the fixture database: one league, SP1, with two 4-team seasons."""
     return make_app_context(database)
+
+
+@pytest.fixture
+def api_backend(make_app_context, two_league_database, tmp_path):
+    """The local server's state over two synthetic leagues, predictions prepared, no network."""
+    from app.api.backend import Backend
+    from app.services.preferences import Preferences
+    from app.services.processes import compute_here
+
+    context = make_app_context(two_league_database, ("E0", "SP1"))
+    served = Backend(
+        context.competitions,
+        open_league=context.open_league,
+        comparison=context.comparison,
+        preferences=Preferences(tmp_path / "web-preferences.json"),
+        compute=compute_here,
+        today=lambda: date(2007, 9, 4),
+    )
+    served.prepare_all(wait=True)
+    return served
+
+
+@pytest.fixture
+def api_client(api_backend):
+    """FastAPI's test client over ``api_backend``."""
+    from fastapi.testclient import TestClient
+
+    from app.api.server import create_app
+
+    return TestClient(create_app(api_backend))

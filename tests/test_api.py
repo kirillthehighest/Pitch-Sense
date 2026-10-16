@@ -6,62 +6,37 @@ import threading
 from datetime import date
 
 import pytest
-from fastapi.testclient import TestClient
 
 from app.api.__main__ import exit_with_window, option, port_of
-from app.api.backend import Backend
-from app.api.server import create_app
 from app.prediction.outputs import ModelName
-from app.services.preferences import Preferences
-from app.services.processes import compute_here
 
 
-@pytest.fixture
-def backend(make_app_context, two_league_database, tmp_path):
-    context = make_app_context(two_league_database, ("E0", "SP1"))
-    served = Backend(
-        context.competitions,
-        open_league=context.open_league,
-        comparison=context.comparison,
-        preferences=Preferences(tmp_path / "web-preferences.json"),
-        compute=compute_here,
-        today=lambda: date(2007, 9, 4),
-    )
-    served.prepare_all(wait=True)
-    return served
-
-
-@pytest.fixture
-def client(backend):
-    return TestClient(create_app(backend))
-
-
-def test_the_leagues_come_with_their_seasons_and_state(client):
-    leagues = client.get("/api/leagues").json()
+def test_the_leagues_come_with_their_seasons_and_state(api_client):
+    leagues = api_client.get("/api/leagues").json()
 
     assert [league["code"] for league in leagues] == ["E0", "SP1"]
     assert leagues[1]["name"] == "La Liga" and leagues[1]["country"] == "Spania"
     assert leagues[1]["seasons"] == ["2006-07", "2007-08"]
     assert all(league["prepared"] for league in leagues)
-    status = client.get("/api/status").json()
+    status = api_client.get("/api/status").json()
     assert status == {"prepared": {"E0": True, "SP1": True}, "preparing": None, "failures": {}}
 
 
-def test_the_days_and_the_next_day_with_matches(client):
-    days = client.get("/api/days").json()
+def test_the_days_and_the_next_day_with_matches(api_client):
+    days = api_client.get("/api/days").json()
 
     assert days["today"] == "2007-09-04"
     assert days["next_day"] >= "2007-09-04"
     assert days["days"] == sorted(days["days"])
 
 
-def test_a_day_lists_every_league_the_chosen_first_with_predictions(client, backend):
-    day = client.get("/api/days").json()["next_day"]
-    answer = client.get(f"/api/day/{day}", params={"league": "SP1"}).json()
+def test_a_day_lists_every_league_the_chosen_first_with_predictions(api_client, api_backend):
+    day = api_client.get("/api/days").json()["next_day"]
+    answer = api_client.get(f"/api/day/{day}", params={"league": "SP1"}).json()
 
     assert [group["code"] for group in answer["leagues"]][0] == "SP1"
     forecast = answer["leagues"][0]["forecasts"][0]
-    services = backend.league("SP1").predictions.on_day(date.fromisoformat(day))[0]
+    services = api_backend.league("SP1").predictions.on_day(date.fromisoformat(day))[0]
     assert (forecast["home_team"], forecast["away_team"]) == (
         services.home_team,
         services.away_team,
@@ -73,8 +48,8 @@ def test_a_day_lists_every_league_the_chosen_first_with_predictions(client, back
     assert answer["featured"] is not None
 
 
-def test_a_played_match_says_whether_each_model_was_right(client):
-    answer = client.get("/api/day/2007-09-03", params={"league": "SP1"}).json()
+def test_a_played_match_says_whether_each_model_was_right(api_client):
+    answer = api_client.get("/api/day/2007-09-03", params={"league": "SP1"}).json()
     forecast = answer["leagues"][0]["forecasts"][0]
 
     assert forecast["result"] in ("H", "D", "A")
@@ -82,22 +57,22 @@ def test_a_played_match_says_whether_each_model_was_right(client):
         assert prediction["hit"] == (prediction["most_likely"] == forecast["result"])
 
 
-def test_the_match_of_the_day_is_your_teams(client):
-    day = client.get("/api/days").json()["next_day"]
-    first = client.get(f"/api/day/{day}", params={"league": "SP1"}).json()["leagues"][0]
+def test_the_match_of_the_day_is_your_teams(api_client):
+    day = api_client.get("/api/days").json()["next_day"]
+    first = api_client.get(f"/api/day/{day}", params={"league": "SP1"}).json()["leagues"][0]
     team = first["forecasts"][-1]["away_team"]
-    client.put(
+    api_client.put(
         "/api/preferences",
         json={"competition": "SP1", "favourite": {"competition": "SP1", "team": team}},
     )
 
-    featured = client.get(f"/api/day/{day}", params={"league": "SP1"}).json()["featured"]
+    featured = api_client.get(f"/api/day/{day}", params={"league": "SP1"}).json()["featured"]
 
     assert team in (featured["home_team"], featured["away_team"])
 
 
-def test_a_played_matchs_page_has_every_model_the_scores_and_both_teams(client, backend):
-    listed = client.get("/api/day/2007-09-03", params={"league": "SP1"}).json()
+def test_a_played_matchs_page_has_every_model_the_scores_and_both_teams(api_client, api_backend):
+    listed = api_client.get("/api/day/2007-09-03", params={"league": "SP1"}).json()
     forecast = listed["leagues"][0]["forecasts"][0]
     params = {
         "season": forecast["season"],
@@ -106,7 +81,7 @@ def test_a_played_matchs_page_has_every_model_the_scores_and_both_teams(client, 
         "away": forecast["away_team"],
     }
 
-    page = client.get("/api/match/SP1", params=params).json()
+    page = api_client.get("/api/match/SP1", params=params).json()
 
     assert page["forecast"] == forecast  # the same match as in the day's list
     assert page["status"] == "Final" and page["verdict"].startswith("Rezultat: ")
@@ -117,7 +92,7 @@ def test_a_played_matchs_page_has_every_model_the_scores_and_both_teams(client, 
     top = page["poisson"]["top_scores"][0]
     assert grid[top["home"]][top["away"]] == pytest.approx(top["probability"])
     assert top["probability"] == max(max(row) for row in grid)
-    teams = backend.league("SP1").teams
+    teams = api_backend.league("SP1").teams
     before = date.fromisoformat(forecast["date"])
     assert page["home"]["rating"] == teams.rating_before(forecast["home_team"], before)
     assert page["teams"] == len(teams.standings(forecast["season"]))
@@ -125,26 +100,26 @@ def test_a_played_matchs_page_has_every_model_the_scores_and_both_teams(client, 
     assert len(page["home"]["form"]) <= 5 and set(page["home"]["form"]) <= {"W", "D", "L"}
 
 
-def test_any_two_teams_of_a_season_make_a_hypothetical_match(client):
-    window = client.get("/api/season/SP1", params={"season": "2006-07"}).json()
+def test_any_two_teams_of_a_season_make_a_hypothetical_match(api_client):
+    window = api_client.get("/api/season/SP1", params={"season": "2006-07"}).json()
     home, away = window["teams"][0], window["teams"][1]
     assert window["first_day"] <= window["suggested_day"] <= window["last_day"]
 
     params = {"season": "2006-07", "day": window["suggested_day"], "home": home, "away": away}
-    page = client.get("/api/match/SP1", params=params).json()
+    page = api_client.get("/api/match/SP1", params=params).json()
 
     assert page["forecast"]["hypothetical"] is True
     assert page["status"] == "Meci ipotetic" and page["verdict"] is None
     assert page["forecast"]["predictions"]
-    same = client.get("/api/match/SP1", params={**params, "away": home})
+    same = api_client.get("/api/match/SP1", params={**params, "away": home})
     assert same.status_code == 422
-    unknown = client.get("/api/match/SP1", params={**params, "home": "Nobody"})
+    unknown = api_client.get("/api/match/SP1", params={**params, "home": "Nobody"})
     assert unknown.status_code == 404
 
 
-def test_the_table_of_a_whole_season_and_before_a_day(client, backend):
-    teams = backend.league("SP1").teams
-    whole = client.get("/api/standings/SP1", params={"season": "2006-07"}).json()
+def test_the_table_of_a_whole_season_and_before_a_day(api_client, api_backend):
+    teams = api_backend.league("SP1").teams
+    whole = api_client.get("/api/standings/SP1", params={"season": "2006-07"}).json()
 
     assert whole["whole_season"] is True and whole["in_progress"] is False
     assert whole["before"] == teams.season_end("2006-07").isoformat()
@@ -156,22 +131,24 @@ def test_the_table_of_a_whole_season_and_before_a_day(client, backend):
         assert record["goal_difference"] == record["goals_for"] - record["goals_against"]
         assert len(row["form"]) == 5
 
-    matches = backend.league("SP1").catalog.season_matches("2006-07")
+    matches = api_backend.league("SP1").catalog.season_matches("2006-07")
     day = matches[len(matches) // 2].match_date.isoformat()
-    earlier = client.get("/api/standings/SP1", params={"season": "2006-07", "before": day}).json()
+    earlier = api_client.get(
+        "/api/standings/SP1", params={"season": "2006-07", "before": day}
+    ).json()
     assert earlier["whole_season"] is False and earlier["before"] == day
     played = {row["team"]: row["record"]["played"] for row in earlier["rows"]}
     assert played == {
         row.team: row.record.played for row in teams.standings("2006-07", date.fromisoformat(day))
     }
-    assert client.get("/api/standings/SP1", params={"season": "1999-00"}).status_code == 404
+    assert api_client.get("/api/standings/SP1", params={"season": "1999-00"}).status_code == 404
 
 
-def test_a_team_page_has_its_season_its_ratings_and_its_groups(client, backend):
-    teams = backend.league("SP1").teams
+def test_a_team_page_has_its_season_its_ratings_and_its_groups(api_client, api_backend):
+    teams = api_backend.league("SP1").teams
     leader = teams.standings("2006-07")[0].team
 
-    page = client.get("/api/team/SP1", params={"season": "2006-07"}).json()
+    page = api_client.get("/api/team/SP1", params={"season": "2006-07"}).json()
 
     assert page["team"] == leader and page["position"] == 1  # no favourite: the leader
     overview = teams.overview("2006-07", leader)
@@ -187,23 +164,23 @@ def test_a_team_page_has_its_season_its_ratings_and_its_groups(client, backend):
     assert page["groups_problem"] is None
 
 
-def test_a_team_page_opens_on_your_team_and_refuses_an_absent_team(client, backend):
-    last = backend.league("SP1").teams.standings("2006-07")[-1].team  # not the leader
-    client.put(
+def test_a_team_page_opens_on_your_team_and_refuses_an_absent_team(api_client, api_backend):
+    last = api_backend.league("SP1").teams.standings("2006-07")[-1].team  # not the leader
+    api_client.put(
         "/api/preferences",
         json={"competition": "SP1", "favourite": {"competition": "SP1", "team": last}},
     )
-    assert client.get("/api/team/SP1", params={"season": "2006-07"}).json()["team"] == last
-    absent = client.get("/api/team/SP1", params={"season": "2006-07", "team": "Nobody"})
+    assert api_client.get("/api/team/SP1", params={"season": "2006-07"}).json()["team"] == last
+    absent = api_client.get("/api/team/SP1", params={"season": "2006-07", "team": "Nobody"})
     assert absent.status_code == 404
 
 
-def test_a_review_counts_hits_and_surprises_of_a_model(client, backend):
-    answer = client.get(
+def test_a_review_counts_hits_and_surprises_of_a_model(api_client, api_backend):
+    answer = api_client.get(
         "/api/review/SP1", params={"season": "2007-08", "model": "Logistic regression"}
     ).json()
 
-    found = backend.league("SP1").predictions.review("2007-08", ModelName.LOGISTIC_REGRESSION)
+    found = api_backend.league("SP1").predictions.review("2007-08", ModelName.LOGISTIC_REGRESSION)
     assert answer["label"] == "Regresie logistică"
     assert (answer["matches"], answer["hits"], answer["surprises"]) == (
         len(found.matches),
@@ -218,29 +195,31 @@ def test_a_review_counts_hits_and_surprises_of_a_model(client, backend):
         )
         assert row["hit"] == prediction["hit"]
         assert row["surprise"] == (row["chance"] < answer["surprise_chance"])
-    unknown = client.get("/api/review/SP1", params={"season": "2007-08", "model": "Oracle"})
+    unknown = api_client.get("/api/review/SP1", params={"season": "2007-08", "model": "Oracle"})
     assert unknown.status_code == 404
 
 
-def test_preferences_are_kept(client):
-    assert client.get("/api/preferences").json() == {"competition": None, "favourite": None}
-    answer = client.put(
+def test_preferences_are_kept(api_client):
+    assert api_client.get("/api/preferences").json() == {"competition": None, "favourite": None}
+    answer = api_client.put(
         "/api/preferences",
         json={"competition": "E0", "favourite": {"competition": "E0", "team": "Echo"}},
     ).json()
     assert answer == {"competition": "E0", "favourite": {"competition": "E0", "team": "Echo"}}
-    assert client.get("/api/preferences").json() == answer
+    assert api_client.get("/api/preferences").json() == answer
     assert (
-        client.put("/api/preferences", json={"competition": "XX", "favourite": None}).status_code
+        api_client.put(
+            "/api/preferences", json={"competition": "XX", "favourite": None}
+        ).status_code
         == 404
     )
 
 
-def test_images_are_served_and_a_missing_one_is_404(client):
-    assert client.get("/api/images/league/SP1").headers["content-type"] == "image/jpeg"
-    assert client.get("/api/images/crest/Barcelona").headers["content-type"] == "image/png"
-    assert client.get("/api/images/crest/Alpha").status_code == 404
-    assert client.get("/api/day/2007-09-03", params={"league": "XX"}).status_code == 404
+def test_images_are_served_and_a_missing_one_is_404(api_client):
+    assert api_client.get("/api/images/league/SP1").headers["content-type"] == "image/jpeg"
+    assert api_client.get("/api/images/crest/Barcelona").headers["content-type"] == "image/png"
+    assert api_client.get("/api/images/crest/Alpha").status_code == 404
+    assert api_client.get("/api/day/2007-09-03", params={"league": "XX"}).status_code == 404
 
 
 def test_the_command_line_options():

@@ -11,13 +11,12 @@ from PySide6.QtWidgets import (
 
 from app.evaluation.comparison import (
     COMPARED_MODELS,
-    MATCHUP_TYPES,
     REFERENCE_MODEL,
     SubsetComparison,
 )
 from app.services.evaluation import EvaluationResults
 from app.services.formatting import number, percent, quantity, season_text, signed
-from app.services.labels import MEASURE_LABELS, OUTCOME_LABELS, model_label
+from app.services.labels import MEASURE_LABELS, model_label, subset_label
 from app.services.registry import LeagueServices
 from app.ui.context import AppContext
 from app.ui.widgets import (
@@ -33,25 +32,6 @@ from app.visualization import charts
 
 BREAKDOWNS = ("Pe sezoane", "Pe rezultatul real", "Pe tipuri de meciuri")
 VIEWS = ("Tabele", "Grafice")
-MATCHUP_LABELS = dict(
-    zip(
-        MATCHUP_TYPES,
-        (
-            "cu o echipă promovată",
-            "cu o echipă de elită",
-            "echipe din același grup",
-            "echipe din grupuri diferite",
-        ),
-        strict=True,
-    )
-)
-
-
-def subset_label(label_text: str) -> str:
-    """The Romanian name of a subset: a season, an actual result or a type of match."""
-    if label_text in OUTCOME_LABELS:
-        return OUTCOME_LABELS[label_text]
-    return MATCHUP_LABELS.get(label_text, season_text(label_text))
 
 
 class AlgorithmComparisonTab(QWidget):

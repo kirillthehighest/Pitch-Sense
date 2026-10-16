@@ -6,6 +6,7 @@ import { api } from "./api";
 import { OtherMatch } from "./components/OtherMatch";
 import { ScreenHead } from "./components/ScreenHead";
 import { type ScreenName, SCREENS, Sidebar } from "./components/Sidebar";
+import { Analysis } from "./screens/Analysis";
 import { MatchPage } from "./screens/MatchPage";
 import { Matches } from "./screens/Matches";
 import { Predictions } from "./screens/Predictions";
@@ -205,6 +206,9 @@ export default function App() {
                 onFavourite={chooseFavourite}
                 onAnalysis={() => chooseScreen("analysis")}
               />
+            )}
+            {current && screen === "analysis" && (
+              <Analysis league={current} leagues={leagues} ready={ready} onLeague={chooseLeague} />
             )}
             {current && screen === "predictions" && (
               <Predictions

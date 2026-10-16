@@ -306,3 +306,154 @@ def poisson_of(summary: ModelSummary) -> PoissonScores:
         top_scores=[ScoreChance(home=h, away=a, probability=p) for h, a, p in summary.top_scores],
         grid=shown.tolist(),
     )
+
+
+# --- Analiză ---
+
+
+class Text(BaseModel):
+    title: str
+    text: str
+
+
+class About(BaseModel):
+    """How the algorithms work and where the data and images come from."""
+
+    explanations: list[Text]
+    groups: str  # what the K-Means profiles of the team pages are
+    sources: list[Text]
+    crests: int
+    photos: list[str]
+    images_note: str
+
+
+class Estimate(BaseModel):
+    value: float
+    margin: float | None  # the half-width of the 95% interval: 1.96 standard errors
+
+
+class ModelCheck(BaseModel):
+    model: str
+    label: str
+    accuracy: float
+    brier: Estimate
+    log_loss: Estimate
+
+
+class SeasonCheck(BaseModel):
+    """The models on the season in progress, or why they cannot be shown yet."""
+
+    competition: str
+    season: str | None
+    state: str  # ready, missing (not downloaded), preparing, empty (nothing predicted yet)
+    matches: int
+    first_day: date | None
+    last_day: date | None
+    models: list[ModelCheck]
+
+
+class Difference(BaseModel):
+    """A paired per-match difference between two models (first minus second)."""
+
+    first: str
+    second: str
+    first_label: str
+    second_label: str
+    measure: str
+    measure_label: str
+    mean: float
+    lower: float
+    upper: float
+    better: str | None  # the model really better (its 95% interval excludes 0)
+    better_label: str | None
+
+
+class CalibrationBin(BaseModel):
+    lower: float
+    upper: float
+    count: int
+    predicted: float | None
+    observed: float | None
+
+
+class ModelEvaluation(BaseModel):
+    model: str
+    label: str
+    matches: int
+    accuracy: float
+    brier: float | None
+    log_loss: float | None
+    calibration_error: float | None
+    goals_error: float | None
+    calibration: list[CalibrationBin] | None
+    confusion: list[list[int]]  # rows actual, columns predicted: H, D, A
+
+
+class Subset(BaseModel):
+    key: str
+    label: str
+    matches: int
+    brier: dict[str, float]
+    best: str
+    best_label: str
+    real: bool  # the best model's lead over the runner-up is real
+
+
+class Agreement(BaseModel):
+    first: str
+    second: str
+    first_label: str
+    second_label: str
+    same: float  # the share of matches with the same predicted result
+    distance: float  # the mean total variation distance
+
+
+class Evaluation(BaseModel):
+    """A league's chronological backtest, evaluated and compared."""
+
+    competition: str
+    has_log: bool
+    problem: str | None  # why the log cannot be read
+    matches: int
+    first_season: str | None
+    last_season: str | None
+    compared: list[str]  # the compared models, then the reference, in order
+    models: list[ModelEvaluation]
+    differences: list[Difference]
+    by_season: list[Subset]
+    by_outcome: list[Subset]
+    by_matchup_type: list[Subset]
+    agreements: list[Agreement]
+    all_agree: float | None
+
+
+class Character(BaseModel):
+    matches: int
+    home_win: float
+    draw: float
+    away_win: float
+    goals: float
+    home_margin: float
+    closed_doors_home_win: float | None
+    other_seasons_home_win: float | None
+
+
+class LeagueResult(BaseModel):
+    code: str
+    name: str
+    character: Character
+    brier: dict[str, float]
+    best: str
+    best_label: str
+    skill: dict[str, float]
+    differences: list[Difference]
+
+
+class LeaguesComparison(BaseModel):
+    missing: list[str]  # leagues without a prediction log
+    problem: str | None
+    matches: int
+    compared: list[str]
+    reference: str
+    results: list[LeagueResult]
+    pooled: list[Difference]

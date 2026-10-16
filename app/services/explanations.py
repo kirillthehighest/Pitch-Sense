@@ -1,11 +1,16 @@
-"""The plain sentences of the match and team pages (Phase 19, shared with the web interface in
-Phase 22): what each model looks at, what happened or will happen, which matches the predictions
-use, once played which models expected the result, and what the K-Means profiles are."""
+"""The plain sentences of the interface (Phase 19, shared with the web interface in Phase 22):
+on a match's page what each model looks at, what happened or will happen, which matches the
+predictions use and, once played, which models expected the result; on a team's page what the
+K-Means profiles are; in Analiză how the algorithms work and where the data and images come
+from."""
 
+import json
 from datetime import timedelta
 
+from app.data.competitions import competition
 from app.prediction.outputs import ModelName
 from app.services.formatting import date_text
+from app.services.images import CRESTS_DIR, LEAGUE_PHOTOS_DIR
 from app.services.labels import model_label, outcome_label
 from app.services.predictions import MatchForecast
 
@@ -97,3 +102,95 @@ def verdict_text(forecast: MatchForecast) -> str:
     if wrong:
         text += f" Nu l-au anticipat: {', '.join(wrong)}."
     return text
+
+
+# Analiză: how the algorithms work, in plain words
+EXPLANATIONS = (
+    (
+        "Ratingul Elo",
+        "Fiecare echipă are un număr care îi arată puterea. După fiecare meci, câștigătoarea ia "
+        "puncte de la învinsă: mai multe dacă a învins o echipă mai puternică, mai puține dacă "
+        "era favorită. Din diferența de rating (plus avantajul terenului propriu) rezultă șansa "
+        "fiecărei echipe; șansa de egal a fost învățată din meciurile trecute.",
+    ),
+    (
+        "Modelul Poisson",
+        "Estimează câte goluri va marca fiecare echipă, din cât marchează ea și cât primește "
+        "adversarul, acasă și în deplasare, față de media ligii. Din cele două medii rezultă "
+        "probabilitatea fiecărui scor (0–0, 1–0, 2–1...), iar din scoruri, șansele de victorie, "
+        "egal și înfrângere. Presupune că golurile celor două echipe nu depind unele de altele, "
+        "de aceea subestimează puțin egalurile.",
+    ),
+    (
+        "Regresia logistică",
+        "Primește cinci diferențe dintre gazde și oaspeți (rating Elo, puncte și goluri pe meci, "
+        "forma recentă, șuturi pe poartă) și a învățat, din toate meciurile trecute, cât "
+        "contează fiecare. Este reantrenată în fiecare luni, doar pe meciurile deja jucate.",
+    ),
+    (
+        "K‑Means",
+        "Nu prezice meciuri: grupează echipele după profilul lor dintr-un sezon (goluri, șuturi, "
+        "puncte, acasă față de deplasare) în patru grupuri, de la Elită la Slabă peste tot. "
+        "Grupurile arată ce fel de echipă este fiecare și unde se descurcă bine sau prost "
+        "fiecare model.",
+    ),
+    (
+        "Cum sunt verificate",
+        "Ca în viața reală: meciurile sunt parcurse în ordinea datelor, fiecare predicție "
+        "folosește doar meciurile jucate înaintea ei, iar rezultatul se află abia după. "
+        "Sezonul 2006/07 doar pornește modelele, 2007/08–2009/10 au servit la alegerea "
+        "setărilor, iar rezultatele raportate vin din 2010/11–2025/26.",
+    ),
+    (
+        "Cum citești măsurile",
+        "Acuratețea: cât de des rezultatul cel mai probabil s-a întâmplat. Scorul Brier: cât de "
+        "departe au fost probabilitățile de rezultat (0 ar fi perfect; mai mic e mai bine). "
+        "Pierderea logaritmică: pedepsește mult o predicție sigură pe ea și greșită. "
+        "O diferență între modele este reală doar dacă intervalul ei de încredere nu conține 0.",
+    ),
+)
+
+# Analiză: the sources of the data and images
+SOURCES = (
+    (
+        "Rezultatele",
+        "Football-Data.co.uk: sezoanele 2006/07–2025/26 ale celor cinci ligi și rezultatele "
+        "sezonului în desfășurare.",
+    ),
+    (
+        "Calendarul",
+        "openfootball/football.json, domeniu public (CC0 1.0): meciurile programate ale "
+        "sezonului în desfășurare.",
+    ),
+    (
+        "Stemele cluburilor",
+        "Wikipedia (articolele cluburilor), la rezoluție mică. Stemele sunt mărci ale "
+        "cluburilor; sunt folosite doar ca să recunoști echipele, într-un proiect universitar "
+        "privat. Fiecare stemă, cu articolul și fișierul ei: app/ui/assets/crests/sources.json.",
+    ),
+    (
+        "Literele",
+        "Kanit (sigla), Barlow Condensed și Plus Jakarta Sans, SIL Open Font License 1.1.",
+    ),
+)
+IMAGES_NOTE = (
+    "Imaginile au fost alese de echipă. Drepturile asupra lor, ale jucătorilor, siglelor și "
+    "sponsorilor aparțin deținătorilor lor; sunt folosite doar în acest proiect universitar privat "
+    "și nu se publică."
+)
+
+
+def crest_count() -> int:
+    """How many club crests the application carries."""
+    return len(list(CRESTS_DIR.glob("*.png")))
+
+
+def photo_credits() -> list[str]:
+    """One line per league image: the league and where the image comes from."""
+    path = LEAGUE_PHOTOS_DIR / "sources.json"
+    if not path.is_file():
+        return []
+    return [
+        f"{competition(entry['competition']).name}: imagine promoțională, sursa {entry['source']}."
+        for entry in json.loads(path.read_text(encoding="utf-8"))
+    ]

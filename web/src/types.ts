@@ -83,6 +83,8 @@ export const MODEL_LABELS: Record<string, string> = {
   Elo: "Elo",
   Poisson: "Poisson",
   "Logistic regression": "Regresie logistică",
+  "Past frequencies": "Frecvențele trecute", // the references of the evaluation
+  "Always home win": "Mereu victoria gazdelor",
 };
 
 export interface TeamRecord {
@@ -225,4 +227,131 @@ export interface Review {
   surprises: number;
   by_result: { result: Outcome; label: string; hits: number; matches: number }[];
   rows: ReviewedMatch[];
+}
+
+// --- Analiză ---
+
+export interface About {
+  explanations: { title: string; text: string }[];
+  groups: string;
+  sources: { title: string; text: string }[];
+  crests: number;
+  photos: string[];
+  images_note: string;
+}
+
+export interface Estimate {
+  value: number;
+  margin: number | null;
+}
+
+export interface SeasonCheck {
+  competition: string;
+  season: string | null;
+  state: "ready" | "missing" | "preparing" | "empty";
+  matches: number;
+  first_day: string | null;
+  last_day: string | null;
+  models: { model: string; label: string; accuracy: number; brier: Estimate; log_loss: Estimate }[];
+}
+
+export interface Difference {
+  first: string;
+  second: string;
+  first_label: string;
+  second_label: string;
+  measure: string;
+  measure_label: string;
+  mean: number;
+  lower: number;
+  upper: number;
+  better: string | null;
+  better_label: string | null;
+}
+
+export interface CalibrationBin {
+  lower: number;
+  upper: number;
+  count: number;
+  predicted: number | null;
+  observed: number | null;
+}
+
+export interface ModelEvaluation {
+  model: string;
+  label: string;
+  matches: number;
+  accuracy: number;
+  brier: number | null;
+  log_loss: number | null;
+  calibration_error: number | null;
+  goals_error: number | null;
+  calibration: CalibrationBin[] | null;
+  confusion: number[][];
+}
+
+export interface Subset {
+  key: string;
+  label: string;
+  matches: number;
+  brier: Record<string, number>;
+  best: string;
+  best_label: string;
+  real: boolean;
+}
+
+export interface Agreement {
+  first: string;
+  second: string;
+  first_label: string;
+  second_label: string;
+  same: number;
+  distance: number;
+}
+
+export interface Evaluation {
+  competition: string;
+  has_log: boolean;
+  problem: string | null;
+  matches: number;
+  first_season: string | null;
+  last_season: string | null;
+  compared: string[];
+  models: ModelEvaluation[];
+  differences: Difference[];
+  by_season: Subset[];
+  by_outcome: Subset[];
+  by_matchup_type: Subset[];
+  agreements: Agreement[];
+  all_agree: number | null;
+}
+
+export interface LeagueResult {
+  code: string;
+  name: string;
+  character: {
+    matches: number;
+    home_win: number;
+    draw: number;
+    away_win: number;
+    goals: number;
+    home_margin: number;
+    closed_doors_home_win: number | null;
+    other_seasons_home_win: number | null;
+  };
+  brier: Record<string, number>;
+  best: string;
+  best_label: string;
+  skill: Record<string, number>;
+  differences: Difference[];
+}
+
+export interface LeaguesComparison {
+  missing: string[];
+  problem: string | null;
+  matches: number;
+  compared: string[];
+  reference: string;
+  results: LeagueResult[];
+  pooled: Difference[];
 }

@@ -1,14 +1,18 @@
 // The client of the local server (app/api). In the desktop shell, Tauri starts the server and
 // tells its address; while developing, the address comes from VITE_BACKEND.
 import type {
+  About,
   Day,
   Days,
+  Evaluation,
   Forecast,
   League,
+  LeaguesComparison,
   MatchKey,
   MatchPage,
   Preferences,
   Review,
+  SeasonCheck,
   SeasonDays,
   Standings,
   Status,
@@ -89,6 +93,12 @@ export const api = {
   },
   review: (code: string, season: string, model: string) =>
     request<Review>(`/api/review/${code}?${new URLSearchParams({ season, model })}`),
+  about: () => request<About>("/api/about"),
+  seasonCheck: (code: string) => request<SeasonCheck>(`/api/season-check/${code}`),
+  evaluation: (code: string) => request<Evaluation>(`/api/evaluation/${code}`),
+  backtest: (code: string) => request<Evaluation>(`/api/evaluation/${code}/backtest`, { method: "POST" }),
+  leaguesComparison: () => request<LeaguesComparison>("/api/leagues-comparison"),
+  leaguesBacktest: () => request<LeaguesComparison>("/api/leagues-comparison/backtest", { method: "POST" }),
   preferences: () => request<Preferences>("/api/preferences"),
   setPreferences: (preferences: Preferences) =>
     request<Preferences>("/api/preferences", {

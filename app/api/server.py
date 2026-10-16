@@ -9,6 +9,7 @@ from fastapi.responses import FileResponse
 
 from app import __version__
 from app.api import schemas
+from app.api.analysis import add_analysis_routes
 from app.api.backend import Backend
 from app.data.competitions import competition
 from app.data.models import Outcome
@@ -410,6 +411,8 @@ def create_app(backend: Backend) -> FastAPI:
             None if favourite is None else FavouriteTeam(favourite.competition, favourite.team)
         )
         return preferences()
+
+    add_analysis_routes(app, backend, league_of)
 
     @app.get("/api/images/crest/{team}")
     def crest(team: str) -> FileResponse:
