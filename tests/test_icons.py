@@ -61,3 +61,15 @@ def test_the_icns_holds_every_macos_type_as_png(icons, written):
 def test_an_ico_image_cannot_be_larger_than_256_pixels(icons):
     with pytest.raises(ValueError, match="1 to 256 pixels"):
         icons.ico_bytes({512: b"png"})
+
+
+def test_the_package_icon_is_the_mark_in_the_default_league_colours(application, icons):
+    from PySide6.QtGui import QImage
+
+    from app.ui.brand import icon_image
+    from app.ui.themes import DEFAULT_THEME
+
+    image = QImage.fromData(icons.png_images({64})[64])
+    expected = icon_image(64, DEFAULT_THEME).convertToFormat(image.format())
+
+    assert image == expected

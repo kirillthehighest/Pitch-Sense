@@ -1,5 +1,5 @@
-"""A match's page (Phase 19): both clubs on a blaugrana card, what each model expects and why,
-the likely scores of the Poisson model and how both teams came into the match.
+"""A match's page (Phase 19): both clubs on a card in the league's colours, what each model
+expects and why, the likely scores of the Poisson model and how both teams came into the match.
 
 ``HypotheticalDialog`` asks for any two teams of a season and a day, the "Orice meci" of earlier
 phases, and opens the answer on the same page.
@@ -9,8 +9,8 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date, timedelta
 
-from PySide6.QtCore import QDate, QPointF, QRectF, Qt, Signal
-from PySide6.QtGui import QBrush, QColor, QLinearGradient, QPainter, QPainterPath
+from PySide6.QtCore import QDate, QRectF, Qt, Signal
+from PySide6.QtGui import QPainter
 from PySide6.QtWidgets import (
     QComboBox,
     QDateEdit,
@@ -32,8 +32,9 @@ from app.services.formatting import date_text, number, percent, season_text
 from app.services.labels import model_label, outcome_label
 from app.services.predictions import MatchForecast, forecast_of, summarize
 from app.services.teams import TeamOverview
-from app.ui.brand import flag_pixmap, paint_pitch, team_badge
+from app.ui.brand import flag_pixmap, team_badge
 from app.ui.context import AppContext, LeagueServices
+from app.ui.themes import Theme, theme_for
 from app.ui.widgets import (
     BarRow,
     ChartView,
@@ -43,9 +44,9 @@ from app.ui.widgets import (
     fill_table,
     label,
     make_table,
+    paint_head_card,
 )
 from app.visualization.charts import score_heatmap
-from app.visualization.palette import BLAU, GRANA, NIGHT, TEXT
 
 CREST_SIZE = 96
 # What each model looks at, in a sentence anyone can follow (the details: Analiză).
@@ -136,12 +137,14 @@ def verdict_text(forecast: MatchForecast) -> str:
 
 
 class MatchHero(QFrame):
-    """The head of a match: blaugrana gradient, faint pitch lines, both crests, the score."""
+    """The head of a match: a card lit by the league's deep colour, both crests, the score and
+    the state of the match in a pill."""
 
     def __init__(self) -> None:
         super().__init__()
-        self.setMinimumHeight(230)
-        self.eyebrow = label(role="eyebrow")
+        self.setMinimumHeight(240)
+        self.theme: Theme | None = None  # the palette of the match's league
+        self.eyebrow = label(role="hero-eyebrow")
         self.eyebrow.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.home_badge, self.away_badge = QLabel(), QLabel()
         self.home_name = label(role="team", wrap=True)
@@ -164,7 +167,7 @@ class MatchHero(QFrame):
         grid.addWidget(self.score, 0, 1)
         grid.addWidget(self.away_badge, 0, 2)
         grid.addWidget(self.home_name, 1, 0)
-        grid.addWidget(self.status, 1, 1)
+        grid.addWidget(self.status, 1, 1, alignment=Qt.AlignmentFlag.AlignHCenter)
         grid.addWidget(self.away_name, 1, 2)
         grid.setColumnStretch(0, 1)
         grid.setColumnStretch(2, 1)
@@ -177,19 +180,7 @@ class MatchHero(QFrame):
 
     def paintEvent(self, event) -> None:  # noqa: N802 (Qt's name)
         painter = QPainter(self)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        area = QRectF(self.rect())
-        path = QPainterPath()
-        path.addRoundedRect(area, 16, 16)
-        gradient = QLinearGradient(QPointF(0, 0), QPointF(area.width(), area.height()))
-        gradient.setColorAt(0, QColor(BLAU))
-        gradient.setColorAt(0.55, QColor(NIGHT))
-        gradient.setColorAt(1, QColor(GRANA))
-        painter.fillPath(path, QBrush(gradient))
-        painter.setClipPath(path)
-        lines = QColor(TEXT)
-        lines.setAlpha(28)
-        paint_pitch(painter, area.adjusted(-area.width() * 0.12, -20, 0, 20), lines)
+        paint_head_card(painter, QRectF(self.rect()), theme=self.theme)
         painter.end()
 
 
@@ -302,9 +293,9 @@ class MatchDetail(QWidget):
         when = date_text(forecast.match_date)
         if forecast.kickoff_time is not None:
             when += f", {forecast.kickoff_time:%H:%M}"
-        self.hero.eyebrow.setText(
-            f"{league.name} · {season_text(forecast.season)} · {when}".upper()
-        )
+        self.hero.eyebrow.setText(f"{league.name} · {season_text(forecast.season)} · {when}")
+        self.hero.theme = theme_for(forecast.competition)
+        self.hero.update()
         favourite = self._context.preferences.favourite
         favourite_team = favourite.team if favourite else None
         for badge, name, team in (
@@ -317,7 +308,7 @@ class MatchDetail(QWidget):
         self.hero.score.setText(
             "VS" if played is None else f"{played.home_goals} – {played.away_goals}"
         )
-        self.hero.status.setText(status_text(forecast).upper())
+        self.hero.status.setText(status_text(forecast))
 
         summaries = [summarize(prediction) for prediction in forecast.predictions.values()]
         self.bars.set_rows(
@@ -435,7 +426,7 @@ class HypotheticalDialog(QDialog):
         flag.setPixmap(flag_pixmap(league.code, 20))
         heading = QHBoxLayout()
         heading.addWidget(flag)
-        heading.addWidget(label(f"ALT MECI · {league.name.upper()}", "section"))
+        heading.addWidget(label(f"Alt meci · {league.name}", "section"))
         heading.addStretch()
         layout.addLayout(heading)
         layout.addWidget(

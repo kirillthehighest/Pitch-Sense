@@ -8,7 +8,8 @@ and the chosen league's table.
 from collections.abc import Callable
 from datetime import date
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QRectF, Qt
+from PySide6.QtGui import QColor, QPainter, QPainterPath, QPen
 from PySide6.QtWidgets import (
     QButtonGroup,
     QComboBox,
@@ -24,19 +25,22 @@ from PySide6.QtWidgets import (
 
 from app.data.competitions import competition
 from app.prediction.outputs import ModelName
-from app.services.formatting import day_name, season_text, short_date_text
+from app.services.formatting import day_name, quantity, season_text, short_date_text
 from app.services.labels import country_label, model_label
 from app.services.predictions import MatchForecast
 from app.ui.brand import flag_pixmap, team_badge
 from app.ui.context import AppContext, LeagueServices
 from app.ui.match_detail import HypotheticalDialog, MatchDetail
 from app.ui.match_widgets import DayStrip, MatchRow, ProbabilityHeading
-from app.ui.widgets import FormStrip, card, label
+from app.ui.themes import current_theme
+from app.ui.widgets import FormStrip, ResponsiveBox, card, label
 
 # The model shown in the list unless the user picks another: over the five leagues together,
 # logistic regression has the lowest Brier score, really ahead of Elo and Poisson (docs/leagues.md).
 DEFAULT_MODEL = ModelName.LOGISTIC_REGRESSION
-SIDE_WIDTH = 360
+SIDE_WIDTH = 340
+COLUMNS_BREAKPOINT = 980  # narrower, "your team" and the table go under the matches
+CONTROLS_BREAKPOINT = 720  # narrower, the choice of model goes under the filters
 TABLE_ROWS = 6
 PREPARING = "Se pregătesc predicțiile…"
 NO_MATCHES = "Nu sunt meciuri în această zi."
@@ -48,52 +52,84 @@ def next_match_day(days: list[date], today: date) -> date:
 
 
 class LeagueGroup(QFrame):
-    """One league's matches of the day: a heading with the flag, then one row per match."""
+    """One league's matches of the day on a card: a heading with the flag, the league and how many
+    matches it plays, then the matches in an inner frame, one row each. The card is painted, not
+    styled, so the rows' hover stays inside its round corners."""
+
+    RADIUS = 20
+    INNER_RADIUS = 14
 
     def __init__(self, code: str, open_standings: Callable[[str], None]) -> None:
         super().__init__()
         self.code = code
-        self.setProperty("role", "list")
-        head = QFrame()
-        head.setProperty("role", "list-head")
         flag = QLabel()
-        flag.setPixmap(flag_pixmap(code, 20))
-        name = label(competition(code).name.upper(), "strong")
-        country = label(country_label(code), "caption")
+        flag.setPixmap(flag_pixmap(code, 32))
+        name = label(competition(code).name, "section")
+        self.count_label = label(country_label(code), "caption")
+        names = QVBoxLayout()
+        names.setSpacing(0)
+        names.addWidget(name)
+        names.addWidget(self.count_label)
         self.standings_button = QPushButton("Clasament ›")
         self.standings_button.setProperty("role", "link")
         self.standings_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.standings_button.clicked.connect(lambda: open_standings(code))
-        heading = QHBoxLayout(head)
-        heading.setContentsMargins(16, 10, 12, 10)
-        heading.setSpacing(10)
+        heading = QHBoxLayout()
+        heading.setSpacing(12)
         heading.addWidget(flag)
-        heading.addWidget(name)
-        heading.addWidget(country)
+        heading.addLayout(names)
         heading.addStretch()
         heading.addWidget(self.standings_button)
-        self.rows_layout = QVBoxLayout()
-        self.rows_layout.setContentsMargins(0, 0, 0, 0)
+        self.columns = ProbabilityHeading()
+        self.list_box = QWidget()
+        self.rows_layout = QVBoxLayout(self.list_box)
+        self.rows_layout.setContentsMargins(0, 2, 0, 2)
         self.rows_layout.setSpacing(0)
         self.note = label(role="caption", wrap=True)
-        self.note.setContentsMargins(16, 12, 16, 14)
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(0)
-        layout.addWidget(head)
-        layout.addLayout(self.rows_layout)
+        layout.setContentsMargins(20, 18, 20, 18)
+        layout.setSpacing(10)
+        layout.addLayout(heading)
+        layout.addWidget(self.columns)
+        layout.addWidget(self.list_box)
         layout.addWidget(self.note)
         self.rows: list[MatchRow] = []
+        self.list_box.hide()
+        self.columns.hide()
 
     def show_rows(self, rows: list[MatchRow]) -> None:
         self.rows = rows
         for row in rows:
             self.rows_layout.addWidget(row)
+        if rows:
+            rows[-1].last = True
+        self.count_label.setText(
+            f"{country_label(self.code)} · {quantity(len(rows), 'meci', 'meciuri')}"
+        )
+        self.list_box.setVisible(bool(rows))
+        self.columns.setVisible(bool(rows))
         self.note.setVisible(False)
 
     def show_note(self, text: str) -> None:
         self.note.setText(text)
         self.note.setVisible(True)
+
+    def paintEvent(self, event) -> None:  # noqa: N802 (Qt's name)
+        theme = current_theme()
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        area = QRectF(self.rect()).adjusted(0.5, 0.5, -0.5, -0.5)
+        card = QPainterPath()
+        card.addRoundedRect(area, self.RADIUS, self.RADIUS)
+        painter.fillPath(card, QColor(theme.surface))
+        painter.setPen(QPen(QColor(255, 255, 255, 15), 1))
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        painter.drawPath(card)
+        if self.list_box.isVisible():
+            inner = QRectF(self.list_box.geometry()).adjusted(0.5, 0.5, -0.5, -0.5)
+            painter.setPen(QPen(QColor(255, 255, 255, 18), 1))
+            painter.drawRoundedRect(inner, self.INNER_RADIUS, self.INNER_RADIUS)
+        painter.end()
 
 
 class MatchesPage(QWidget):
@@ -148,16 +184,25 @@ class MatchesPage(QWidget):
         self.hypothetical_button.clicked.connect(self.open_hypothetical)
         self.day_label = label(role="section")
 
-        controls = QHBoxLayout()
-        controls.setSpacing(10)
-        controls.addWidget(self.day_label)
-        controls.addStretch()
-        controls.addWidget(self.all_button)
-        controls.addWidget(self.league_button)
-        controls.addSpacing(10)
-        controls.addWidget(label("Model", "caption"))
-        controls.addWidget(self.model_box)
-        controls.addWidget(self.hypothetical_button)
+        filters_widget = QWidget()
+        filters_row = QHBoxLayout(filters_widget)
+        filters_row.setContentsMargins(0, 0, 0, 0)
+        filters_row.setSpacing(8)
+        filters_row.addWidget(self.all_button)
+        filters_row.addWidget(self.league_button)
+        filters_row.addStretch()
+        model_widget = QWidget()
+        model_row = QHBoxLayout(model_widget)
+        model_row.setContentsMargins(0, 0, 0, 0)
+        model_row.setSpacing(8)
+        model_row.addWidget(label("Model", "caption"))
+        model_row.addWidget(self.model_box)
+        model_row.addWidget(self.hypothetical_button)
+        model_row.addStretch()
+        # The filters and the model share a line, or take one each in a narrow column.
+        self.controls = ResponsiveBox(CONTROLS_BREAKPOINT, spacing=10)
+        self.controls.add(filters_widget, stretch=1)
+        self.controls.add(model_widget, stretch=0)
 
         self.groups_layout = QVBoxLayout()
         self.groups_layout.setSpacing(16)
@@ -171,28 +216,30 @@ class MatchesPage(QWidget):
         listing = QVBoxLayout()
         listing.setSpacing(14)
         listing.addWidget(self.day_strip)
-        listing.addLayout(controls)
+        listing.addWidget(self.day_label)
+        listing.addWidget(self.controls)
         listing.addWidget(self.legend)
-        listing.addWidget(ProbabilityHeading())
         listing.addWidget(self.empty_label)
         listing.addLayout(self.groups_layout)
         listing.addStretch()
 
         side = QVBoxLayout()
+        side.setContentsMargins(0, 0, 0, 0)
         side.setSpacing(16)
         side.addWidget(self._favourite_card(choose_favourite))
         side.addWidget(self._table_card())
         side.addStretch()
         side_widget = QWidget()
         side_widget.setLayout(side)
-        side_widget.setFixedWidth(SIDE_WIDTH)
+        listing_widget = QWidget()
+        listing.setContentsMargins(0, 0, 0, 0)
+        listing_widget.setLayout(listing)
 
-        list_page = QWidget()
-        columns = QHBoxLayout(list_page)
-        columns.setContentsMargins(0, 0, 0, 0)
-        columns.setSpacing(20)
-        columns.addLayout(listing, stretch=1)
-        columns.addWidget(side_widget, alignment=Qt.AlignmentFlag.AlignTop)
+        # The right column moves under the list when the window is narrow.
+        self.columns = ResponsiveBox(COLUMNS_BREAKPOINT, spacing=20)
+        self.columns.add(listing_widget, stretch=1, top=True)
+        self.columns.add(side_widget, stretch=0, top=True, width=SIDE_WIDTH)
+        list_page = self.columns
 
         self.detail = MatchDetail(context, open_team)
         self.detail.back_button.clicked.connect(self.show_list)
@@ -248,9 +295,7 @@ class MatchesPage(QWidget):
         all_days = {d for league in ready for d in league.predictions.match_days()}
         self.day_strip.show_days(day, self._context.today(), all_days)
         name, date_name = day_name(day, self._context.today()), short_date_text(day)
-        self.day_label.setText(
-            (date_name if name == date_name else f"{name} · {date_name}").upper()
-        )
+        self.day_label.setText(date_name if name == date_name else f"{name} · {date_name}")
         for group in self.groups:
             group.setParent(None)
             group.deleteLater()
@@ -322,7 +367,7 @@ class MatchesPage(QWidget):
 
     def _favourite_card(self, choose_favourite: Callable[[], None]) -> QFrame:
         frame, layout = card(role="favourite")
-        layout.addWidget(label("ECHIPA TA", "eyebrow"))
+        layout.addWidget(label("Echipa ta", "section"))
         self.favourite_badge = QLabel()
         self.favourite_name = label(role="team", wrap=True)
         self.favourite_caption = label(role="caption", wrap=True)
@@ -346,12 +391,12 @@ class MatchesPage(QWidget):
         self.favourite_choose_button = QPushButton("Alege echipa ta")
         self.favourite_choose_button.clicked.connect(choose_favourite)
         layout.addWidget(self.favourite_choose_button)
-        self.favourite_open_button = QPushButton("Pagina echipei ›")
-        self.favourite_open_button.setProperty("role", "link")
+        self.favourite_open_button = QPushButton("Pagina echipei")
+        self.favourite_open_button.setProperty("role", "primary")
         self.favourite_open_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.favourite_open_button.clicked.connect(self._open_favourite)
         self.favourite_open_button.hide()
-        layout.addWidget(self.favourite_open_button, alignment=Qt.AlignmentFlag.AlignLeft)
+        layout.addWidget(self.favourite_open_button)
         frame.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Maximum)
         return frame
 
@@ -379,7 +424,7 @@ class MatchesPage(QWidget):
         self.table_labels = []
         league = self._league
         season = league.catalog.seasons()[-1]
-        self.table_title.setText(f"{league.name} {season_text(season)}".upper())
+        self.table_title.setText(f"{league.name} {season_text(season)}")
         favourite = self._favourite_team()
         for row in league.teams.standings(season)[:TABLE_ROWS]:
             line = QWidget()

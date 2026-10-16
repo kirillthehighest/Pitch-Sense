@@ -5,8 +5,8 @@ prediction, the last results, the club's K-Means profile in plain words and its 
 from collections.abc import Callable
 from dataclasses import dataclass
 
-from PySide6.QtCore import QPointF, QRectF
-from PySide6.QtGui import QBrush, QColor, QLinearGradient, QPainter, QPainterPath
+from PySide6.QtCore import QRectF
+from PySide6.QtGui import QPainter
 from PySide6.QtWidgets import (
     QComboBox,
     QFrame,
@@ -21,15 +21,26 @@ from app.services.formatting import season_text
 from app.services.predictions import MatchForecast
 from app.services.teams import RatingSeason, SeasonGroups, TeamOverview
 from app.statistics.team_statistics import TeamStatistics
-from app.ui.brand import paint_pitch, team_badge
+from app.ui.brand import team_badge
 from app.ui.context import AppContext, LeagueServices
 from app.ui.match_widgets import MatchRow
-from app.ui.widgets import ChartView, FormStrip, PageTabs, StatTile, card, label
+from app.ui.widgets import (
+    ChartView,
+    FormStrip,
+    PageTabs,
+    ReflowGrid,
+    ResponsiveBox,
+    StatTile,
+    card,
+    label,
+    paint_head_card,
+)
 from app.visualization.charts import elo_history_chart, team_groups_chart
-from app.visualization.palette import BLAU, GRANA, NIGHT, TEXT
 
 CREST_SIZE = 120
 CHART_HEIGHT = 540  # room for the names of twenty teams on the groups chart
+TILE_WIDTH = 128
+MIDDLE_BREAKPOINT = 1000  # narrower, the form, matches and profile cards stack
 LAST_RESULTS = 5
 TILES = ("Loc", "Meciuri", "Victorii", "Goluri marcate", "Goluri primite", "Puncte")
 GROUPS_EXPLANATION = (
@@ -68,7 +79,7 @@ def record_text(record: TeamStatistics) -> str:
 
 
 class TeamHeader(QFrame):
-    """The crest and the name in large capitals on a blaugrana band."""
+    """The crest and the name in large capitals on a band in the league's colours."""
 
     def __init__(self) -> None:
         super().__init__()
@@ -76,7 +87,7 @@ class TeamHeader(QFrame):
         self.crest = QLabel()
         self.name = label(role="title", wrap=True)
         self.caption = label(role="subtitle", wrap=True)
-        self.eyebrow = label(role="eyebrow")
+        self.eyebrow = label(role="hero-eyebrow")
         names = QVBoxLayout()
         names.setSpacing(2)
         names.addStretch()
@@ -92,19 +103,7 @@ class TeamHeader(QFrame):
 
     def paintEvent(self, event) -> None:  # noqa: N802 (Qt's name)
         painter = QPainter(self)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        area = QRectF(self.rect())
-        path = QPainterPath()
-        path.addRoundedRect(area, 16, 16)
-        gradient = QLinearGradient(QPointF(0, 0), QPointF(area.width(), area.height()))
-        gradient.setColorAt(0, QColor(BLAU))
-        gradient.setColorAt(0.6, QColor(NIGHT))
-        gradient.setColorAt(1, QColor(GRANA))
-        painter.fillPath(path, QBrush(gradient))
-        painter.setClipPath(path)
-        lines = QColor(TEXT)
-        lines.setAlpha(26)
-        paint_pitch(painter, area.adjusted(0, -20, 0, 20), lines)
+        paint_head_card(painter, QRectF(self.rect()))
         painter.end()
 
 
@@ -136,10 +135,9 @@ class TeamPage(QWidget):
 
         self.header = TeamHeader()
         self.tiles = {name: StatTile(name) for name in TILES}
-        tiles = QHBoxLayout()
-        tiles.setSpacing(12)
+        tiles = ReflowGrid(TILE_WIDTH, spacing=12)
         for tile in self.tiles.values():
-            tiles.addWidget(tile, stretch=1)
+            tiles.add(tile)
 
         form_card, form_layout = card("Forma")
         self.form_strip = FormStrip()
@@ -191,18 +189,18 @@ class TeamPage(QWidget):
         self.views.addTab(self.groups_chart, "Grupuri")
         charts_layout.addWidget(self.views)
 
-        middle = QHBoxLayout()
-        middle.setSpacing(16)
-        middle.addWidget(form_card, stretch=2)
-        middle.addWidget(matches_card, stretch=3)
-        middle.addWidget(profile_card, stretch=2)
+        # Side by side in a wide window, one under the other in a narrow one.
+        middle = ResponsiveBox(MIDDLE_BREAKPOINT, spacing=16)
+        middle.add(form_card, stretch=2)
+        middle.add(matches_card, stretch=3)
+        middle.add(profile_card, stretch=2)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(16)
         layout.addLayout(controls)
         layout.addWidget(self.header)
-        layout.addLayout(tiles)
-        layout.addLayout(middle)
+        layout.addWidget(tiles)
+        layout.addWidget(middle)
         layout.addWidget(charts_card)
         layout.addStretch()
 
@@ -265,9 +263,7 @@ class TeamPage(QWidget):
         is_favourite = favourite is not None and favourite.team == overview.team
         self.header.crest.setPixmap(team_badge(overview.team, CREST_SIZE, highlighted=is_favourite))
         self.header.name.setText(overview.team.upper())
-        self.header.eyebrow.setText(
-            (("Echipa ta · " if is_favourite else "") + self._league.name).upper()
-        )
+        self.header.eyebrow.setText(("Echipa ta · " if is_favourite else "") + self._league.name)
         state = "sezon în desfășurare" if overview.in_progress else "sezon încheiat"
         self.header.caption.setText(
             f"{season_text(overview.season)} · locul {overview.position} din {answer.teams} · "

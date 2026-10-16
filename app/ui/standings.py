@@ -175,7 +175,7 @@ class StandingsPage(QWidget):
         )
         if answer.whole_season and answer.season == self._league.catalog.current_season:
             when = "până acum (sezon în desfășurare)"
-        self.title_label.setText(f"{name} {season_text(answer.season)} · {when}".upper())
+        self.title_label.setText(f"{name} {season_text(answer.season)} · {when}")
         self.caption.setText(
             "M meciuri, V victorii, E egaluri, Î înfrângeri, GM goluri marcate, GP goluri primite. "
             "La egalitate de puncte decid golaverajul, apoi golurile marcate; deducerile de puncte "

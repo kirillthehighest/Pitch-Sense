@@ -1,13 +1,19 @@
 """The main window: the top bar with the four screens (Meciuri, Clasament, Echipe, Analiză),
-the leagues on the left, the hero banner and the screens.
+the leagues on the left, the hero banner and the screens, over the league's backdrop.
+
+Choosing a league repaints the whole window in its palette (``themes.py``), revealed by a circle
+from the top-left corner (``transition.py``). A narrow window keeps only the flags in the side
+panel and only the mark of the logo in the top bar.
 
 The application entry point (``main``) also lives here.
 """
 
+import pickle
 import sys
 from datetime import datetime
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QSize, Qt, QTimer
+from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
     QButtonGroup,
@@ -42,16 +48,24 @@ from app.ui.brand import (
     league_photo,
     photo_credit,
     photo_top,
+    team_badge,
 )
-from app.ui.context import AppContext, default_context
+from app.ui.context import AppContext, LeagueServices, default_context
 from app.ui.matches import MatchesPage
 from app.ui.standings import StandingsPage
 from app.ui.team_page import TeamPage
-from app.ui.theme import apply_theme
-from app.ui.widgets import BrandStripe, HeroBanner, LeagueButton, label
+from app.ui.theme import apply_theme, apply_window_theme
+from app.ui.themes import current_theme, theme_for
+from app.ui.transition import ThemeReveal
+from app.ui.widgets import Backdrop, ChartView, HeroBanner, LeagueButton, label
+from app.ui.worker import stop_processes
 
 WINDOW_TITLE = "PitchSense – analiza și predicția meciurilor de fotbal"
 SIDE_PANEL_WIDTH = 248
+COMPACT_SIDE_PANEL_WIDTH = 76
+COMPACT_WIDTH = 1280  # narrower windows keep only the flags in the side panel...
+COMPACT_LOGO_WIDTH = 1180  # ...and, narrower still, only the mark of the logo
+MINIMUM_SIZE = (1024, 700)
 NO_FAVOURITE = "Alege echipa ta"
 UPDATE = "Actualizează datele"
 UPDATE_TIP = (
@@ -138,10 +152,13 @@ class MainWindow(QMainWindow):
         self._league_code: str | None = None
         self._reported_problems: set[str] = set()
         self._preparing: set[str] = set()
+        self._styled = False
+        self._computed_later: list[tuple[str, LeagueServices, bytes]] = []
+        self._stale_pages: list[QWidget] = []  # screens still showing the previous league
+        self.reveal: ThemeReveal | None = None
+        self.animate = True  # reveal the colours of a new league with a circle
         self.setWindowTitle(WINDOW_TITLE)
         self.setWindowIcon(app_icon())
-        self.resize(1400, 900)
-        self.setMinimumSize(1180, 740)
 
         self.matches = MatchesPage(
             context, self.open_standings, self.open_team, self.open_favourite_dialog
@@ -166,25 +183,25 @@ class MainWindow(QMainWindow):
         self.page_title = self.hero.title_label
         self.page_subtitle = self.hero.subtitle_label
 
-        central = QWidget()
+        central = Backdrop()
         layout = QVBoxLayout(central)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
         layout.addWidget(self._top_bar())
-        layout.addWidget(BrandStripe())
         body = QHBoxLayout()
         body.setSpacing(0)
         body.addWidget(self._side_panel())
         main = QVBoxLayout()
-        main.setSpacing(0)
+        main.setContentsMargins(28, 24, 28, 0)
+        main.setSpacing(22)
         main.addWidget(self.hero)
-        pages = QVBoxLayout()
-        pages.setContentsMargins(28, 22, 28, 8)
-        pages.addWidget(self.stack)
-        main.addLayout(pages, stretch=1)
+        main.addWidget(self.stack, stretch=1)
         body.addLayout(main, stretch=1)
         layout.addLayout(body, stretch=1)
         self.setCentralWidget(central)
+        self.setMinimumSize(*MINIMUM_SIZE)
+        self.resize(1400, 900)
+        self.fit_width(1400)
 
         self.show_favourite()
         self.show_league(context.first_league)
@@ -198,6 +215,9 @@ class MainWindow(QMainWindow):
     def show_page(self, index: int) -> None:
         """Bring a screen to the front; screens that read results re-read them."""
         page = self.pages[index]
+        if page in self._stale_pages:  # opened before the end of a change of league
+            self._stale_pages.remove(page)
+            page.show_league(self._context.league(self._league_code))
         self.stack.setCurrentIndex(index)
         self.nav_buttons[index].setChecked(True)
         self.hero.show_page(page.title, page.subtitle)
@@ -207,10 +227,13 @@ class MainWindow(QMainWindow):
             page.refresh()  # a log or a league's predictions may be ready since
 
     def show_league(self, code: str) -> None:
-        """Show every screen for one league and prepare its predictions in the background."""
+        """Show every screen for one league, in its colours, and prepare its predictions in the
+        background."""
         if code == self._league_code:
             return
+        old = self._snapshot() if theme_for(code) != current_theme() else None
         self._league_code = code
+        self._restyle(code)
         self.league_buttons[code].setChecked(True)
         league = self._context.league(code)
         self._context.preferences.set_competition(code)
@@ -225,8 +248,13 @@ class MainWindow(QMainWindow):
             photo_top(code),
         )
         self.version_note.setText(self._note(catalog.updated_at))
-        for page in self.pages:
-            page.show_league(league)
+        # The screen on show changes now; with the colours being revealed, the hidden screens
+        # change after the animation (or when opened), so nothing delays it.
+        shown = self.pages[self.stack.currentIndex()]
+        shown.show_league(league)
+        self._stale_pages = [page for page in self.pages if page is not shown]
+        if old is None:
+            self._refresh_stale_pages()
         if catalog.live_problem and catalog.live_problem not in self._reported_problems:
             self._reported_problems.add(catalog.live_problem)
             self._context.report_error(
@@ -235,6 +263,82 @@ class MainWindow(QMainWindow):
                 f"descărcați din nou.\n\nDetalii: {catalog.live_problem}"
             )
         self._prepare(code)
+        if old is not None:
+            self._reveal(old, theme_for(code).accent)
+
+    def _snapshot(self) -> QPixmap | None:
+        """A picture of the window as it is on screen (with a reveal still running, as it is
+        drawn), before a change of league; None when the change needs no animation."""
+        if not (self.animate and self.isVisible()):
+            return None
+        picture = self.grab()
+        if self.reveal is not None:
+            self.reveal.finish()
+            self.reveal = None
+        return picture
+
+    def _reveal(self, old: QPixmap, edge: str) -> None:
+        """Open the new league's window from under the picture of the old one."""
+        # Widgets added to a visible layout are shown, and laid out, by posted events: deliver
+        # them, or the picture of the new window would miss the new rows.
+        QApplication.sendPostedEvents()
+        reveal = ThemeReveal(self, old, self.grab(), edge)
+        reveal.ended.connect(lambda: self._revealed(reveal))
+        self.reveal = reveal
+        reveal.start()
+
+    def _restyle(self, code: str) -> None:
+        """Repaint the window in the league's palette and give it the league's icon."""
+        theme = theme_for(code)
+        if theme == current_theme() and self._styled:
+            return
+        self._styled = True
+        apply_window_theme(self, theme)
+        icon = app_icon(theme)
+        QApplication.instance().setWindowIcon(icon)
+        self.setWindowIcon(icon)
+        for chart in self.findChildren(ChartView):
+            chart.restyle()
+        for widget in self.findChildren(QWidget):
+            widget.update()  # the painted widgets read the palette when they paint
+
+    def _revealed(self, reveal: ThemeReveal) -> None:
+        if self.reveal is reveal:
+            self.reveal = None
+            QTimer.singleShot(0, self._after_reveal)
+
+    def _after_reveal(self) -> None:
+        """The work kept back while the colours changed: the hidden screens, the predictions
+        that arrived meanwhile."""
+        if self.reveal is not None:
+            return  # another change began meanwhile; its end will call this again
+        self._refresh_stale_pages()
+        waiting, self._computed_later = self._computed_later, []
+        for code, league, result in waiting:
+            self._computed(code, league, result)
+
+    def _refresh_stale_pages(self) -> None:
+        stale, self._stale_pages = self._stale_pages, []
+        league = self._context.league(self._league_code)
+        for page in stale:
+            page.show_league(league)
+
+    def resizeEvent(self, event) -> None:  # noqa: N802 (Qt's name)
+        self.fit_width(event.size().width())
+        if self.reveal is not None:
+            self.reveal.setGeometry(self.rect())
+        super().resizeEvent(event)
+
+    def fit_width(self, width: int) -> None:
+        """Keep only the flags in the side panel, and only the mark in the top bar, when the
+        window is narrow."""
+        compact = width < COMPACT_WIDTH
+        self.side_panel.setFixedWidth(COMPACT_SIDE_PANEL_WIDTH if compact else SIDE_PANEL_WIDTH)
+        self.side_heading.setVisible(not compact)
+        self.version_note.setVisible(not compact)
+        for button in self.league_buttons.values():
+            button.set_compact(compact)
+        self.lockup.set_compact(width < COMPACT_LOGO_WIDTH)
 
     def open_standings(self, code: str) -> None:
         self.show_league(code)
@@ -292,7 +396,10 @@ class MainWindow(QMainWindow):
 
     def show_favourite(self) -> None:
         favourite = self._context.preferences.favourite
-        self.favourite_button.setText(f"Echipa ta: {favourite.team}" if favourite else NO_FAVOURITE)
+        self.favourite_button.setText(favourite.team if favourite else NO_FAVOURITE)
+        self.favourite_button.setIcon(
+            QIcon(team_badge(favourite.team, 22, highlighted=True)) if favourite else QIcon()
+        )
 
     def _favourite_chosen(self, favourite: FavouriteTeam | None) -> None:
         self._context.preferences.set_favourite(favourite)
@@ -304,18 +411,31 @@ class MainWindow(QMainWindow):
                 page.show_league(self._context.league(self.current_league))
 
     def _prepare(self, code: str) -> None:
-        """Predict a league's matches in the background, once."""
+        """Predict a league's matches once, in the worker process (``context.compute``), so the
+        window never waits for the computation."""
         league = self._context.league(code)
         if league.predictions.is_prepared or code in self._preparing:
             return
         self._preparing.add(code)
         if code == self._league_code:
             self.statusBar().showMessage(f"Se pregătesc predicțiile pentru {league.name}…")
+        job, compute = league.predictions.preparation(), self._context.compute
         self._context.run_task(
-            league.predictions.prepare,
-            lambda _: self._prepared(code),
+            lambda: compute(job),
+            lambda result: self._computed(code, league, result),
             lambda message: self._prepare_failed(code, message),
         )
+
+    def _computed(self, code: str, league: LeagueServices, result: bytes) -> None:
+        """Install a league's predictions; while the colours change, after the animation (the
+        unpickling takes a moment that would show as a jolt)."""
+        if self.reveal is not None:
+            self._computed_later.append((code, league, result))
+            return
+        if self._context.league(code) is not league:
+            return  # the data was reloaded meanwhile: a newer computation is on its way
+        league.predictions.install(pickle.loads(result))
+        self._prepared(code)
 
     def _prepared(self, code: str) -> None:
         self._preparing.discard(code)
@@ -348,15 +468,17 @@ class MainWindow(QMainWindow):
         bar = QFrame()
         bar.setObjectName("topbar")
         layout = QHBoxLayout(bar)
-        layout.setContentsMargins(24, 0, 24, 0)
-        layout.setSpacing(4)
-        layout.addWidget(Lockup(40))
-        layout.addSpacing(36)
+        bar.setFixedHeight(68)
+        layout.setContentsMargins(28, 0, 28, 0)
+        layout.setSpacing(6)
+        self.lockup = Lockup(36)
+        layout.addWidget(self.lockup)
+        layout.addSpacing(32)
         group = QButtonGroup(self)
         group.setExclusive(True)
         self.nav_buttons: list[QPushButton] = []
         for index, page in enumerate(self.pages):
-            button = QPushButton(page.title.upper())
+            button = QPushButton(page.title)
             button.setProperty("role", "nav")
             button.setCheckable(True)
             button.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -366,13 +488,16 @@ class MainWindow(QMainWindow):
             self.nav_buttons.append(button)
         layout.addStretch()
         self.update_button = QPushButton(UPDATE)
+        self.update_button.setProperty("role", "icon")
         self.update_button.setToolTip(UPDATE_TIP)
         self.update_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.update_button.clicked.connect(self.update_data)
         layout.addWidget(self.update_button)
         layout.addSpacing(10)
         self.favourite_button = QPushButton()
-        self.favourite_button.setProperty("role", "favourite")
+        self.favourite_button.setProperty("role", "icon")
+        self.favourite_button.setToolTip("Echipa ta: o alegi, iar meciurile ei sunt evidențiate")
+        self.favourite_button.setIconSize(QSize(22, 22))
         self.favourite_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.favourite_button.clicked.connect(self.open_favourite_dialog)
         layout.addWidget(self.favourite_button)
@@ -382,11 +507,13 @@ class MainWindow(QMainWindow):
         panel = QFrame()
         panel.setObjectName("sidepanel")
         panel.setFixedWidth(SIDE_PANEL_WIDTH)
+        self.side_panel = panel
         layout = QVBoxLayout(panel)
         layout.setContentsMargins(0, 22, 0, 18)
         layout.setSpacing(2)
-        heading = label("COMPETIȚII", "overline")
+        heading = label("Competiții", "overline")
         heading.setContentsMargins(22, 0, 0, 8)
+        self.side_heading = heading
         layout.addWidget(heading)
         group = QButtonGroup(self)
         group.setExclusive(True)
@@ -447,4 +574,7 @@ def main() -> int:
         return 1
     window = MainWindow(context)
     window.show()
-    return application.exec()
+    try:
+        return application.exec()
+    finally:
+        stop_processes()  # a computation still running is not waited for

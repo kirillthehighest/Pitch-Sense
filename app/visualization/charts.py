@@ -6,7 +6,7 @@ data here (the only arithmetic is arranging labels). The figures are built with
 same figure can be embedded in the GUI or saved to a file.
 
 Style (``docs/brand.md``): dark cards like the rest of the interface, titles in the condensed
-Barlow Condensed and text in Libre Franklin, light text, solid hairline grids, 2-pixel lines,
+Barlow Condensed and text in Plus Jakarta Sans, light text, solid hairline grids, 2-pixel lines,
 markers ringed in the card colour, a 2-pixel gap between heatmap cells, decimal commas. Colours do
 one job each (``palette.py``): a model always has the same colour (the reference is grey and
 dashed), the ordered K-Means groups go from bright (strongest) to deep blue, magnitudes use one
@@ -23,7 +23,7 @@ import numpy as np
 from matplotlib import font_manager, rc_context
 from matplotlib.axes import Axes
 from matplotlib.axis import Axis
-from matplotlib.colors import LinearSegmentedColormap
+from matplotlib.colors import LinearSegmentedColormap, to_rgba, to_rgba_array
 from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
 from matplotlib.text import Annotation
@@ -54,7 +54,7 @@ from app.visualization.palette import (
     WITH_FANS,
 )
 
-FONT_FAMILY = "Libre Franklin"
+FONT_FAMILY = "Plus Jakarta Sans"
 DISPLAY_FAMILY = "Barlow Condensed"
 SHOWN_GOALS = 6
 FIGURE_SIZE = (6.4, 4.8)
@@ -120,6 +120,51 @@ STYLE = {
     "lines.linewidth": 2,
     "lines.solid_capstyle": "round",
 }
+
+
+def on_surface(
+    figure: Figure,
+    colour: str,
+    previous: str = SURFACE,
+    highlight: str | None = None,
+    previous_highlight: str = GOLD,
+) -> Figure:
+    """Show ``figure`` on a card of another colour: its background becomes transparent, and every
+    ring, edge and gap drawn in ``previous`` (the card colour it was built for) takes ``colour``.
+    With ``highlight``, what was drawn in ``previous_highlight`` (the chosen season or team, gold
+    when built) takes it: the accent of the league on screen.
+
+    Returns the same figure, changed in place.
+    """
+    changes = [(np.array(to_rgba(previous)), to_rgba(colour))]
+    if highlight is not None:
+        changes.append((np.array(to_rgba(previous_highlight)), to_rgba(highlight)))
+    backgrounds = {id(figure.patch), *(id(axes.patch) for axes in figure.axes)}
+    figure.patch.set_alpha(0.0)
+    for axes in figure.axes:
+        axes.patch.set_alpha(0.0)
+    for artist in figure.findobj():
+        if id(artist) in backgrounds:
+            continue
+        for name in ("edgecolor", "facecolor", "markeredgecolor", "color"):
+            getter = getattr(artist, f"get_{name}", None)
+            setter = getattr(artist, f"set_{name}", None)
+            if getter is None or setter is None:
+                continue
+            try:
+                colours = to_rgba_array(getter())
+            except TypeError, ValueError:
+                continue  # not a colour (a colour map, for instance)
+            changed = False
+            for old, new in changes:
+                same = np.all(np.abs(colours - old) < 1 / 255, axis=1)
+                if same.any():
+                    colours[same] = new
+                    changed = True
+                    break  # one change per colour: a new colour is never changed again
+            if changed:
+                setter(new if len(colours) == 1 else colours)
+    return figure
 
 
 @cache

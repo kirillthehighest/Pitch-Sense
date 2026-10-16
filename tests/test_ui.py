@@ -8,6 +8,7 @@ from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 from PySide6.QtCore import QCoreApplication, Qt, QThread
 from PySide6.QtGui import QColor, QImage
+from PySide6.QtWidgets import QWidget
 
 from app import __version__
 from app.data.live import update_live_data
@@ -17,11 +18,20 @@ from app.services.preferences import FavouriteTeam, Preferences
 from app.services.teams import FIRST_SEASON_NAME, GROUP_NAMES
 from app.ui.analysis import TABS
 from app.ui.brand import flag_pixmap
-from app.ui.main_window import UPDATE, MainWindow
+from app.ui.main_window import (
+    COMPACT_LOGO_WIDTH,
+    COMPACT_SIDE_PANEL_WIDTH,
+    COMPACT_WIDTH,
+    SIDE_PANEL_WIDTH,
+    UPDATE,
+    MainWindow,
+)
 from app.ui.match_detail import MODEL_EXPLANATIONS
 from app.ui.match_widgets import DayStrip, MatchRow, chip_text
 from app.ui.matches import NO_MATCHES, next_match_day
 from app.ui.team_page import GROUPS_IN_PROGRESS, SEASON_NOT_FINISHED
+from app.ui.theme import style_sheet
+from app.ui.themes import THEMES, current_theme
 from app.ui.widgets import (
     BarRow,
     ChartView,
@@ -29,15 +39,17 @@ from app.ui.widgets import (
     HeroBanner,
     LeagueButton,
     ProbabilityBars,
+    ReflowGrid,
+    ResponsiveBox,
     StatTile,
     fill_table,
     make_table,
 )
 from app.ui.worker import run_in_background, run_now
-from app.visualization.palette import GOLD_TINT, LOSS, WIN
+from app.visualization.palette import LOSS, WIN
 from tests.conftest import LIVE_TODAY
 
-PAGE_TITLES = ["MECIURI", "CLASAMENT", "ECHIPE", "ANALIZĂ"]
+PAGE_TITLES = ["Meciuri", "Clasament", "Echipe", "Analiză"]
 MODEL_NAMES = [
     "Elo",
     "Poisson",
@@ -64,7 +76,7 @@ def highlighted(table):
     return [
         row
         for row in range(table.rowCount())
-        if table.item(row, 0).background().color() == QColor(GOLD_TINT)
+        if table.item(row, 0).background().color() == QColor(current_theme().accent_tint)
     ]
 
 
@@ -99,7 +111,7 @@ def test_charts_wait_for_results(window):
 def test_the_top_bar_leads_to_four_screens_and_the_header_names_them(window):
     assert [button.text() for button in window.nav_buttons] == PAGE_TITLES
     assert window.stack.currentIndex() == 0
-    assert window.page_title.text() == "MECIURI"
+    assert window.page_title.text() == "MECIURI"  # the banner's title, in display capitals
 
     window.nav_buttons[3].click()
 
@@ -112,7 +124,7 @@ def test_the_top_bar_leads_to_four_screens_and_the_header_names_them(window):
 def test_the_window_prepares_the_predictions_of_the_league(window, app_context):
     assert window.current_league == "SP1"
     assert window.league_buttons["SP1"].isChecked()
-    assert window.hero.eyebrow_label.text() == "LA LIGA · SPANIA · 2006/07–2007/08"
+    assert window.hero.eyebrow_label.text() == "La Liga · Spania · 2006/07–2007/08"
     assert not window.hero.flag_label.pixmap().isNull()
     assert window.hero.photo is not None  # the La Liga image
     assert window.hero.credit_label.text() == "Imagine: DAZN"
@@ -131,9 +143,9 @@ def test_the_matches_open_on_the_next_day_with_matches(window):
     page = window.matches
 
     assert page.day == date(2007, 9, 4)  # "today" has a match
-    assert page.day_label.text() == "AZI · MAR. 4 SEPT."
+    assert page.day_label.text() == "Azi · mar. 4 sept."
     assert [chip.isChecked() for chip in page.day_strip.chips] == [False] * 3 + [True] + [False] * 3
-    assert page.day_strip.chips[3].text() == "AZI\n4 SEPT."
+    assert page.day_strip.chips[3].text() == "Azi\n4 sept."
     (row,) = day_rows(page)
     assert (row.forecast.home_team, row.forecast.away_team) == ("Bravo", "Alpha")
     assert row.model is ModelName.LOGISTIC_REGRESSION  # the default model
@@ -167,9 +179,8 @@ def test_a_played_match_says_right_or_wrong_with_a_shape_and_a_colour(window):
         best = (Outcome.HOME_WIN, Outcome.DRAW, Outcome.AWAY_WIN).index(
             forecast.of(model).probabilities.most_likely
         )
-        width = MatchRow.PROBABILITY_WIDTH
-        chip_left = 700 - 12 - 3 * width - 2 * 6 + best * (width + 6)
-        mark = image.pixelColor(round(chip_left + width - 1), round(MatchRow.HEIGHT / 2 - 15 - 4))
+        chip = MatchRow.chip_box(700, MatchRow.HEIGHT, best)
+        mark = image.pixelColor(round(chip.right() - 1), round(chip.top() - 3))
 
         assert mark.name() == (WIN if row.hit else LOSS).lower()
 
@@ -211,8 +222,8 @@ def test_a_match_page_shows_every_model_its_scores_and_both_teams(window):
     assert [bar.label for bar in detail.bars.rows] == OUTCOME_MODELS
     assert all(bar.home + bar.draw + bar.away == pytest.approx(1) for bar in detail.bars.rows)
     assert detail.hero.score.text() == f"{played.home_goals} – {played.away_goals}"
-    assert detail.hero.status.text() == "FINAL"
-    assert detail.hero.eyebrow.text() == "LA LIGA · 2007/08 · 03.09.2007"
+    assert detail.hero.status.text() == "Final"
+    assert detail.hero.eyebrow.text() == "La Liga · 2007/08 · 03.09.2007"
     assert detail.verdict.text().startswith(f"Rezultat: {played.home_goals}–{played.away_goals}")
     assert detail.knowledge.text() == (
         "Predicțiile au fost făcute din meciurile jucate înainte de 03.09.2007, fără să știe "
@@ -255,7 +266,7 @@ def test_predicting_a_hypothetical_fixture(window):
     assert detail.knowledge.text() == (
         "Meci ipotetic: predicțiile folosesc meciurile jucate înainte de 05.09.2007."
     )
-    assert detail.hero.status.text() == "MECI IPOTETIC"
+    assert detail.hero.status.text() == "Meci ipotetic"
     assert detail.hero.score.text() == "VS"
     assert len(detail.bars.rows) == 3
 
@@ -306,7 +317,8 @@ def test_your_team_is_saved_shown_and_highlighted(window, app_context, tmp_path)
 
     assert app_context.preferences.favourite == FavouriteTeam("SP1", "Charlie")
     assert Preferences(tmp_path / "preferences.json").favourite == FavouriteTeam("SP1", "Charlie")
-    assert window.favourite_button.text() == "Echipa ta: Charlie"
+    assert window.favourite_button.text() == "Charlie"
+    assert not window.favourite_button.icon().isNull()  # the club's crest
     page = window.matches
     assert page.favourite_name.text() == "CHARLIE"
     assert page.favourite_caption.text() == "La Liga · 2007/08"
@@ -363,7 +375,7 @@ def two_league_context(make_app_context, two_league_database):
 def test_choosing_a_league_shows_it_on_every_screen_and_is_remembered(two_league_context):
     window = MainWindow(two_league_context)
     assert window.current_league == "E0"  # nothing remembered: the first league
-    assert window.hero.eyebrow_label.text().startswith("PREMIER LEAGUE · ANGLIA")
+    assert window.hero.eyebrow_label.text().startswith("Premier League · Anglia")
     assert [button.text() for button in window.league_buttons.values()] == [
         "Premier League",
         "La Liga",
@@ -374,7 +386,7 @@ def test_choosing_a_league_shows_it_on_every_screen_and_is_remembered(two_league
 
     assert window.current_league == "SP1"
     assert window.league_buttons["SP1"].isChecked() and not window.league_buttons["E0"].isChecked()
-    assert window.hero.eyebrow_label.text().startswith("LA LIGA · SPANIA")
+    assert window.hero.eyebrow_label.text().startswith("La Liga · Spania")
     assert window.team_page.team_box.itemText(0) == "Alpha"
     assert cells(window.standings.table, 1)[0] in ("Alpha", "Bravo", "Charlie", "Delta")
     assert two_league_context.preferences.competition == "SP1"
@@ -439,11 +451,11 @@ def test_the_leagues_tab_compares_every_league_after_their_backtests(two_league_
     assert card.value_label.text().endswith("%")
     assert card.goals_label.text().endswith("goluri pe meci")
     assert card.best_label.text() in MODEL_NAMES[:3]
-    assert leagues.cards["E0"].property("role") == "favourite"  # the league on screen
+    assert leagues.cards["E0"].property("role") == "current"  # the league on screen
     card.clicked.emit("SP1")  # a click on a card opens its league
     assert window.current_league == "SP1"
     assert highlighted(leagues.models_table) == [1]
-    assert leagues.cards["SP1"].property("role") == "favourite"
+    assert leagues.cards["SP1"].property("role") == "current"
     assert leagues.cards["E0"].property("role") == "card"
     window.close()
 
@@ -460,7 +472,7 @@ def test_the_table_shows_crests_and_form_and_opens_a_team(window):
     assert not page.table.item(0, 1).icon().isNull()  # the team's badge
     form = page.table.cellWidget(0, 10).findChild(FormStrip)
     assert form.letters == "V V E V E"
-    assert page.title_label.text() == "LA LIGA 2006/07 · TOT SEZONUL"
+    assert page.title_label.text() == "La Liga 2006/07 · tot sezonul"
 
     page.table.cellClicked.emit(2, 1)
 
@@ -477,7 +489,7 @@ def test_the_table_as_of_a_date(window):
     page.date_edit.setDate(date(2006, 9, 4))
 
     assert cells(page.table, 1) == ["Alpha", "Bravo", "Delta", "Charlie"]
-    assert page.title_label.text() == "LA LIGA 2006/07 · ÎNAINTE DE 04.09.2006"
+    assert page.title_label.text() == "La Liga 2006/07 · înainte de 04.09.2006"
 
 
 # --- Echipe ---
@@ -500,7 +512,7 @@ def test_the_page_of_a_team_for_a_whole_season(window):
     assert chart_title(page.elo_chart) == "Alpha: ratingul Elo înaintea fiecărui meci"
     assert chart_legend(page.elo_chart) == ["2006/07"]
     assert chart_title(page.groups_chart).startswith("Grupurile echipelor, 2006/07")
-    assert [page.views.tabText(i) for i in range(page.views.count())] == ["RATING ELO", "GRUPURI"]
+    assert [page.views.tabText(i) for i in range(page.views.count())] == ["Rating Elo", "Grupuri"]
 
 
 def test_a_match_on_a_team_page_opens_its_page(window):
@@ -519,9 +531,7 @@ def test_a_match_on_a_team_page_opens_its_page(window):
 
 def test_the_analysis_explains_scores_and_credits(window):
     analysis = window.analysis
-    assert [analysis.views.tabText(i) for i in range(analysis.views.count())] == [
-        tab.upper() for tab in TABS
-    ]
+    assert [analysis.views.tabText(i) for i in range(analysis.views.count())] == list(TABS)
     texts = " ".join(label.text() for label in analysis.findChildren(type(window.page_title)))
     assert "Ratingul Elo" in texts or "RATINGUL ELO" in texts
     assert "Wikipedia" in texts and "CC0" in texts
@@ -578,8 +588,8 @@ def test_the_matches_open_on_the_next_scheduled_day(live_window):
     row.click()
 
     detail = page.detail
-    assert detail.hero.status.text() == "PROGRAMAT"
-    assert detail.hero.eyebrow.text() == "LA LIGA · 2008/09 · 10.09.2008, 18:30"
+    assert detail.hero.status.text() == "Programat"
+    assert detail.hero.eyebrow.text() == "La Liga · 2008/09 · 10.09.2008, 18:30"
     assert detail.knowledge.text() == (
         "Predicțiile folosesc toate meciurile jucate până acum (ultimele pe 07.09.2008)."
     )
@@ -785,24 +795,24 @@ def test_the_hero_writes_titles_and_eyebrows_in_capitals(application):
 
     assert hero.title_label.text() == "ECHIPE"
     assert hero.subtitle_label.text() == "Clasamentul la orice dată."
-    assert hero.eyebrow_label.text() == "LA LIGA · SPANIA"
+    assert hero.eyebrow_label.text() == "La Liga · Spania"
     assert not hero.grab().isNull()
 
 
-def test_a_stat_tile_shows_a_value_under_a_capital_name(application):
+def test_a_stat_tile_shows_a_value_under_its_name(application):
     tile = StatTile("Meciuri")
 
     tile.set_value("7.600")
 
-    assert (tile.value_label.text(), tile.name_label.text()) == ("7.600", "MECIURI")
+    assert (tile.value_label.text(), tile.name_label.text()) == ("7.600", "Meciuri")
 
 
 def test_a_day_chip_names_the_day_in_two_lines(application):
     today = date(2026, 10, 15)
 
-    assert chip_text(today, today) == "AZI\n15 OCT."
-    assert chip_text(date(2026, 10, 16), today) == "MÂINE\n16 OCT."
-    assert chip_text(date(2026, 10, 17), today) == "SÂM.\n17 OCT."
+    assert chip_text(today, today) == "Azi\n15 oct."
+    assert chip_text(date(2026, 10, 16), today) == "Mâine\n16 oct."
+    assert chip_text(date(2026, 10, 17), today) == "Sâm.\n17 oct."
     strip = DayStrip()
     chosen = []
     strip.day_chosen.connect(chosen.append)
@@ -825,3 +835,225 @@ def test_the_hero_shows_the_league_photo_and_its_credit(application):
     assert hero.top == 0.3
     image = hero.grab().toImage()
     assert image.pixelColor(image.width() - 20, image.height() // 2) != image.pixelColor(10, 10)
+
+
+# --- the colours of the league and a window of any width (Phase 21) ---
+
+
+def test_choosing_a_league_paints_the_window_in_its_colours(two_league_context):
+    window = MainWindow(two_league_context)
+    assert current_theme() is THEMES["E0"]
+    assert window.styleSheet() == style_sheet(THEMES["E0"])
+
+    window.league_buttons["SP1"].click()
+
+    assert current_theme() is THEMES["SP1"]
+    assert window.styleSheet() == style_sheet(THEMES["SP1"])
+    assert window.reveal is None  # a window out of sight changes at once
+    window.close()
+
+
+def test_a_window_on_screen_reveals_the_new_colours_with_a_wave(two_league_context):
+    window = MainWindow(two_league_context)
+    window.show()
+    QCoreApplication.processEvents()
+
+    window.league_buttons["SP1"].click()
+    first = window.reveal
+    assert first is not None and first.isVisible()
+    assert first.edge == QColor(THEMES["SP1"].accent)
+    assert first.geometry() == window.rect()
+
+    window.league_buttons["E0"].click()  # before the wave has finished
+    assert window.reveal is not first and window.reveal is not None
+    assert first.isHidden()
+
+    window.reveal.finish()
+    assert window.reveal is None
+    window.animate = False
+    window.league_buttons["SP1"].click()
+    assert window.reveal is None
+    window.close()
+
+
+def test_a_narrow_window_keeps_only_the_flags_and_the_mark(window):
+    window.fit_width(COMPACT_LOGO_WIDTH - 1)
+
+    assert window.side_panel.width() == COMPACT_SIDE_PANEL_WIDTH
+    assert window.side_heading.isHidden() and window.version_note.isHidden()
+    assert all(button.compact for button in window.league_buttons.values())
+    assert window.lockup.compact
+
+    window.fit_width(COMPACT_WIDTH - 1)  # between the two: flags only, the whole logo
+    assert window.side_panel.width() == COMPACT_SIDE_PANEL_WIDTH
+    assert not window.lockup.compact
+
+    window.fit_width(COMPACT_WIDTH)
+    assert window.side_panel.width() == SIDE_PANEL_WIDTH
+    assert not any(button.compact for button in window.league_buttons.values())
+    assert window.minimumWidth() <= 1024
+
+
+@pytest.mark.parametrize("width", [1024, 1280, 1440])
+def test_no_screen_scrolls_sideways(window, width):
+    window.resize(width, 760)
+    window.show()
+    for index in range(len(window.pages)):
+        window.show_page(index)
+        for _ in range(3):
+            QCoreApplication.processEvents()
+        assert window.scrolls[index].horizontalScrollBar().maximum() == 0, window.pages[index]
+
+
+def test_a_responsive_box_stacks_its_widgets_when_narrow(application):
+    box = ResponsiveBox(500, spacing=10)
+    first, side = QWidget(), QWidget()
+    box.add(first, stretch=1)
+    box.add(side, stretch=0, width=200)
+
+    box.resize(800, 100)
+    box.show()
+    QCoreApplication.processEvents()
+    assert not box.stacked and side.width() == 200
+    assert first.geometry().right() < side.geometry().left()
+
+    box.resize(400, 300)
+    QCoreApplication.processEvents()
+    assert box.stacked
+    assert side.geometry().top() > first.geometry().top()
+    assert side.width() == first.width()  # the whole width
+    assert box.minimumSizeHint().width() <= 400
+    box.close()
+
+
+def test_a_reflow_grid_puts_on_each_row_as_many_widgets_as_fit(application):
+    grid = ReflowGrid(200, spacing=10)
+    for _ in range(5):
+        grid.add(QWidget())
+
+    grid.resize(1100, 100)
+    grid.show()
+    QCoreApplication.processEvents()
+    assert grid.columns == 5
+
+    grid.resize(640, 300)
+    QCoreApplication.processEvents()
+    assert grid.columns == 3
+    rows = sorted({widget.geometry().top() for widget in grid.widgets})
+    assert len(rows) == 2
+
+    grid.resize(150, 600)
+    QCoreApplication.processEvents()
+    assert grid.columns == 1
+    grid.close()
+
+
+def test_a_narrow_match_row_puts_the_probabilities_under_the_teams(window):
+    window.matches.show_day(date(2007, 9, 3))
+    row = MatchRow(day_rows(window.matches)[0].forecast, ModelName.ELO)
+
+    row.resize(MatchRow.NARROW + 100, MatchRow.HEIGHT)
+    row.show()
+    QCoreApplication.processEvents()
+    assert not row.stacked and row.height() == MatchRow.HEIGHT
+
+    row.resize(MatchRow.NARROW - 100, MatchRow.HEIGHT)
+    QCoreApplication.processEvents()
+    assert row.stacked and row.height() == MatchRow.STACKED_HEIGHT
+    assert not row.grab().isNull()
+    row.close()
+
+
+def test_the_last_match_of_a_league_draws_no_line_across_the_round_corners(window):
+    window.matches.show_day(date(2007, 9, 3))
+    rows = window.matches.groups[0].rows
+
+    assert rows[-1].last and not any(row.last for row in rows[:-1])
+
+
+def test_the_hero_keeps_its_subtitle_off_the_image(application):
+    hero = HeroBanner()
+    hero.show_league("La Liga", None, QImage(1600, 600, QImage.Format.Format_RGB32))
+    hero.resize(900, HeroBanner.HEIGHT)
+    hero.show()
+    QCoreApplication.processEvents()
+
+    image_left = 900 - min(900 * HeroBanner.PHOTO_SHARE, HeroBanner.PHOTO_MAX_WIDTH)
+    assert hero.subtitle_label.maximumWidth() <= image_left
+    hero.close()
+
+
+def test_a_hidden_chart_takes_the_new_colours_when_it_is_shown(application):
+    view = ChartView()
+    figure = Figure()
+    figure.add_subplot().plot([0, 1], [0, 1])
+    view.show_figure(figure)
+
+    draws = []
+    figure.canvas.mpl_connect("draw_event", lambda event: draws.append(event))
+
+    view.restyle()  # out of sight: not redrawn yet
+    QCoreApplication.processEvents()
+    assert draws == []
+
+    view.show()
+    for _ in range(3):
+        QCoreApplication.processEvents()
+    assert draws
+    view.close()
+
+
+def test_the_banner_shows_the_image_sharp_on_the_right_and_its_edge_colour_on_the_left(
+    application,
+):
+    photo = QImage(1920, 1080, QImage.Format.Format_RGB32)
+    photo.fill(QColor("#C04030"))
+    hero = HeroBanner()
+    hero.resize(1200, HeroBanner.HEIGHT)
+    hero.show_league("La Liga · Spania", None, photo)
+    image = hero.grab().toImage()
+
+    assert image.pixelColor(1150, 120).name() == "#c04030"  # the image itself, untouched
+    left = image.pixelColor(60, HeroBanner.HEIGHT - 20)  # the fill: the image's edge, deepened
+    assert left.red() < 0xC0 and left.red() > left.blue()
+    assert hero.subtitle_label.maximumWidth() <= 1200 - hero.photo_width(1200)
+
+
+def test_hidden_screens_follow_the_league_after_the_wave_or_when_opened(two_league_context):
+    window = MainWindow(two_league_context)
+    window.show()
+    QCoreApplication.processEvents()
+    assert window.team_page.team_box.itemText(0) == "Echo"  # Premier League teams
+
+    window.league_buttons["SP1"].click()  # the colours change with the wave
+
+    assert window.reveal is not None
+    assert window.team_page.team_box.itemText(0) == "Echo"  # hidden: not yet changed
+    window.show_page(window.pages.index(window.standings))  # opened during the wave
+    assert cells(window.standings.table, 1)[0] in ("Alpha", "Bravo", "Charlie", "Delta")
+    window.reveal.finish()
+    for _ in range(3):
+        QCoreApplication.processEvents()
+    assert window.team_page.team_box.itemText(0) == "Alpha"  # changed after the wave
+    window.close()
+
+
+def test_predictions_ready_during_the_wave_are_installed_after_it(two_league_context):
+    tasks = []
+    two_league_context.run_task = lambda work, done, failed: tasks.append((work, done))
+    window = MainWindow(two_league_context)
+    window.show()
+    QCoreApplication.processEvents()
+    league = two_league_context.league(window.current_league)
+
+    window.league_buttons["SP1"].click()
+    while tasks:  # every computation, the first league's predictions too, ends during the wave
+        work, done = tasks.pop(0)
+        done(work())
+
+    assert window.reveal is not None and not league.predictions.is_prepared
+    window.reveal.finish()
+    for _ in range(3):
+        QCoreApplication.processEvents()
+    assert league.predictions.is_prepared
+    window.close()

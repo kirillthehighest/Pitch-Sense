@@ -19,7 +19,7 @@ from app.services.predictions import PredictionService
 from app.services.preferences import Preferences
 from app.services.teams import TeamService
 from app.services.updates import update_season
-from app.ui.worker import Runner, run_in_background
+from app.ui.worker import Computer, Runner, compute_in_process, run_in_background
 
 
 def show_error_dialog(message: str) -> None:
@@ -53,6 +53,7 @@ class AppContext:
     update_data: Callable[[], Any] = update_season  # downloads; returns an UpdateSummary
     today: Callable[[], date] = date.today  # the matches screen opens on the next match day
     run_task: Runner = run_in_background
+    compute: Computer = compute_in_process  # long computations, away from the window
     report_error: Callable[[str], None] = field(default=show_error_dialog)
     _leagues: dict[str, LeagueServices] = field(default_factory=dict, init=False, repr=False)
 

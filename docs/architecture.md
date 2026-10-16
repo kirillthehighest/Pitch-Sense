@@ -1,6 +1,6 @@
 # Arhitectura aplicației PitchSense
 
-Acest document descrie structura aplicației, fluxul datelor și deciziile tehnice luate până acum (fazele 0–20). Se actualizează ori de câte ori structura se schimbă.
+Acest document descrie structura aplicației, fluxul datelor și deciziile tehnice luate până acum (fazele 0–21). Se actualizează ori de câte ori structura se schimbă.
 
 ## 1. Principii
 
@@ -605,7 +605,7 @@ Grupurile K-Means folosesc doar sezoanele cu statistici de șuturi. Dacă sezonu
 
 ## 14. Identitatea vizuală și interfața în română (Faza 16)
 
-Semnul, culorile, literele și regulile interfeței sunt descrise, cu motivele lor, în `docs/brand.md`. Această secțiune descrie structura.
+Semnul, culorile, literele și regulile interfeței sunt descrise, cu motivele lor, în `docs/brand.md`. Această secțiune descrie structura din Faza 16; Faza 21 a înlocuit sigla, culorile și stilul (secțiunea 17).
 
 ### 14.1. Ce s-a schimbat
 
@@ -796,7 +796,7 @@ Echipa a ales stemele reale, de pe Wikipedia, la rezoluție mică, păstrate doa
 Fiecare ligă are în antet o imagine cu jucătorii ei. La început erau fotografii libere de stadioane de pe Wikimedia Commons (Anfield, Camp Nou, San Siro, Signal Iduna Park, Parc des Princes, CC BY și CC BY-SA). După acceptarea fazei, echipa le-a înlocuit cu cinci imagini promoționale DAZN, alese de ea, și a cerut ca jucătorii să încapă în antet.
 
 - Imaginile stau în `app/ui/assets/leagues/<cod>.jpg` (1,6 MB în total), nemodificate; echipa a schimbat apoi imaginea Bundesligii cu una cu Kane pe fond roșu. `sources.json` spune, pentru fiecare, sursa (DAZN) și unde începe fâșia arătată (`top`, ca parte din înălțimea imaginii, puțin deasupra celui mai înalt cap). Un decupaj dat ca procent din spațiul rămas tăia capetele în ferestrele late (Mbappé, Bruno Fernandes), pentru că acolo imaginea se mărește; marginea de sus fixată pe imagine le păstrează la orice lățime (verificat la 1192 și 1672 px).
-- Antetul (`HeroBanner`) are 236 px. Imaginea ocupă partea dreaptă, cel mult 58% din lățime și cel mult 760 px, ca o fereastră lată să nu taie capetele. Spre stânga, imaginea se estompează în culoarea antetului, iar marginea ei cade pe un pixel întreg, ca să nu se vadă o linie. În colț scrie „Imagine: DAZN”.
+- În Faza 19, antetul (`HeroBanner`) avea 236 px. Imaginea ocupa partea dreaptă, cel mult 58% din lățime și cel mult 760 px, ca o fereastră lată să nu taie capetele, și se estompa spre stânga în culoarea antetului. Faza 21 a refăcut antetul: imaginea la rezoluția ecranului, trecând în culoarea propriei margini (secțiunea 17.4). În colț scrie „Imagine: DAZN”.
 - Drepturile asupra imaginilor, ale jucătorilor, siglelor și sponsorilor aparțin deținătorilor lor. Imaginile sunt folosite doar în depozitul privat și în pachete și nu se publică, iar Analiză → Surse spune asta. Unealta pentru fotografiile Commons (`tools/league_photos.py`) a fost scoasă.
 
 ### 16.6. Corecturi găsite pe parcurs
@@ -827,7 +827,189 @@ Rulări din 2026-10-15:
 - Lista meciurilor arată un singur model odată.
 - Grupurile K-Means apar doar pentru sezoanele încheiate, ca până acum.
 
-## 17. Setul de date și perioadele
+## 17. Designul refăcut: culorile ligilor, sigla nouă, o fereastră de orice lățime (Faza 21)
+
+Echipa a cerut să lucrăm mai mult la design. Așezarea ecranelor din Faza 19 a rămas. S-au schimbat:
+
+- stilul;
+- culorile, care urmează liga afișată și se schimbă cu o animație;
+- sigla;
+- antetul cu imaginea ligii;
+- fereastra, care se potrivește oricărei lățimi.
+
+Regulile vizuale și motivele lor sunt în `docs/brand.md`.
+
+**Cele două versiuni.** Faza a avut două versiuni. Prima („sticlă întunecată”) a fost respinsă de echipă: animația sacada, imaginile își pierduseră calitatea, culorile păreau toxice, iar designul părea făcut în grabă. A doua, cea descrisă aici, a refăcut stilul după referințele echipei și a corectat cauzele tehnice (secțiunile 17.2 și 17.4).
+
+### 17.1. Paletele ligilor
+
+- `app/ui/themes.py` definește clasa `Theme`. Suprafețele și textul sunt aceleași pentru toate ligile: o noapte neutră, aproape neagră. Fiecare ligă are:
+  - accentul, cu textul de pe el;
+  - accentul scris pe întuneric;
+  - culoarea adâncă a ligii.
+
+  `theme_for(code)` dă paleta unei ligi; o ligă fără paletă primește paleta La Ligii (`DEFAULT_THEME`).
+- **Paleta afișată.** `current_theme()` dă paleta de pe ecran. Piesele desenate o citesc de fiecare dată când se desenează, deci nu păstrează culori vechi.
+- **Foaia de stil și paleta Qt.** `style_sheet(theme)` și `qt_palette(theme)` din `app/ui/theme.py` le generează din paleta unei ligi.
+  - `apply_theme` le pune pe toată aplicația, la pornire și în autoverificare.
+  - `apply_window_theme` le pune doar pe fereastră, la schimbarea ligii. Foaia ferestrei are întâietate față de cea a aplicației, iar restilizarea doar a ferestrei durează 0,15–0,3 s, față de 0,6–0,8 s pentru toată aplicația.
+- **De ce nu doar paleta Qt.** O foaie de stil care citește culorile din paleta Qt (`palette(highlight)`) nu urmează o paletă schimbată ulterior; s-a încercat și nu funcționează. De aceea foaia se generează din nou.
+- **Ce nu se schimbă.** Culorile formei și ale modelelor rămân în `app/visualization/palette.py`, aceleași pentru toate ligile. Barele de probabilitate folosesc accentul ligii pentru victoria gazdelor și două griuri pentru egal și pentru victoria oaspeților (`ProbabilityBars.colours`).
+- **Graficele.** Graficele rămân construite fără Qt, în `app/visualization/charts.py`, cu Plus Jakarta Sans pentru text. `ChartView` le face transparente și înlocuiește, cu `on_surface`:
+  - culoarea cardului (inelele marcajelor, spațiile dintre celule) cu cardul ligii;
+  - auriul evidențierii cu accentul ligii.
+
+  Un grafic de pe un ecran ascuns este recolorat imediat, dar redesenat abia când e arătat.
+
+### 17.2. Schimbarea ligii
+
+`MainWindow.show_league` face următoarele:
+
+1. Dacă fereastra e pe ecran și liga are alte culori, păstrează o imagine a ei (`_snapshot`); o animație încă în curs e încheiată.
+2. Pune foaia de stil și paleta noii ligi pe fereastră și îi schimbă iconița (`_restyle`).
+3. Ecranul afișat își schimbă conținutul. Ecranele ascunse îl schimbă după animație (`_after_reveal`) sau în momentul în care sunt deschise, ca să nu întârzie animația.
+4. După ce Qt livrează evenimentele amânate, păstrează o imagine a ferestrei noi. Aceste evenimente arată și așază rândurile noi; fără ele, imaginea ar fi prins fereastra fără rânduri.
+5. `ThemeReveal` (`app/ui/transition.py`) arată imaginea veche și deschide în ea un cerc spre imaginea nouă, din colțul din stânga sus, în 0,8 s (`QVariantAnimation`, mișcare `OutCubic`).
+
+**Marginea cercului.** Marginea are valuri, ca la Material You:
+
+- `wave_edge` dă punctele marginii, la câte 8 px de-a lungul ei, calculate toate odată cu NumPy, o singură dată pe cadru;
+- `wave_offset` adună două valuri sinusoidale, de 120 px și de 68 px, care se mișcă în sensuri opuse;
+- `wave_amplitude` le scade înălțimea de la 18 la 4 px pe măsură ce cercul crește.
+
+**Desenul unui cadru.** Stratul animației e opac (`WA_OpaquePaintEvent`) și desenează doar:
+
+- imaginea nouă;
+- imaginea veche, umplând partea încă acoperită (`cover`, un singur poligon) cu un pensul făcut din imagine, fără mască de tăiere;
+- linia valului și două unde.
+
+Un cadru redesenează doar banda prin care a trecut marginea de la cadrul precedent (`band`: fâșii de 16 px între două cercuri), nu toată fereastra.
+
+**De ce sacada animația.** Au fost două cauze, găsite una după alta.
+
+1. **Stratul transparent.** În prima versiune, stratul era transparent, așa că pentru fiecare cadru Qt redesena toată fereastra de sub el: carduri, rânduri, imaginea antetului, grafice.
+2. **Calculul în fundal.** Și după ce stratul a devenit opac, echipa a văzut animația sacadând în aplicația reală. Măsurătorile din fereastra desenată fără ecran nu prinseseră cauza, pentru că acolo predicțiile erau gata. În aplicația reală, după pornire se calculează predicțiile celor cinci ligi, aproximativ 7,5 s fiecare. Calculul rula pe un fir de execuție al aceluiași proces, deci împărțea interpretorul Python cu fereastra. Fereastra aștepta după el la fiecare apel spre Qt.
+
+   Măsurat la rezoluția Retina, cu o ligă în calcul:
+   - schimbarea ligii bloca fereastra 4,8 s;
+   - animația avea 11 cadre, la până la 270 ms unul de altul;
+   - scurtarea intervalului de comutare al interpretorului (`sys.setswitchinterval`) a ajutat puțin (1,8 s, 10 cadre).
+
+**Calculul în alt proces.** Acum predicțiile se calculează în alt proces (secțiunea 17.6), iar ecranele ascunse se schimbă după animație. În aceleași condiții:
+
+- 50 de cadre, la cel mult 17,6 ms unul de altul, adică 60 pe secundă;
+- un cadru se desenează în aproximativ 4 ms;
+- fereastra se blochează 0,5 s înaintea animației la prima deschidere a unei ligi și aproximativ 0,3 s după aceea.
+
+**Comportamentul.** Stratul lasă clicurile să treacă. O fereastră care nu este pe ecran se schimbă fără animație, la fel și una cu `animate = False`. Predicțiile unei ligi care sosesc în timpul animației se instalează după ea, ca transferul lor (aproximativ 0,14 s) să nu se vadă ca un salt.
+
+### 17.3. Stilul și sigla
+
+- **Suprafețele.** Fundalul ferestrei (`Backdrop`) e plat. Peste el stau:
+  - cardurile plate, cu colțurile de 20 px și o margine albă la 6%;
+  - navigarea, filtrele, jetoanele și sub-filele, ca pastile;
+  - butoanele, cu colțurile de 12 px.
+- **Literele.** Plus Jakarta Sans (SIL Open Font License 1.1, cinci grosimi statice, din depozitul autorilor) a înlocuit Libre Franklin; fișierele Libre Franklin au fost scoase. Textul nu mai e scris cu majuscule; Barlow Condensed a rămas pentru titlul ecranului, scoruri, cifre și numele echipelor pe pagina unui meci.
+- **Rândurile de meci** (`MatchRow`), ca în Sportia:
+  - ora sau „Final”;
+  - gazdele cu stema în stânga, scorul sau „vs” pe o pastilă în mijloc, oaspeții cu stema în dreapta;
+  - cele trei probabilități; cea mai mare e plină cu accentul.
+
+  `MatchRow.chip_box` dă locul fiecărei probabilități; după el sunt așezate și capetele coloanelor (`ProbabilityHeading`). Un rând îngust pune gazdele și oaspeții pe două rânduri, cu scorul lângă ele, ca numele să nu fie tăiate.
+- **Cardurile de ligă din Meciuri** (`LeagueGroup`) sunt desenate: steagul, liga, țara și numărul de meciuri, capetele coloanelor, apoi rândurile într-un chenar interior rotunjit.
+- **Capetele meciului și echipei** folosesc `paint_head_card`: cardul luminat de sus de culoarea adâncă a ligii. Capul unui meci ia culoarea ligii meciului, chiar dacă e afișată altă ligă.
+- **Sigla.** `logo_parts` din `app/ui/brand.py` ia conturul literelor „PS” din fontul Kanit Black Italic și unește contururile care se suprapun. Le potrivește în dreptunghiul dat și le taie cu o bandă înclinată la 15°. Rezultă două forme, desenate în alb și în accentul ligii.
+- **Iconița.** Iconița pune sigla pe un pătrat aproape negru, luminat de culoarea adâncă a ligii. `packaging/icons.py` desenează iconițele pachetelor în culorile La Ligii și se oprește dacă fontul Kanit nu se încarcă.
+
+### 17.4. Antetul cu imaginea ligii
+
+`HeroBanner` umple tot antetul fără inteligență artificială:
+
+1. **Imaginea.** Se desenează direct pe ecran, cu `drawImage`, la rezoluția lui: cel mult 62% din lățime și 860 px, ancorată în dreapta și tăiată de sus după `sources.json`.
+2. **Fondul.** `edge_colour` dă culoarea medie a marginii stângi a fâșiei arătate (3% din lățime), întunecată cu 30%, și o păstrează după cheia imaginii. Amestecată pe jumătate cu culoarea adâncă a ligii, ea este fondul antetului.
+3. **Trecerea.** Pe 50% din lățimea imaginii, de la marginea ei, un gradient trece din fond în transparent, începând cu un pixel înaintea imaginii, ca nicio coloană să nu rămână neacoperită.
+4. **Explicația.** Lățimea explicației se recalculează după lățimea imaginii, ca textul să rămână la stânga ei.
+
+**De ce se pierdea calitatea în prima versiune.** Imaginea clară era pregătită într-o `QImage` de mărimea antetului în puncte, fără densitatea ecranului. Pe Retina se desena deci la jumătate din rezoluție, peste o copie estompată. Ambele au fost scoase.
+
+### 17.5. O fereastră de orice lățime
+
+În Faza 19, la lățimi mai mici, coloana din dreapta a ecranului Meciuri era tăiată, iar Echipe și Ligi aveau bară de derulare orizontală. Lățimea minimă a ferestrei era 1180 px; acum este 1024 px.
+
+- **`ResponsiveBox`** pune piesele alături sau, sub un prag de lățime, una sub alta:
+  - piesele cu lățime fixă (coloana „Echipa ta”, 340 px) iau atunci toată lățimea;
+  - așezarea nu impune lățimea tuturor pieselor la un loc, altfel cutia n-ar putea deveni destul de îngustă ca să le pună una sub alta.
+- **`ReflowGrid`** așază piesele pe atâtea coloane câte încap: cele șase cifre ale echipei, cele cinci carduri de ligă.
+- **`MatchRow`** trece singur pe două rânduri sub 600 px.
+- **`MainWindow.fit_width`** păstrează doar steagurile în panoul ligilor sub 1280 px și doar semnul siglei sub 1180 px.
+- **Clasamentul.** Celulele tabelului nu mai au spațiu interior, ca pătrățelele de formă să încapă întregi în coloana lor.
+
+Pragurile fiecărui ecran sunt în `docs/brand.md`, secțiunea 5.5.
+
+### 17.6. Predicțiile, în alt proces
+
+`PredictionService` are pasul lent despărțit în două:
+
+- `preparation` dă calculul ca o sarcină care poate rula în alt proces: o funcție de modul (`compute_predictions`) cu argumente care sunt doar date;
+- `install` primește rezultatul (`PreparedPredictions`).
+
+`prepare` le face pe amândouă pe loc, ca înainte.
+
+`compute_in_process` (`app/ui/worker.py`) trimite sarcina unui singur proces de lucru, pornit o dată, cu metoda `spawn`, și o așteaptă dintr-un fir de execuție. Rezultatul se întoarce ca șir de octeți (`pickle`), aproximativ 30 MB pentru o ligă, iar fereastra îl despachetează când vrea. `AppContext.compute` alege unde se face calculul: testele folosesc `compute_here`, în același proces. La închiderea ferestrei, `stop_processes` oprește procesul de lucru fără să aștepte calculul în curs.
+
+Într-un pachet, procesul de lucru pornește din nou programul. `multiprocessing.freeze_support()` din `app/__main__.py` îl transformă în proces de lucru înainte să ruleze altceva. Autoverificarea pachetelor încearcă și acest drum, pentru că își pregătește predicțiile prin `context.compute`.
+
+### 17.7. Ce trece în Etapa 22
+
+După a doua versiune, echipa a mai cerut:
+
+- pe pagina echipei: cardul formei aranjat aliniat, iar cardul K-Means redenumit „Profilul echipei”, fără descriere;
+- în Analiză: fără spațiul gol de sub grafice și cu coloanele tabelelor de lățimi măsurate;
+- un layout cu o singură bară laterală (varianta A, aleasă de echipă dintre patru);
+- un card „Meciul zilei” cu imaginea ligii;
+- meciurile din sezoanele anterioare;
+- un ecran cu predicțiile nimerite, ratate și surprizele;
+- imagini cu stadioane și jucători.
+
+Echipa a hotărât apoi ca interfața să fie refăcută pe web, peste serviciile Python, într-o etapă nouă (22). Aceste cereri intră acolo. Etapa 21 se încheie cu culorile ligilor, sigla, stilul, adaptarea la lățime și animația reparată.
+
+### 17.8. Verificare
+
+Rulări din 2026-10-15 și 2026-10-16:
+
+- **Teste.** Toate cele 815 teste trec; `ruff check` și `ruff format --check` nu găsesc nimic. Fișiere de test noi:
+  - `tests/test_themes.py`: suprafețele comune, accentele, contrastele tuturor textelor, inclusiv antetul cu imaginea reală a fiecărei ligi, barele de probabilitate și foaia de stil a fiecărei ligi;
+  - `tests/test_transition.py`: cercul, valurile, partea acoperită, cele două imagini, stratul opac, încheierea animației.
+
+  Celelalte teste:
+  - `tests/test_brand.py` verifică noua siglă: tăietura, culorile în fiecare ligă, numele, varianta îngustă, iconița în culorile ligii, fonturile;
+  - `tests/test_ui.py` verifică schimbarea culorilor ferestrei (cu și fără animație, inclusiv o schimbare întreruptă), fereastra îngustă, lipsa barei orizontale la 1024, 1280 și 1440 px, piesele adaptive, antetul și graficul ascuns;
+  - `tests/test_charts.py` verifică trecerea unui grafic pe altă ligă;
+  - `tests/test_icons.py` verifică culorile iconiței pachetelor;
+  - `tests/test_worker.py` verifică faptul că o sarcină rulată în alt proces dă exact același rezultat;
+  - `tests/test_services.py` verifică faptul că predicțiile calculate ca sarcină și instalate apoi sunt aceleași;
+  - `tests/test_ui.py` verifică faptul că ecranele ascunse și predicțiile sosite în timpul animației urmează după ea.
+- **Autoverificarea** are două verificări noi, culorile ligii și valul: 25 în total. Pe datele reale trece 25 din 25, iar aplicația pornește (`python -m app`) și rulează fără erori.
+- **Verificare vizuală.** Ecranele au fost desenate cu datele reale, la rezoluția Retina (`QT_SCALE_FACTOR=2`), și verificate:
+  - Meciuri în fiecare ligă;
+  - pagina meciului, Clasament, Echipe și Analiză;
+  - fereastra la 1100 și 1440 px;
+  - animația în patru momente ale ei.
+
+  Pe datele reale, niciun ecran nu se derulează în lateral la 1024, 1180, 1280, 1440 și 1920 px.
+- **Pachete.** Versiunea a rămas 0.3.0; o versiune nouă cere o fază de lansare. În ambele pachete, autoverificarea își calculează predicțiile în procesul separat, deci încearcă și pornirea lui din pachet.
+  - macOS: `.dmg` de 79 MB. Autoverificarea trece 25 din 25 din `dist/` și din imaginea `.dmg` montată doar pentru citire, fără procese rămase după ea.
+  - Windows (GitHub Actions): toate cele 815 teste trec, `.zip` de 93 MB. Actualizarea cu `--update` din pachet reușește, iar autoverificarea trece 25 din 25.
+- **Procesul separat.** Aplicația pornită din sursă își calculează predicțiile în procesul de lucru. Oprită forțat (`kill -9`), nu lasă procese în urmă: procesul de lucru se oprește singur când dispare fereastra.
+
+### 17.9. Limitări
+
+- Pachetele au iconița în culorile La Ligii: sistemul o citește din pachet înainte de pornire.
+- Mesajele de la pornire (dinaintea ferestrei) și indiciile de la trecerea mausului au culorile La Ligii, pentru că nu aparțin ferestrei.
+- Timpul unui cadru al animației a fost măsurat pe o fereastră desenată fără ecran, cu o ligă în calcul; pe ecranul real depinde și de sistem.
+- Prima deschidere a unei ligi blochează fereastra aproximativ 0,5 s înaintea animației, cât își deschide datele.
+
+## 18. Setul de date și perioadele
 
 Sursa datelor este Football-Data.co.uk: cinci ligi (Premier League, La Liga, Serie A, Bundesliga, Ligue 1), fiecare cu 20 de sezoane încheiate, 2006/07–2025/26 (36.197 de meciuri). Perioadele sunt aceleași pentru toate ligile. Sezonul în desfășurare (2026/27) este descărcat separat și nu face parte din evaluare (secțiunea 15).
 
@@ -837,7 +1019,7 @@ Sursa datelor este Football-Data.co.uk: cinci ligi (Premier League, La Liga, Ser
 | 2007/08–2009/10 | Calibrare: se aleg hiperparametrii; rezultatele nu sunt raportate. |
 | 2010/11–2025/26 | Evaluarea raportată: 16 sezoane; 6.080 de meciuri în fiecare ligă cu 20 de echipe, 4.896 în Bundesliga, 5.757 în Ligue 1; 28.893 în total. |
 
-## 18. Tehnologii
+## 19. Tehnologii
 
 | Componentă | Versiune | Rol |
 |---|---|---|
@@ -850,10 +1032,11 @@ Sursa datelor este Football-Data.co.uk: cinci ligi (Premier League, La Liga, Ser
 | pytest | 9.1.1 | testare |
 | ruff | 0.16.10 | verificarea și formatarea codului |
 | PyInstaller | 6.22.3 | construirea pachetelor de instalare |
-| Libre Franklin (font, SIL Open Font License 1.1) | cinci grosimi statice | textul interfeței și al graficelor, inclus în `app/ui/assets/fonts/` |
+| Plus Jakarta Sans (font, SIL Open Font License 1.1) | cinci grosimi statice | textul interfeței și al graficelor (din Faza 21, în locul lui Libre Franklin), inclus în `app/ui/assets/fonts/` |
 | Barlow Condensed (font, SIL Open Font License 1.1) | patru grosimi statice | titlurile, cifrele mari, scorul și navigarea, inclus în `app/ui/assets/fonts/` |
+| Kanit (font, SIL Open Font License 1.1) | Black Italic și ExtraBold Italic | sigla și numele de lângă ea (Faza 21), inclus în `app/ui/assets/fonts/` |
 
-## 19. Decizii tehnice
+## 20. Decizii tehnice
 
 | Decizie | Motiv |
 |---|---|
@@ -905,10 +1088,10 @@ Sursa datelor este Football-Data.co.uk: cinci ligi (Premier League, La Liga, Ser
 | K-Means sare peste sezoanele fără statistici de șuturi | Profilul unei echipe are nevoie de șuturi; restul modelelor folosesc media ligii unde lipsesc. |
 | Sigla PitchSense: monograma PS albă pe un pătrat rotunjit albastru–grena, fără alte elemente | Inițiale pe un pătrat, ca la aplicațiile de scoruri (LiveScore); o stemă de club încercată înainte semăna prea mult cu cea a Barcelonei, iar dintre trei variante ale monogramei (fără minge, cu silueta mingii, cu liniile terenului) echipa a ales-o pe cea minimalistă (`docs/brand.md`). |
 | Temă întunecată cu blaugrana și un singur accent auriu | Aspectul site-urilor de fotbal pe care publicul le folosește (FC Barcelona, LiveScore, OneFootball); aurul arată pe fiecare ecran un singur lucru. |
-| Barlow Condensed pentru titluri și cifre, Libre Franklin pentru text, ambele incluse în aplicație | O literă condensată de sport pentru ce se citește dintr-o privire și una clasică de ziar pentru text; aceleași pe macOS, pe Windows și în grafice, cu diacriticele românești; licențele permit includerea. |
+| Barlow Condensed pentru titluri și cifre, Plus Jakarta Sans pentru text (Libre Franklin până în Faza 21), ambele incluse în aplicație | O literă condensată de sport pentru ce se citește dintr-o privire și o literă geometrică, ca în aplicațiile din referințe, pentru text; aceleași pe macOS, pe Windows și în grafice, cu diacriticele românești; licențele permit includerea. |
 | Stilul Qt Fusion, o paletă Qt întunecată și o singură foaie de stil | Aplicația arată la fel pe ambele sisteme și oricare ar fi tema sistemului. |
 | Bara de sus cu ecranele și panoul ligilor în stânga, ca la LiveScore | Ecranele și ligile se aleg cu un singur clic, iar liga aleasă se vede mereu. |
-| Sigla, steagurile și ecusoanele sunt desenate cu QPainter, literele din cercuri și dreptunghiuri, nu cu un font | Desenul este exact la fel pe orice sistem și se poate testa, atât geometric, cât și citind culorile pixelilor. |
+| Sigla, steagurile și ecusoanele sunt desenate cu QPainter; literele siglei sunt conturul fontului Kanit, inclus în aplicație (până în Faza 21: cercuri și dreptunghiuri) | Desenul este exact la fel pe orice sistem, pentru că fontul vine cu aplicația, și se poate testa, atât geometric, cât și citind culorile pixelilor. |
 | Echipele au ecusoane cu trei litere, ligile steagul țării | Stemele cluburilor și siglele ligilor sunt mărci înregistrate și nu fac parte din date. |
 | Serviciile unei ligi sunt deschise la prima alegere și păstrate | Pornirea nu așteaptă cele cinci ligi; schimbarea ligii este imediată după prima dată. |
 | Alegerile utilizatorului (liga, echipa) sunt într-un fișier JSON în folderul utilizatorului | Pachetul rămâne nemodificat; un fișier deteriorat sau imposibil de scris nu oprește aplicația. |
@@ -931,3 +1114,9 @@ Sursa datelor este Football-Data.co.uk: cinci ligi (Premier League, La Liga, Ser
 | Imaginile ligilor: imagini promoționale DAZN alese de echipă, cu sursa afișată | Decizia echipei, după acceptarea Fazei 19 (înainte: fotografii libere de stadioane); folosite doar în proiectul privat. |
 | Opțiunea `--update` a aplicației | Actualizarea din pachet poate fi verificată automat pe macOS și pe Windows, fără să apeși un buton; tot ea poate actualiza datele fără fereastră. |
 | Predicțiile tuturor ligilor se pregătesc în fundal, pe rând | Ecranul Meciuri arată toate ligile; liga aleasă este gata prima, iar fereastra nu se blochează. |
+| Sigla PS tăiată, albă deasupra și în accentul ligii dedesubt (Faza 21) | Decizia echipei, după ce monogramele pe pătrate semănau cu iconița Photoshop: litere îndrăznețe, ca la aplicațiile de scoruri, care iau culorile ligii afișate. |
+| Suprafețe neutre comune; fiecare ligă are doar accentul, culoarea adâncă și imaginea ei; culorile formei și ale modelelor rămân aceleași | Decizia echipei: schimbarea ligii trebuie să se vadă, dar prima versiune, cu suprafețele colorate în nuanța ligii, părea toxică; în referințe, culoarea vie stă pe forme pline pe un fond neutru. Culorile cu sens (formă, model) au fost validate pentru daltoniști. |
+| La schimbarea ligii se restilizează doar fereastra | De trei–patru ori mai repede decât restilizarea întregii aplicații, deci animația începe aproape imediat. |
+| Animația desenează, pe un strat opac, imaginea nouă a ferestrei și imaginea veche în afara unui cerc cu valuri, calculat ca un singur poligon | Nimic de sub strat nu se redesenează în timpul animației (prima versiune, transparentă, redesena toată fereastra la fiecare cadru și sacada); un cadru durează 4–9 ms la rezoluția Retina. |
+| Antetul desenează imaginea ligii direct, la rezoluția ecranului, și o trece în culoarea propriei margini, nu o extinde cu inteligență artificială | Nimic nu este inventat în imagine și nu se pierde calitate (prima versiune, cu o imagine intermediară și o copie estompată, o desena la jumătate din rezoluție pe Retina). |
+| Piese adaptive (`ResponsiveBox`, `ReflowGrid`, rânduri care trec pe două linii) în locul unei lățimi minime mari | Aplicația se poate folosi pe ecrane de laptop mici, fără bară de derulare orizontală. |

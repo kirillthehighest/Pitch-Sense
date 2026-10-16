@@ -5,7 +5,7 @@ Aplicație desktop pentru analiza datelor istorice din fotbal și estimarea rezu
 Proiect de an la disciplina *Analiza și Proiectarea Algoritmilor* (APA), Universitatea Tehnică a Moldovei, Departamentul Ingineria Software și Automatică.
 Echipa (grupa TI-251): Goroșevschi Chiril, Cuzmici Nicolae, Păstru Alina.
 
-**Stadiu:** toate etapele (0–20) sunt încheiate; versiunea curentă este 0.3.0. Etapele 18 (sezonul în desfășurare), 19 (interfață centrată pe meciuri) și 20 (pachete și versiunea 0.3.0) au fost adăugate de echipă și încheiate pe 2026-10-15. Fazele 0–12 (planificare și arhitectură, prelucrarea datelor istorice, statisticile echipelor, ratingul Elo, modelul Poisson, regresia logistică, K-Means, motorul de predicție, backtesting cronologic, metricile de evaluare, compararea algoritmilor, interfața grafică, vizualizarea) au fost încheiate pe 2026-10-04, fazele 13 (testare de integrare și finisare), 14 (pachete de instalare pentru macOS și Windows), 15 (cinci ligi) și 16 (identitate vizuală și interfață nouă, în limba română) pe 2026-10-05, iar faza 17 (pachete și versiunea 0.2.0) pe 2026-10-06. Aplicația se pornește cu `python -m app` sau din pachetele de instalare.
+**Stadiu:** etapele 0–21 sunt încheiate (etapa 21, designul refăcut, pe 2026-10-16); etapa 22 (interfața web) este în pregătire. Versiunea curentă este 0.3.0. Etapele 18 (sezonul în desfășurare), 19 (interfață centrată pe meciuri) și 20 (pachete și versiunea 0.3.0) au fost adăugate de echipă și încheiate pe 2026-10-15. Fazele 0–12 (planificare și arhitectură, prelucrarea datelor istorice, statisticile echipelor, ratingul Elo, modelul Poisson, regresia logistică, K-Means, motorul de predicție, backtesting cronologic, metricile de evaluare, compararea algoritmilor, interfața grafică, vizualizarea) au fost încheiate pe 2026-10-04, fazele 13 (testare de integrare și finisare), 14 (pachete de instalare pentru macOS și Windows), 15 (cinci ligi) și 16 (identitate vizuală și interfață nouă, în limba română) pe 2026-10-05, iar faza 17 (pachete și versiunea 0.2.0) pe 2026-10-06. Aplicația se pornește cu `python -m app` sau din pachetele de instalare.
 
 ## Aplicația gata de instalat
 
@@ -93,14 +93,14 @@ Cu mediul virtual activat și baza de date construită:
 python -m app
 ```
 
-Liga se alege din panoul din stânga. După pornire, aplicația calculează în fundal predicțiile fiecărei ligi, întâi pe cea aleasă (aproximativ 7 secunde pe ligă; bara de stare arată „Predicțiile pentru … sunt gata”). Ultima ligă afișată este redeschisă la următoarea pornire. Ecranele, din bara de sus:
+Liga se alege din panoul din stânga; aplicația ia culoarea ei de accent și imaginea ei, iar schimbarea se face cu un val care pornește din colțul din stânga sus. Fereastra se potrivește oricărei lățimi de la 1024 px în sus. După pornire, aplicația calculează în fundal predicțiile fiecărei ligi, întâi pe cea aleasă (aproximativ 7 secunde pe ligă; bara de stare arată „Predicțiile pentru … sunt gata”). Ultima ligă afișată este redeschisă la următoarea pornire. Ecranele, din bara de sus:
 
 - **Meciuri:** meciurile fiecărei zile, din toate ligile, cu stemele cluburilor și probabilitățile modelului ales (implicit regresia logistică); la meciurile jucate, scorul și dacă modelul a nimerit. Un clic pe un meci deschide pagina lui: toate modelele, scorurile probabile (Poisson) și cum vin echipele. „Alt meci…” prezice oricare două echipe ale unui sezon, la o dată aleasă;
 - **Clasament:** clasamentul unui sezon sau la o anumită dată, cu forma fiecărei echipe; un clic pe o echipă îi deschide pagina;
 - **Echipe:** pagina unei echipe: sezonul în cifre, forma, următorul meci și ultimele rezultate, profilul K-Means, ratingul Elo și grupurile;
 - **Analiză:** cum funcționează algoritmii, cum au prezis sezonul în desfășurare, compararea modelelor (tabele, calibrare, matricea de confuzie), comparația celor cinci ligi și sursele datelor și imaginilor.
 
-Butonul auriu **Echipa ta** din dreapta sus păstrează echipa pe care o urmăriți: are cardul ei pe ecranul Meciuri, este evidențiată în liste și clasamente și aleasă din start pe ecranul Echipe.
+Butonul **Echipa ta** din dreapta sus păstrează echipa pe care o urmăriți: are cardul ei pe ecranul Meciuri, este evidențiată în liste și clasamente și aleasă din start pe ecranul Echipe.
 
 Butonul **Actualizează datele** descarcă rezultatele și calendarul sezonului în desfășurare (câteva secunde, cu internet); restul aplicației funcționează fără internet. Panoul din stânga arată când au fost actualizate datele ultima dată.
 
@@ -168,7 +168,7 @@ Stemele cluburilor vin de pe Wikipedia, la rezoluție mică (`tools/crests.py`, 
 - [`docs/evaluation.md`](docs/evaluation.md): măsurile de evaluare și rezultatele modelelor în La Liga.
 - [`docs/comparison.md`](docs/comparison.md): compararea algoritmilor în La Liga.
 - [`docs/leagues.md`](docs/leagues.md): comparația celor cinci ligi.
-- [`docs/brand.md`](docs/brand.md): identitatea vizuală: semnul, culorile, literele și regulile interfeței.
+- [`docs/brand.md`](docs/brand.md): identitatea vizuală: sigla, culorile fiecărei ligi, literele, animația schimbării ligii și regulile interfeței.
 - `docs/algorithms/`: câte un document pentru fiecare algoritm: [`elo.md`](docs/algorithms/elo.md) (ratingul Elo), [`poisson.md`](docs/algorithms/poisson.md) (modelul Poisson), [`logistic_regression.md`](docs/algorithms/logistic_regression.md) (regresia logistică), [`kmeans.md`](docs/algorithms/kmeans.md) (K-Means).
 
 ## Etape
@@ -194,3 +194,5 @@ Stemele cluburilor vin de pe Wikipedia, la rezoluție mică (`tools/crests.py`, 
 18. Sezonul în desfășurare: meciurile programate, prezise de modele, și actualizarea datelor din aplicație
 19. Interfață centrată pe meciuri: meciurile pe zile, clasamentul, pagina echipei și analiza modelelor
 20. Pachete și versiunea 0.3.0
+21. Design refăcut: suprafețe neutre cu accentul fiecărei ligi și animația schimbării lui, sigla nouă, o literă nouă, antetul cu imaginea ligii la rezoluția ecranului și ecrane pentru orice lățime
+22. Interfața web: ecranele refăcute ca aplicație web într-o fereastră de desktop, peste algoritmii și serviciile Python (în pregătire)

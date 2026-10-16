@@ -15,6 +15,7 @@ from app.ui.context import AppContext, LeagueServices
 from app.ui.widgets import (
     ChartView,
     PageTabs,
+    ReflowGrid,
     card,
     fill_table,
     label,
@@ -26,6 +27,7 @@ from app.visualization.charts import home_advantage_chart, skill_chart
 VIEWS = ("Tabele", "Grafice")
 REFERENCE = "Past frequencies"
 CHART_HEIGHT = 420
+CARD_WIDTH = 210  # the league cards: five in a row when each can be this wide
 
 
 def league_name(code: str) -> str:
@@ -38,7 +40,8 @@ def difference_text(difference: PairedDifference) -> str:
 
 
 class LeagueCard(QFrame):
-    """One league in a few numbers; a click opens it. The league on screen has a gold frame."""
+    """One league in a few numbers; a click opens it. The league on screen has a frame in its
+    accent."""
 
     clicked = Signal(str)
 
@@ -49,7 +52,7 @@ class LeagueCard(QFrame):
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         flag = QLabel()
         flag.setPixmap(flag_pixmap(code, 26))
-        self.name_label = label(league_name(code).upper(), "section")
+        self.name_label = label(league_name(code), "section")
         heading = QHBoxLayout()
         heading.setSpacing(10)
         heading.addWidget(flag)
@@ -71,7 +74,7 @@ class LeagueCard(QFrame):
         layout.addStretch()
 
     def set_current(self, current: bool) -> None:
-        self.setProperty("role", "favourite" if current else "card")
+        self.setProperty("role", "current" if current else "card")
         self.style().unpolish(self)
         self.style().polish(self)
 
@@ -167,14 +170,13 @@ class LeaguesTab(QWidget):
         self.views.addTab(tables, VIEWS[0])
         self.views.addTab(charts_page, VIEWS[1])
         content_layout.addWidget(self.views)
-        cards = QHBoxLayout()
-        cards.setSpacing(14)
+        cards = ReflowGrid(CARD_WIDTH)
         for league_card in self.cards.values():
-            cards.addWidget(league_card, stretch=1)
+            cards.add(league_card)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(16)
-        layout.addLayout(cards)
+        layout.addWidget(cards)
         layout.addWidget(content)
         layout.addStretch()  # the card ends with its content
 

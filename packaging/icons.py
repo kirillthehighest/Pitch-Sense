@@ -1,9 +1,11 @@
 """Write the app icon files of the packages from the logo: ``python packaging/icons.py DIR``.
 
-The icon is drawn by ``app/ui/brand.py`` at every size and saved as PNG images inside the two
-container formats the systems read: ``PitchSense.ico`` for Windows and ``PitchSense.icns`` for
-macOS. Both formats accept PNG images directly (Windows Vista and later, macOS 10.7 and later), so
-no image library beyond Qt is needed, and the icon always matches the logo of the window.
+The icon is drawn by ``app/ui/brand.py`` at every size, in the colours of the default league
+(La Liga; the window's icon then follows the league on screen), and saved as PNG images inside
+the two container formats the systems read: ``PitchSense.ico`` for Windows and
+``PitchSense.icns`` for macOS. Both formats accept PNG images directly (Windows Vista and later,
+macOS 10.7 and later), so no image library beyond Qt is needed, and the icon always matches the
+logo of the window.
 """
 
 import os
@@ -40,14 +42,18 @@ def png_images(sizes: set[int]) -> dict[int, bytes]:
     from PySide6.QtGui import QGuiApplication
 
     from app.ui.brand import icon_image
+    from app.ui.theme import LOGO_FAMILY, load_fonts
+    from app.ui.themes import DEFAULT_THEME
 
     QGuiApplication.instance() or QGuiApplication([])
+    if LOGO_FAMILY not in load_fonts():  # the mark's letters are drawn in it
+        raise RuntimeError(f"the {LOGO_FAMILY} typeface of the logo did not load")
     images = {}
     for size in sorted(sizes):
         data = QByteArray()
         buffer = QBuffer(data)
         buffer.open(QIODevice.OpenModeFlag.WriteOnly)
-        if not icon_image(size).save(buffer, "PNG"):
+        if not icon_image(size, DEFAULT_THEME).save(buffer, "PNG"):
             raise RuntimeError(f"could not draw the icon at {size} pixels")
         images[size] = bytes(data.data())
     return images
