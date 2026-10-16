@@ -9,6 +9,7 @@ With ``--with-window`` (the desktop shell's option) the server ends when its sta
 closes, which happens when the window's process ends in any way, even killed.
 """
 
+import io
 import multiprocessing
 import os
 import socket
@@ -68,7 +69,16 @@ def exit_with_window(window: BinaryIO, end: Callable[[], None] = end_server) -> 
     return watcher
 
 
+def write_utf8() -> None:
+    """Write the Romanian of --update and --self-test whatever the console's code page (Windows
+    consoles are cp1252, which has no ș or ț)."""
+    for stream in (sys.stdout, sys.stderr):
+        if isinstance(stream, io.TextIOWrapper):
+            stream.reconfigure(encoding="utf-8", errors="replace")
+
+
 def main(arguments: list[str]) -> int:
+    write_utf8()
     copy_bundled_results()  # a package ships its prediction logs read-only
     copy_bundled_live()  # and a snapshot of the season in progress
     if "--update" in arguments:

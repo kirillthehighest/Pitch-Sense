@@ -1,6 +1,7 @@
 """The local server of the web interface, over the synthetic seasons: every answer is the
 services' own, in the shapes the interface reads."""
 
+import io
 import json
 import os
 import threading
@@ -9,7 +10,7 @@ from datetime import UTC, date, datetime
 
 import pytest
 
-from app.api.__main__ import exit_with_window, option, port_of
+from app.api.__main__ import exit_with_window, option, port_of, write_utf8
 from app.api.backend import Backend
 from app.api.self_test import run_self_test
 from app.data.live import UpdateSummary
@@ -347,3 +348,13 @@ def test_waiting_for_the_predictions_waits_for_a_preparation_already_running(
     backend.prepare_all(wait=True)
 
     assert backend.is_prepared("E0") and backend.is_prepared("SP1")
+
+
+def test_the_server_writes_utf8_whatever_the_console(monkeypatch):
+    console = io.TextIOWrapper(io.BytesIO(), encoding="cp1252")
+    monkeypatch.setattr("sys.stdout", console)
+
+    write_utf8()
+    print("Sezonul 2026/27: 78 de meciuri jucate și programate", file=console, flush=True)
+
+    assert console.buffer.getvalue().decode("utf-8").endswith("și programate\n")

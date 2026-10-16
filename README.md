@@ -9,7 +9,7 @@ Echipa (grupa TI-251): Goroșevschi Chiril, Cuzmici Nicolae, Păstru Alina.
 
 ## Aplicația gata de instalat
 
-Pachetele se descarcă de pe pagina [Releases](https://github.com/kirillthehighest/Pitch-Sense/releases/latest) a depozitului (versiunea curentă: 0.3.0). Depozitul este privat, deci pagina se deschide doar pentru cei care au acces la el. Pachetele nu cer Python și conțin deja datele: baza de date cu cele cinci ligi, jurnalele predicțiilor fiecărei ligi și sezonul în desfășurare de la data construirii (butonul **Actualizează datele** îl aduce la zi).
+Pachetele se descarcă de pe pagina [Releases](https://github.com/kirillthehighest/Pitch-Sense/releases/latest) a depozitului (versiunea curentă: 0.3.0). Pachetele versiunii 0.3.0 conțin fereastra PySide6; cele construite din etapa 22 conțin interfața web (secțiunea *Construirea pachetelor*). Depozitul este privat, deci pagina se deschide doar pentru cei care au acces la el. Pachetele nu cer Python și conțin deja datele: baza de date cu cele cinci ligi, jurnalele predicțiilor fiecărei ligi și sezonul în desfășurare de la data construirii (butonul **Actualizează datele** îl aduce la zi).
 
 | Sistem | Fișier | Cerințe |
 |---|---|---|
@@ -135,23 +135,25 @@ Dacă jurnalul predicțiilor unei ligi lipsește sau nu poate fi citit, butonul 
 
 ## Construirea pachetelor
 
-**macOS** (pe un Mac cu Apple Silicon, cu mediul virtual activat):
+Din etapa 22, pachetul conține interfața web: fereastra Tauri, cu serverul Python local împachetat înăuntru.
+
+**macOS** (pe un Mac cu Apple Silicon, cu mediul virtual activat, Node și Rust instalate):
 
 ```bash
 python packaging/build.py
 ```
 
-Comanda reconstruiește baza de date și jurnalele predicțiilor celor cinci ligi, descarcă sezonul în desfășurare (cu internet), toate intrând în pachet, desenează iconița aplicației din siglă și produce `dist/PitchSense-0.3.0-macOS-arm64.dmg`. Versiunea este scrisă într-un singur loc, `app/__init__.py`.
+Comanda reconstruiește baza de date și jurnalele predicțiilor celor cinci ligi, descarcă sezonul în desfășurare (cu internet), toate intrând în pachet, construiește serverul cu PyInstaller (`packaging/server.spec`) și fereastra cu Tauri, și produce `dist/PitchSense.app` și `dist/PitchSense-0.3.0-macOS-arm64.dmg`. Versiunea este scrisă într-un singur loc, `app/__init__.py`. Cu `--window`, comanda construiește încă pachetul vechi, cu fereastra PySide6.
 
-**Windows:** pachetul se construiește pe GitHub, cu fluxul „Windows package” (`.github/workflows/package.yml`): pe pagina *Actions* a depozitului, *Windows package → Run workflow*. Fluxul rulează toate testele pe Windows, construiește pachetul, îl verifică și îl păstrează 30 de zile ca *artifact* (`PitchSense-Windows`). Pe un calculator cu Windows se poate folosi și `python packaging/build.py`.
+**Windows:** pachetul se construiește pe GitHub, cu fluxul „Windows package” (`.github/workflows/package.yml`): pe pagina *Actions* a depozitului, *Windows package → Run workflow*. Fluxul rulează testele Python și pe cele ale interfeței web pe Windows, construiește programul de instalare (`PitchSense-0.3.0-Windows-amd64-setup.exe`, care instalează aplicația în *Program Files*), îl verifică și îl păstrează 30 de zile ca *artifact* (`PitchSense-Windows`). Pe un calculator cu Windows, cu Node și Rust, se poate folosi și `python packaging/build.py`.
 
-Orice pachet se poate verifica automat: opțiunea `--self-test` deschide fereastra fără a o afișa, folosește fiecare ecran și se termină cu codul 0 dacă totul a funcționat.
+Serverul unui pachet se poate verifica automat, fără fereastră: `--self-test` îl pornește pe un port liber, îi pune fiecare tip de întrebare și se termină cu codul 0 dacă totul a funcționat; `--update` descarcă sezonul în desfășurare și iese.
 
 ```bash
-dist/PitchSense.app/Contents/MacOS/PitchSense --self-test
+dist/PitchSense.app/Contents/Resources/server/pitchsense-server --self-test
 ```
 
-Din codul sursă, aceeași verificare este `python -m app --self-test`. Opțiunea `--update` (`python -m app --update`, sau aplicația împachetată pornită cu `--update`) face aceeași actualizare ca butonul **Actualizează datele**, fără fereastră.
+Din codul sursă, aceeași verificare este `python -m app.api --self-test`. Fereastra PySide6 are în continuare `python -m app --self-test` și `python -m app --update`.
 
 ## Evaluare
 
