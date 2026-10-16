@@ -30,7 +30,7 @@ from app.data.competitions import COMPETITIONS  # noqa: E402
 from app.data.live import fetch, load_live_league, match_team_names, parse_calendar  # noqa: E402
 from app.data.paths import DATABASE_PATH, LIVE_DIR  # noqa: E402
 from app.data.repository import MatchRepository  # noqa: E402
-from app.ui.brand import CRESTS_DIR, crest_slug  # noqa: E402
+from app.services.images import CRESTS_DIR, crest_slug  # noqa: E402
 
 SIZE = 128  # pixels: a low resolution, enough for the largest badge on screen
 API = "https://en.wikipedia.org/w/api.php"
