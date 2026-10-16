@@ -11,6 +11,8 @@ from app import __version__
 from app.api import schemas
 from app.api.backend import Backend
 from app.data.competitions import competition
+from app.data.models import Outcome
+from app.prediction.outputs import ModelName
 from app.services.explanations import (
     GROUPS_IN_PROGRESS,
     GROUPS_NO_STATISTICS,
@@ -20,8 +22,14 @@ from app.services.explanations import (
     verdict_text,
 )
 from app.services.images import crest_path, league_photo_path, photo_credit, photo_top
-from app.services.labels import country_label
-from app.services.predictions import MatchForecast, featured_match, forecast_of, summarize
+from app.services.labels import country_label, model_label, outcome_label
+from app.services.predictions import (
+    SURPRISE_CHANCE,
+    MatchForecast,
+    featured_match,
+    forecast_of,
+    summarize,
+)
 from app.services.preferences import FavouriteTeam
 from app.services.teams import GROUP_NAMES
 
@@ -338,6 +346,48 @@ def create_app(backend: Backend) -> FastAPI:
             ],
             groups=groups,
             groups_problem=problem,
+        )
+
+    @app.get("/api/review/{code}", response_model=schemas.Review)
+    def review(code: str, model: str, season: str | None = None) -> schemas.Review:
+        """What a model predicted for a season's played matches and what happened."""
+        services = league_of(code)
+        season = season_of(services, season)
+        try:
+            chosen = ModelName(model)
+        except ValueError:
+            raise HTTPException(404, f"no model {model!r}") from None
+        if not services.predictions.is_prepared:
+            raise HTTPException(409, f"the predictions of {code} are being prepared")
+        found = services.predictions.review(season, chosen)
+        by_result = found.by_result()
+        return schemas.Review(
+            competition=code,
+            season=season,
+            model=str(chosen),
+            label=model_label(str(chosen)),
+            surprise_chance=SURPRISE_CHANCE,
+            matches=len(found.matches),
+            hits=found.hits,
+            surprises=found.surprises,
+            by_result=[
+                schemas.ResultReview(
+                    result=outcome.value,
+                    label=outcome_label(outcome.value),
+                    hits=by_result[outcome][0],
+                    matches=by_result[outcome][1],
+                )
+                for outcome in (Outcome.HOME_WIN, Outcome.DRAW, Outcome.AWAY_WIN)
+            ],
+            rows=[
+                schemas.ReviewedMatch(
+                    forecast=schemas.forecast_of(row.forecast),
+                    chance=row.chance,
+                    hit=row.hit,
+                    surprise=row.surprise,
+                )
+                for row in found.matches
+            ],
         )
 
     @app.get("/api/preferences", response_model=schemas.Preferences)

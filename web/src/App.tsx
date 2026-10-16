@@ -8,6 +8,7 @@ import { ScreenHead } from "./components/ScreenHead";
 import { type ScreenName, SCREENS, Sidebar } from "./components/Sidebar";
 import { MatchPage } from "./screens/MatchPage";
 import { Matches } from "./screens/Matches";
+import { Predictions } from "./screens/Predictions";
 import { Standings } from "./screens/Standings";
 import { Team } from "./screens/Team";
 import { applyTheme } from "./theme";
@@ -203,6 +204,16 @@ export default function App() {
                 onOpenMatch={openMatch}
                 onFavourite={chooseFavourite}
                 onAnalysis={() => chooseScreen("analysis")}
+              />
+            )}
+            {current && screen === "predictions" && (
+              <Predictions
+                league={current}
+                season={season}
+                favourite={favourite}
+                ready={ready}
+                onSeason={(chosen) => setSeasons((shown) => ({ ...shown, [current.code]: chosen }))}
+                onOpenMatch={openMatch}
               />
             )}
             {current && screen === "standings" && (

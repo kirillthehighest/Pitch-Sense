@@ -1,7 +1,9 @@
 // One match of a list, as in the score apps the team chose: the kickoff (or "Final"), the home
 // team on the left and the away team on the right of the score (or "vs"), and the chosen model's
 // three probabilities; the most likely is filled with the league's accent and, once the match is
-// played, carries a tick (it happened) or a cross (it did not).
+// played, carries a tick (it happened) or a cross (it did not), and the chip of the result that
+// happened is ringed.
+import type { ReactNode } from "react";
 import { percent } from "../format";
 import type { Forecast, Outcome, Prediction } from "../types";
 import { Crest } from "./Crest";
@@ -29,14 +31,18 @@ function Team({ team, favourite, won, side }: { team: string; favourite: boolean
   );
 }
 
-export function Chips({ prediction }: { prediction: Prediction | undefined }) {
+export function Chips({ prediction, result = null }: { prediction: Prediction | undefined; result?: Outcome | null }) {
   if (!prediction) return <span className="chips caption">fără predicție</span>;
   return (
     <span className="chips">
       {OUTCOMES.map((outcome) => {
         const chosen = prediction.most_likely === outcome;
         return (
-          <span key={outcome} className={`chip${chosen ? " chosen" : ""}`}>
+          <span
+            key={outcome}
+            className={`chip${chosen ? " chosen" : ""}${result === outcome ? " actual" : ""}`}
+            title={result === outcome ? "Rezultatul meciului" : undefined}
+          >
             {percent(chance(prediction, outcome), 0)}
             {chosen && prediction.hit !== null && (
               <span className={`mark ${prediction.hit ? "hit" : "miss"}`} aria-label={prediction.hit ? "nimerit" : "ratat"}>
@@ -56,6 +62,7 @@ interface Props {
   favourite?: string | null;
   stacked?: boolean; // a narrow column: home over away, each with its goals, the chips below
   showDate?: boolean; // a team's matches: the day instead of the kickoff
+  extra?: ReactNode; // a last column (the review's verdict)
   onOpen: (forecast: Forecast) => void;
 }
 
@@ -69,7 +76,7 @@ function StackedTeam({ team, goals, favourite, won }: { team: string; goals: num
   );
 }
 
-export function MatchRow({ forecast, model, favourite, stacked = false, showDate = false, onOpen }: Props) {
+export function MatchRow({ forecast, model, favourite, stacked = false, showDate = false, extra, onOpen }: Props) {
   const played = forecast.result !== null;
   const prediction = forecast.predictions.find((p) => p.model === model);
   const upcoming = !played && !forecast.postponed;
@@ -81,13 +88,13 @@ export function MatchRow({ forecast, model, favourite, stacked = false, showDate
           <StackedTeam team={forecast.home_team} goals={forecast.home_goals} favourite={favourite === forecast.home_team} won={forecast.result === "H"} />
           <StackedTeam team={forecast.away_team} goals={forecast.away_goals} favourite={favourite === forecast.away_team} won={forecast.result === "A"} />
         </span>
-        <Chips prediction={prediction} />
+        <Chips prediction={prediction} result={forecast.result} />
       </button>
     );
   }
   return (
-    <button className="match-row" onClick={() => onOpen(forecast)} title="Deschide meciul">
-      <span className={`status${upcoming ? " upcoming" : ""}`}>{statusText(forecast)}</span>
+    <button className={`match-row${extra ? " with-extra" : ""}`} onClick={() => onOpen(forecast)} title="Deschide meciul">
+      <span className={`status${upcoming ? " upcoming" : ""}`}>{statusText(forecast, showDate)}</span>
       <span className="teams">
         <Team team={forecast.home_team} side="home" favourite={favourite === forecast.home_team} won={forecast.result === "H"} />
         <span className="score">
@@ -95,7 +102,8 @@ export function MatchRow({ forecast, model, favourite, stacked = false, showDate
         </span>
         <Team team={forecast.away_team} side="away" favourite={favourite === forecast.away_team} won={forecast.result === "A"} />
       </span>
-      <Chips prediction={prediction} />
+      <Chips prediction={prediction} result={forecast.result} />
+      {extra}
     </button>
   );
 }

@@ -179,6 +179,8 @@ select, input[type="date"] {
   display: inline-flex; align-items: center; justify-content: center; font-weight: 600; font-size: 13px;
 }
 .chip.chosen { background: var(--accent); color: var(--accent-ink); font-weight: 800; }
+.chip.actual { box-shadow: inset 0 0 0 2px var(--text); }
+.chip.chosen.actual { box-shadow: inset 0 0 0 2px var(--accent-ink); }
 .mark {
   position: absolute; right: -5px; top: -6px; width: 15px; height: 15px; border-radius: 50%; font-size: 9px;
   display: inline-flex; align-items: center; justify-content: center; color: #fff; font-weight: 800;
@@ -274,6 +276,30 @@ button.standings-row:hover { background: var(--surface-high); }
 .standings-row strong { font-weight: 800; font-size: 15px; }
 .form-head, .form-cell { justify-self: end; }
 .standings-card > .caption { margin: 14px 0 0; line-height: 1.5; }
+
+/* Predicții */
+.predictions-screen { display: flex; flex-direction: column; gap: 16px; }
+.review-summary { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); gap: 16px; }
+.big-number { display: flex; align-items: baseline; gap: 14px; }
+.big-number strong { font-family: var(--display); font-size: 64px; font-weight: 800; line-height: 1; color: var(--accent-text); }
+.big-number span { color: var(--muted); font-weight: 600; }
+.review-score .caption, .review-results > .caption { margin: 14px 0 0; line-height: 1.5; }
+.result-line { display: grid; grid-template-columns: 150px minmax(0, 1fr) 48px 72px; align-items: center; gap: 12px; min-height: 40px; }
+.result-line > span:first-child { font-weight: 600; }
+.result-line strong { text-align: right; font-variant-numeric: tabular-nums; }
+.result-line .caption { text-align: right; font-variant-numeric: tabular-nums; }
+.pill .count { margin-left: 6px; opacity: 0.7; font-variant-numeric: tabular-nums; }
+.match-row.with-extra { grid-template-columns: 58px minmax(0, 1fr) auto 112px; }
+.columns-head.with-extra { grid-template-columns: repeat(3, 56px) 112px; padding-right: 26px; }
+.verdict-badge {
+  justify-self: end; height: 26px; padding: 0 10px; border-radius: 13px; display: inline-flex; align-items: center;
+  font-size: 12px; font-weight: 700; white-space: nowrap;
+}
+.verdict-badge.hit { background: rgba(21, 122, 71, 0.22); color: #7ee2a8; }
+.verdict-badge.miss { background: rgba(196, 49, 75, 0.2); color: #ff9aac; }
+.verdict-badge.surprise { background: #c4314b; color: #fff; }
+.button.more { align-self: center; margin-top: 14px; }
+.review-list { display: flex; flex-direction: column; }
 
 /* Echipe */
 .team-screen { display: flex; flex-direction: column; gap: 16px; }
@@ -451,6 +477,7 @@ button.standings-row:hover { background: var(--surface-high); }
 }
 
 @media (max-width: 1100px) {
+  .review-summary { grid-template-columns: minmax(0, 1fr); }
   .matches-layout { grid-template-columns: minmax(0, 1fr); }
   .matches-side { position: static; }
   .match-grid { grid-template-columns: minmax(0, 1fr); }

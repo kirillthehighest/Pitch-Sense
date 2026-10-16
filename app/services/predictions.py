@@ -139,6 +139,46 @@ class SeasonCheck:
     models: tuple[ModelCheck, ...]
 
 
+# A played match is a surprise for a model when the result that happened had less than this
+# chance in its prediction (an upset: the model thought it would happen less than once in five).
+SURPRISE_CHANCE = 0.2
+
+
+@dataclass(frozen=True, eq=False)
+class ReviewedMatch:
+    """A played match as one model saw it before kickoff."""
+
+    forecast: MatchForecast
+    chance: float  # the probability the model gave the result that happened
+    hit: bool  # the model's most likely outcome happened
+    surprise: bool  # the result had less than SURPRISE_CHANCE
+
+
+@dataclass(frozen=True, eq=False)
+class SeasonReview:
+    """One model's predictions of a season's played matches, against what happened."""
+
+    season: str
+    model: ModelName
+    matches: tuple[ReviewedMatch, ...]  # in the order they were played
+
+    @property
+    def hits(self) -> int:
+        return sum(match.hit for match in self.matches)
+
+    @property
+    def surprises(self) -> int:
+        return sum(match.surprise for match in self.matches)
+
+    def by_result(self) -> dict[Outcome, tuple[int, int]]:
+        """For each result that happened: (matches the model got right, matches)."""
+        counts = {outcome: (0, 0) for outcome in Outcome}
+        for match in self.matches:
+            hits, total = counts[match.forecast.played.result]
+            counts[match.forecast.played.result] = (hits + match.hit, total + 1)
+        return counts
+
+
 @dataclass(frozen=True, slots=True)
 class PreparedPredictions:
     """The result of the slow step: every real match's predictions and every fixture's."""
@@ -272,6 +312,31 @@ class PredictionService:
             ),
             key=_forecast_order,
         )
+
+    def review(self, season: str, model: ModelName) -> SeasonReview:
+        """How ``model``'s predictions of the season's played matches turned out; matches the
+        model could not predict (too few earlier matches) are left out."""
+        self.prepare()
+        reviewed = []
+        for match in self._matches:
+            if match.season != season:
+                continue
+            predictions = self._history[match].predictions
+            prediction = predictions.get(model)
+            if prediction is None:
+                continue
+            probabilities = prediction.probabilities
+            chance = probabilities.of(match.result)
+            reviewed.append(
+                ReviewedMatch(
+                    forecast=self._played_forecast(match, predictions),
+                    chance=chance,
+                    hit=probabilities.most_likely == match.result,
+                    surprise=chance < SURPRISE_CHANCE,
+                )
+            )
+        reviewed.sort(key=lambda match: _forecast_order(match.forecast))
+        return SeasonReview(season, model, tuple(reviewed))
 
     def season_check(self, season: str) -> SeasonCheck:
         """Score every model on the season's played matches that all of them predicted."""

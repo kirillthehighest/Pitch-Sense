@@ -11,6 +11,7 @@ from fastapi.testclient import TestClient
 from app.api.__main__ import exit_with_window, option, port_of
 from app.api.backend import Backend
 from app.api.server import create_app
+from app.prediction.outputs import ModelName
 from app.services.preferences import Preferences
 from app.services.processes import compute_here
 
@@ -195,6 +196,30 @@ def test_a_team_page_opens_on_your_team_and_refuses_an_absent_team(client, backe
     assert client.get("/api/team/SP1", params={"season": "2006-07"}).json()["team"] == last
     absent = client.get("/api/team/SP1", params={"season": "2006-07", "team": "Nobody"})
     assert absent.status_code == 404
+
+
+def test_a_review_counts_hits_and_surprises_of_a_model(client, backend):
+    answer = client.get(
+        "/api/review/SP1", params={"season": "2007-08", "model": "Logistic regression"}
+    ).json()
+
+    found = backend.league("SP1").predictions.review("2007-08", ModelName.LOGISTIC_REGRESSION)
+    assert answer["label"] == "Regresie logistică"
+    assert (answer["matches"], answer["hits"], answer["surprises"]) == (
+        len(found.matches),
+        found.hits,
+        found.surprises,
+    )
+    assert [r["result"] for r in answer["by_result"]] == ["H", "D", "A"]
+    assert sum(r["matches"] for r in answer["by_result"]) == answer["matches"]
+    for row in answer["rows"]:
+        prediction = next(
+            p for p in row["forecast"]["predictions"] if p["model"] == "Logistic regression"
+        )
+        assert row["hit"] == prediction["hit"]
+        assert row["surprise"] == (row["chance"] < answer["surprise_chance"])
+    unknown = client.get("/api/review/SP1", params={"season": "2007-08", "model": "Oracle"})
+    assert unknown.status_code == 404
 
 
 def test_preferences_are_kept(client):

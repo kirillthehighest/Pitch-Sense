@@ -206,3 +206,23 @@ export interface TeamPage {
   groups: Groups | null;
   groups_problem: string | null;
 }
+
+export interface ReviewedMatch {
+  forecast: Forecast;
+  chance: number;
+  hit: boolean;
+  surprise: boolean;
+}
+
+export interface Review {
+  competition: string;
+  season: string;
+  model: string;
+  label: string;
+  surprise_chance: number;
+  matches: number;
+  hits: number;
+  surprises: number;
+  by_result: { result: Outcome; label: string; hits: number; matches: number }[];
+  rows: ReviewedMatch[];
+}

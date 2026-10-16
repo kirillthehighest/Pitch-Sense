@@ -15,7 +15,7 @@ from app.prediction.prediction_engine import predict_fixture, predict_season
 from app.services.catalog import DataCatalog, available_competitions
 from app.services.evaluation import EvaluationService
 from app.services.leagues import LeagueComparisonService
-from app.services.predictions import PredictionService, summarize
+from app.services.predictions import SURPRISE_CHANCE, PredictionService, summarize
 from app.services.preferences import FavouriteTeam, Preferences
 from app.services.teams import FIRST_SEASON_NAME, GROUP_NAMES, NO_STATISTICS_NAME, TeamService
 from app.services.updates import summary_text, unmatched_text, updated_text
@@ -616,6 +616,35 @@ def test_the_season_check_scores_every_model_on_the_matches_played(catalog_in_pr
         assert model_check.accuracy.value == pytest.approx(right / LIVE_PLAYED)
         assert model_check.accuracy.count == LIVE_PLAYED
         assert 0 <= model_check.brier_score.value <= 2
+
+
+def test_a_season_review_sets_each_prediction_against_the_result(two_seasons):
+    service = PredictionService(two_seasons, min_training_matches=3)
+
+    review = service.review("2007-08", ModelName.ELO)
+
+    played = [m for m in two_seasons if m.season == "2007-08"]
+    assert len(review.matches) == len(played)  # every match had enough earlier matches
+    assert [m.forecast.match_date for m in review.matches] == sorted(m.match_date for m in played)
+    for reviewed in review.matches:
+        match = reviewed.forecast.played
+        probabilities = reviewed.forecast.of(ModelName.ELO).probabilities
+        assert reviewed.chance == probabilities.of(match.result)
+        assert reviewed.hit == (probabilities.most_likely == match.result)
+        assert reviewed.surprise == (reviewed.chance < SURPRISE_CHANCE)
+    assert review.hits == sum(m.hit for m in review.matches)
+    by_result = review.by_result()
+    assert sum(total for _, total in by_result.values()) == len(played)
+    assert sum(hits for hits, _ in by_result.values()) == review.hits
+    assert by_result[Outcome.DRAW][1] == sum(m.result == Outcome.DRAW for m in played)
+
+
+def test_a_review_leaves_out_matches_the_model_could_not_predict(two_seasons):
+    service = PredictionService(two_seasons, min_training_matches=50)
+
+    review = service.review("2006-07", ModelName.LOGISTIC_REGRESSION)
+
+    assert review.matches == () and review.hits == 0 and review.surprises == 0
 
 
 def test_a_season_without_predictions_has_an_empty_check(two_seasons):

@@ -202,6 +202,35 @@ class TeamPage(BaseModel):
     groups_problem: str | None
 
 
+class ReviewedMatch(BaseModel):
+    forecast: Forecast
+    chance: float  # the probability the model gave the result that happened
+    hit: bool
+    surprise: bool
+
+
+class ResultReview(BaseModel):
+    result: str  # H, D or A
+    label: str
+    hits: int
+    matches: int
+
+
+class Review(BaseModel):
+    """One model's predictions of a season's played matches, against what happened."""
+
+    competition: str
+    season: str
+    model: str
+    label: str
+    surprise_chance: float  # a result with less chance than this is a surprise
+    matches: int
+    hits: int
+    surprises: int
+    by_result: list[ResultReview]
+    rows: list[ReviewedMatch]
+
+
 class SeasonDays(BaseModel):
     """What the form of a hypothetical match offers for a season."""
 

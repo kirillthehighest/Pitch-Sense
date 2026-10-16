@@ -8,6 +8,7 @@ import type {
   MatchKey,
   MatchPage,
   Preferences,
+  Review,
   SeasonDays,
   Standings,
   Status,
@@ -86,6 +87,8 @@ export const api = {
     if (team) query.set("team", team);
     return request<TeamPage>(`/api/team/${code}?${query}`);
   },
+  review: (code: string, season: string, model: string) =>
+    request<Review>(`/api/review/${code}?${new URLSearchParams({ season, model })}`),
   preferences: () => request<Preferences>("/api/preferences"),
   setPreferences: (preferences: Preferences) =>
     request<Preferences>("/api/preferences", {
