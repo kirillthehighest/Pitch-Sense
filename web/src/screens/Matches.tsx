@@ -63,6 +63,7 @@ export function Matches({ leagues, league, preferences, ready, onOpenMatch, onSt
         {answer?.featured && featuredLeague && (
           <FeaturedMatch
             forecast={answer.featured}
+            day={day}
             league={featuredLeague}
             model={model}
             favourite={favourite}

@@ -106,17 +106,17 @@ def create_app(backend: Backend) -> FastAPI:
 
     @app.get("/api/day/{day}", response_model=schemas.Day)
     def day_of(day: date, league: str | None = None) -> schemas.Day:
-        """One day's matches, the chosen league first; the match of the day among them."""
+        """One day's matches, the chosen league first, and the chosen league's match of the day:
+        on this day, else on its nearest day with matches (the interface says which)."""
         chosen = league or backend.first_league
         codes = [chosen, *(code for code in backend.competitions if code != chosen)]
-        groups, everything = [], []
+        groups = []
         for code in codes:
             services = league_of(code)
             ready = services.predictions.is_prepared
             forecasts = services.predictions.on_day(day) if ready else []
             if ready and not forecasts:
                 continue
-            everything.extend(forecasts)
             groups.append(
                 schemas.LeagueDay(
                     code=code,
@@ -126,21 +126,27 @@ def create_app(backend: Backend) -> FastAPI:
                     forecasts=[schemas.forecast_of(f) for f in forecasts],
                 )
             )
-        favourite = backend.preferences.favourite
+        featured = None
+        chosen_predictions = league_of(chosen).predictions
+        if chosen_predictions.is_prepared:  # the chosen league's match, on its nearest match day
+            featured_day = chosen_predictions.nearest_match_day(day)
+            if featured_day is not None:
+                teams = league_of(chosen).teams
 
-        def strength(forecast) -> float:
-            teams = league_of(forecast.competition).teams
-            total = 0.0
-            for team in (forecast.home_team, forecast.away_team):
-                try:
-                    total += teams.rating_before(team, day)
-                except ValueError:  # a team without a match yet: no rating
-                    pass
-            return total
+                def strength(forecast) -> float:
+                    total = 0.0
+                    for team in (forecast.home_team, forecast.away_team):
+                        try:
+                            total += teams.rating_before(team, featured_day)
+                        except ValueError:  # a team without a match yet: no rating
+                            pass
+                    return total
 
-        featured = featured_match(
-            everything, chosen, strength, favourite.team if favourite else None
-        )
+                favourite = backend.preferences.favourite
+                followed = favourite.team if favourite and favourite.competition == chosen else None
+                featured = featured_match(
+                    chosen_predictions.on_day(featured_day), strength, followed
+                )
         return schemas.Day(
             day=day,
             leagues=groups,

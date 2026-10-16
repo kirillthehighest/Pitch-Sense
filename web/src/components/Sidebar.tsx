@@ -75,7 +75,7 @@ export function Sidebar(props: Props) {
           key={name}
           className={`side-item${props.screen === name ? " chosen" : ""}`}
           onClick={() => props.onScreen(name)}
-          title={title}
+          aria-label={title}
         >
           <Icon />
           <span className="side-text">{title}</span>
@@ -87,7 +87,7 @@ export function Sidebar(props: Props) {
           key={league.code}
           className={`side-item league-item${props.league === league.code ? " chosen" : ""}`}
           onClick={() => props.onLeague(league.code)}
-          title={`${league.name} · ${league.country}`}
+          aria-label={`${league.name}, ${league.country}`}
         >
           <Flag code={league.code} size={26} />
           <span className="side-text">
@@ -98,11 +98,11 @@ export function Sidebar(props: Props) {
         </button>
       ))}
       <div className="spacer" />
-      <button className="side-item" onClick={props.onFavourite} title="Echipa ta">
+      <button className="side-item" onClick={props.onFavourite} aria-label="Echipa ta">
         {favourite ? <Crest team={favourite.team} size={22} ring /> : <TeamIcon />}
         <span className="side-text">{favourite ? favourite.team : "Alege echipa ta"}</span>
       </button>
-      <button className="side-item" onClick={props.onUpdate} disabled={props.updating} title="Actualizează datele">
+      <button className="side-item" onClick={props.onUpdate} disabled={props.updating} aria-label="Actualizează datele">
         <RefreshIcon />
         <span className="side-text">{props.updating ? "Se actualizează…" : "Actualizează datele"}</span>
       </button>

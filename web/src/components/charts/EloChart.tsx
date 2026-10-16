@@ -48,7 +48,7 @@ export function EloChart({ team, history, season, accent }: Props) {
   const yearOf = (value: number) => String(new Date(value).getFullYear());
   const dayOf = (value: number) => dateText(new Date(value)).slice(0, 5);
   return (
-    <div className="chart-box">
+    <div className="chart-box" role="figure" aria-label={`${team}: ratingul Elo înaintea fiecărui meci`}>
       <div className="chart-head">
         <div className="legend">
           {chosen && (
@@ -78,7 +78,6 @@ export function EloChart({ team, history, season, accent }: Props) {
         style={{ width: "100%", height: 340 }}
         margin={{ top: 8, right: 12, bottom: 4, left: 0 }}
         accessibilityLayer
-        title={`${team}: ratingul Elo înaintea fiecărui meci`}
       >
         <CartesianGrid vertical={false} stroke={GRID} />
         <XAxis

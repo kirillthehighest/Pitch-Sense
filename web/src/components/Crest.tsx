@@ -66,14 +66,14 @@ export function Crest({ team, size = 24, ring = false }: { team: string; size?: 
   };
   if (missing || !url) {
     return (
-      <span className="crest crest-letters" style={{ ...style, fontSize: size * 0.32 }} title={team}>
+      <span className="crest crest-letters" style={{ ...style, fontSize: size * 0.32 }}>
         {missing ? abbreviation(team) : ""}
       </span>
     );
   }
   const inner = ring || dark ? Math.round(size * 0.66) : size;
   return (
-    <span className="crest" style={style} title={team}>
+    <span className="crest" style={style}>
       <img
         src={url}
         alt=""

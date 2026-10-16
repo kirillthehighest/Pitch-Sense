@@ -94,7 +94,7 @@ function MatchHead({
       </div>
       <div className="match-head-teams">
         {sides.map(([state, side]) => (
-          <button key={side} className={`head-team ${side}`} onClick={() => onTeam(state.team)} title="Pagina echipei">
+          <button key={side} className={`head-team ${side}`} onClick={() => onTeam(state.team)}>
             <Crest team={state.team} size={84} ring={state.team === favourite} />
             <strong>{state.team}</strong>
             <span>

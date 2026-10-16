@@ -45,3 +45,12 @@ describe("Romanian writing, as app/services/formatting.py", () => {
     expect(abbreviation("Nott'm Forest")).toBe("NFO");
   });
 });
+
+describe("the title of the featured match", () => {
+  it("says whether it is the day's, the next or the last match of the league", async () => {
+    const { featuredTitle } = await import("./components/FeaturedMatch");
+    expect(featuredTitle("2026-10-16", "2026-10-16")).toBe("Meciul zilei");
+    expect(featuredTitle("2026-10-17", "2026-10-16")).toBe("Următorul meci");
+    expect(featuredTitle("2026-05-24", "2026-07-01")).toBe("Ultimul meci");
+  });
+});

@@ -6,7 +6,7 @@ import json
 import os
 import threading
 import time
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 
 import pytest
 
@@ -206,6 +206,22 @@ def test_a_review_counts_hits_and_surprises_of_a_model(api_client, api_backend):
         assert row["surprise"] == (row["chance"] < answer["surprise_chance"])
     unknown = api_client.get("/api/review/SP1", params={"season": "2007-08", "model": "Oracle"})
     assert unknown.status_code == 404
+
+
+def test_the_match_of_the_day_follows_the_chosen_league(api_client, api_backend):
+    first_e0 = api_backend.league("E0").predictions.match_days()[0]
+    before = (first_e0 - timedelta(days=3)).isoformat()  # no English match that day
+    api_client.put(  # your team plays in the other league
+        "/api/preferences",
+        json={"competition": "E0", "favourite": {"competition": "SP1", "team": "Alpha"}},
+    )
+
+    featured = api_client.get(f"/api/day/{before}", params={"league": "E0"}).json()["featured"]
+
+    assert featured["competition"] == "E0"
+    assert featured["date"] == first_e0.isoformat()  # the league's next day with matches
+    spanish = api_client.get(f"/api/day/{before}", params={"league": "SP1"}).json()["featured"]
+    assert spanish["competition"] == "SP1"
 
 
 def test_preferences_are_kept(api_client):

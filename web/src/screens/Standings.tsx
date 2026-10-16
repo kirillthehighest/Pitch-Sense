@@ -112,7 +112,6 @@ export function Standings({ league, season, favourite, onSeason, onTeam }: Props
                   role="row"
                   className={`standings-row${row.team === favourite ? " favourite" : ""}`}
                   onClick={() => onTeam(league.code, row.team, table.season)}
-                  title="Pagina echipei"
                 >
                   <span className="position">{row.position}</span>
                   <span className="team">

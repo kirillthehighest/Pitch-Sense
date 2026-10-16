@@ -202,21 +202,17 @@ def compute_predictions(
 
 def featured_match(
     forecasts: Sequence[MatchForecast],
-    league: str,
     strength: Callable[[MatchForecast], float],
     favourite: str | None = None,
 ) -> MatchForecast | None:
-    """The match of the day among ``forecasts`` (one day's matches): the favourite team's, else
-    the match of ``league`` whose teams are strongest by ``strength`` (the sum of their ratings,
-    for instance), else the strongest match of any league; None without matches. Ties go to
-    the earliest."""
+    """The match of the day among ``forecasts`` (one league's matches of one day): the favourite
+    team's, else the one whose teams are strongest by ``strength`` (the sum of their ratings, for
+    instance); None without matches. Ties go to the earliest."""
     if favourite is not None:
         for forecast in forecasts:
             if favourite in (forecast.home_team, forecast.away_team):
                 return forecast
-    candidates = [forecast for forecast in forecasts if forecast.competition == league]
-    candidates = candidates or list(forecasts)
-    return max(candidates, key=strength) if candidates else None
+    return max(forecasts, key=strength) if forecasts else None
 
 
 def _forecast_order(forecast: MatchForecast) -> tuple[date, time, str]:
@@ -294,6 +290,15 @@ class PredictionService:
         """Every day with a match, played or scheduled, in order."""
         self.prepare()
         return sorted(self._days)
+
+    def nearest_match_day(self, day: date) -> date | None:
+        """``day`` when it has matches, else the league's next day with matches, else its last
+        one; None without matches at all."""
+        days = self.match_days()
+        later = [found for found in days if found >= day]
+        if later:
+            return later[0]
+        return days[-1] if days else None
 
     def on_day(self, day: date) -> list[MatchForecast]:
         """The matches of one day, by kickoff time, then home team; empty without matches."""

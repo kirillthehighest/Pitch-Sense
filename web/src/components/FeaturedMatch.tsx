@@ -1,8 +1,11 @@
-// The match of the day at the top of the matches screen, as the hero cards of the references:
+// The chosen league's match of the day at the top of the matches screen, as the hero cards of the
+// references (when the league does not play that day, its next match, else its last one):
 // the league's image, both teams with their crests in large capitals (and the score once played),
 // the day and kickoff, the chosen model's three probabilities and a button to the match's page.
+// The card takes the colours of the match's league, whichever league is on screen: its image and
+// its deep colour are that league's, so another accent on them would clash.
 import { capitalised, parseDay, percent, shortDateText } from "../format";
-import { themeFor } from "../theme";
+import { themeFor, themeStyle } from "../theme";
 import type { Forecast, League, Outcome } from "../types";
 import { MODEL_LABELS } from "../types";
 import { Crest } from "./Crest";
@@ -11,15 +14,22 @@ import { chance } from "./MatchRow";
 
 const OUTCOMES: [Outcome, string][] = [["H", "Gazde"], ["D", "Egal"], ["A", "Oaspeți"]];
 
+/** What the card is: the match of the day shown, or the league's next or last one. */
+export function featuredTitle(matchDay: string, shownDay: string): string {
+  if (matchDay === shownDay) return "Meciul zilei";
+  return matchDay > shownDay ? "Următorul meci" : "Ultimul meci";
+}
+
 interface Props {
   forecast: Forecast;
+  day: string; // the day on screen
   league: League;
   model: string;
   favourite: string | null;
   onOpen: (forecast: Forecast) => void;
 }
 
-export function FeaturedMatch({ forecast, league, model, favourite, onOpen }: Props) {
+export function FeaturedMatch({ forecast, day, league, model, favourite, onOpen }: Props) {
   const prediction = forecast.predictions.find((p) => p.model === model);
   const played = forecast.result !== null;
   let when = capitalised(shortDateText(parseDay(forecast.date)));
@@ -29,6 +39,7 @@ export function FeaturedMatch({ forecast, league, model, favourite, onOpen }: Pr
     [forecast.away_team, forecast.away_goals],
   ];
   return (
+    <div style={themeStyle(league.code)}>
     <LeagueImageCard
       code={league.code}
       top={league.photo_top}
@@ -36,7 +47,9 @@ export function FeaturedMatch({ forecast, league, model, favourite, onOpen }: Pr
       brand={themeFor(league.code).brand}
       className="featured"
     >
-      <span className="eyebrow">Meciul zilei · {league.name}</span>
+      <span className="eyebrow">
+        {featuredTitle(forecast.date, day)} · {league.name}
+      </span>
       <div className="featured-teams">
         {teams.map(([team, goals]) => (
           <div key={team} className="featured-team">
@@ -61,5 +74,6 @@ export function FeaturedMatch({ forecast, league, model, favourite, onOpen }: Pr
         </button>
       </div>
     </LeagueImageCard>
+    </div>
   );
 }

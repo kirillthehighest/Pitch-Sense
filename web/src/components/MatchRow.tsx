@@ -82,7 +82,7 @@ export function MatchRow({ forecast, model, favourite, stacked = false, showDate
   const upcoming = !played && !forecast.postponed;
   if (stacked) {
     return (
-      <button className="match-row stacked" onClick={() => onOpen(forecast)} title="Deschide meciul">
+      <button className="match-row stacked" onClick={() => onOpen(forecast)}>
         <span className={`status${upcoming ? " upcoming" : ""}`}>{statusText(forecast, showDate)}</span>
         <span className="stack">
           <StackedTeam team={forecast.home_team} goals={forecast.home_goals} favourite={favourite === forecast.home_team} won={forecast.result === "H"} />
@@ -93,7 +93,7 @@ export function MatchRow({ forecast, model, favourite, stacked = false, showDate
     );
   }
   return (
-    <button className={`match-row${extra ? " with-extra" : ""}`} onClick={() => onOpen(forecast)} title="Deschide meciul">
+    <button className={`match-row${extra ? " with-extra" : ""}`} onClick={() => onOpen(forecast)}>
       <span className={`status${upcoming ? " upcoming" : ""}`}>{statusText(forecast, showDate)}</span>
       <span className="teams">
         <Team team={forecast.home_team} side="home" favourite={favourite === forecast.home_team} won={forecast.result === "H"} />
