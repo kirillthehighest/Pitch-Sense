@@ -54,6 +54,14 @@ interface Props {
   onFavourite: () => void;
   onUpdate: () => void;
   updating: boolean;
+  updatedAt: string | null; // when the season in progress was downloaded (UTC, ISO)
+}
+
+/** 15.10.2026, 16:01 in the computer's time zone, as the window writes it. */
+export function updatedText(iso: string): string {
+  const moment = new Date(iso);
+  const two = (value: number) => String(value).padStart(2, "0");
+  return `${two(moment.getDate())}.${two(moment.getMonth() + 1)}.${moment.getFullYear()}, ${two(moment.getHours())}:${two(moment.getMinutes())}`;
 }
 
 export function Sidebar(props: Props) {
@@ -102,6 +110,8 @@ export function Sidebar(props: Props) {
         Rezultate: Football-Data.co.uk
         <br />
         Calendar: openfootball (CC0)
+        <br />
+        {props.updatedAt ? `Actualizat: ${updatedText(props.updatedAt)}` : "Sezonul curent: —"}
         <br />
         UTM · APA · TI-251
       </div>

@@ -241,6 +241,10 @@ class SeasonDays(BaseModel):
     suggested_day: date
 
 
+class Update(BaseModel):
+    summary: str  # what the update brought, in Romanian
+
+
 class Favourite(BaseModel):
     competition: str
     team: str

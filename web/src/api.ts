@@ -99,6 +99,7 @@ export const api = {
   backtest: (code: string) => request<Evaluation>(`/api/evaluation/${code}/backtest`, { method: "POST" }),
   leaguesComparison: () => request<LeaguesComparison>("/api/leagues-comparison"),
   leaguesBacktest: () => request<LeaguesComparison>("/api/leagues-comparison/backtest", { method: "POST" }),
+  update: () => request<{ summary: string }>("/api/update", { method: "POST" }),
   preferences: () => request<Preferences>("/api/preferences"),
   setPreferences: (preferences: Preferences) =>
     request<Preferences>("/api/preferences", {

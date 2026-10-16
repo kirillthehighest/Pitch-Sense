@@ -516,6 +516,15 @@ button.standings-row:hover { background: var(--surface-high); }
   font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; min-width: 0;
 }
 
+/* Notices (the result of an update) */
+.notice {
+  position: fixed; right: 24px; bottom: 24px; z-index: 20; max-width: 520px; display: flex; align-items: flex-start; gap: 14px;
+  padding: 14px 16px; border-radius: 14px; background: var(--surface-top); border: 1px solid var(--line);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5); line-height: 1.5;
+}
+.notice.problem { border-color: rgba(196, 49, 75, 0.6); }
+.dialog-actions .left { margin-right: auto; }
+
 /* Dialogs */
 .overlay {
   position: fixed; inset: 0; background: rgba(0, 0, 0, 0.6); display: flex; align-items: center; justify-content: center;

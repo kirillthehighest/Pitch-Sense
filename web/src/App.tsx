@@ -3,6 +3,7 @@
 // are prepared by the server, and the screens follow as each league becomes ready.
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { api } from "./api";
+import { FavouriteDialog } from "./components/FavouriteDialog";
 import { OtherMatch } from "./components/OtherMatch";
 import { ScreenHead } from "./components/ScreenHead";
 import { type ScreenName, SCREENS, Sidebar } from "./components/Sidebar";
@@ -29,6 +30,10 @@ export default function App() {
   const [otherMatch, setOtherMatch] = useState(false);
   const [seasons, setSeasons] = useState<Record<string, string>>({}); // the season shown, by league
   const [team, setTeam] = useState<{ code: string; team: string; season: string } | null>(null);
+  const [favouriteDialog, setFavouriteDialog] = useState(false);
+  const [updating, setUpdating] = useState(false);
+  const [notice, setNotice] = useState<{ text: string; problem: boolean } | null>(null);
+  const [generation, setGeneration] = useState(0); // a new one after each update of the data
   const scroller = useRef<HTMLElement>(null);
   const screenScroll = useRef(0); // where the screen was when a match opened over it
 
@@ -43,7 +48,8 @@ export default function App() {
       .catch((reason: Error) => setError(reason.message));
   }, []);
 
-  // Which leagues are ready, until all are: the screens re-read when it changes
+  // Which leagues are ready, until all are: the screens re-read when it changes (and after an
+  // update, when every league is prepared again)
   useEffect(() => {
     let live = true;
     const poll = async () => {
@@ -51,7 +57,7 @@ export default function App() {
         const status = await api.status();
         if (!live) return;
         const key = Object.entries(status.prepared).filter(([, done]) => done).map(([code]) => code).join(",");
-        setReady(key);
+        setReady(`${generation}|${key}`);
         if (Object.values(status.prepared).some((done) => !done)) setTimeout(poll, 1500);
       } catch {
         if (live) setTimeout(poll, 1500);
@@ -61,6 +67,30 @@ export default function App() {
     return () => {
       live = false;
     };
+  }, [generation]);
+
+  useEffect(() => {
+    if (!notice) return;
+    const hide = setTimeout(() => setNotice(null), 15000);
+    return () => clearTimeout(hide);
+  }, [notice]);
+
+  const update = useCallback(() => {
+    setUpdating(true);
+    setNotice(null);
+    api
+      .update()
+      .then((answer) => {
+        setNotice({ text: `Date actualizate. ${answer.summary}`, problem: false });
+        setGeneration((value) => value + 1);
+      })
+      .catch((reason: Error) =>
+        setNotice({
+          text: `Datele nu au putut fi actualizate; au rămas cele de până acum. Verificați conexiunea la internet și încercați din nou. Detalii: ${reason.message}`,
+          problem: true,
+        }),
+      )
+      .finally(() => setUpdating(false));
   }, []);
 
   useEffect(() => {
@@ -147,9 +177,10 @@ export default function App() {
         league={league ?? ""}
         onLeague={chooseLeague}
         preferences={preferences}
-        onFavourite={() => undefined}
-        onUpdate={() => undefined}
-        updating={false}
+        onFavourite={() => setFavouriteDialog(true)}
+        onUpdate={update}
+        updating={updating}
+        updatedAt={current?.updated_at ?? null}
       />
       <main className="screen" ref={scroller}>
         <div className="screen-inner">
@@ -232,6 +263,31 @@ export default function App() {
           </div>
         </div>
       </main>
+      {favouriteDialog && current && (
+        <FavouriteDialog
+          leagues={leagues}
+          league={current}
+          favourite={preferences?.favourite ?? null}
+          onClose={() => setFavouriteDialog(false)}
+          onChoose={(chosen) => {
+            chooseFavourite(chosen);
+            setFavouriteDialog(false);
+          }}
+          onOpenTeam={(chosen) => {
+            setFavouriteDialog(false);
+            const chosenLeague = leagues.find((item) => item.code === chosen.competition);
+            if (chosenLeague) openTeam(chosen.competition, chosen.team, chosenLeague.seasons[chosenLeague.seasons.length - 1]);
+          }}
+        />
+      )}
+      {notice && (
+        <div className={`notice${notice.problem ? " problem" : ""}`} role="status">
+          <span>{notice.text}</span>
+          <button className="link" onClick={() => setNotice(null)} aria-label="Închide">
+            ✕
+          </button>
+        </div>
+      )}
       {otherMatch && current && (
         <OtherMatch leagues={leagues} league={current} onClose={() => setOtherMatch(false)} onOpen={showMatch} />
       )}

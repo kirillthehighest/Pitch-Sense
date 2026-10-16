@@ -33,6 +33,7 @@ from app.services.predictions import (
 )
 from app.services.preferences import FavouriteTeam
 from app.services.teams import GROUP_NAMES
+from app.services.updates import summary_text
 
 # The web interface is served by the desktop shell (Tauri) or, while developing, by Vite.
 ORIGINS = ["tauri://localhost", "http://tauri.localhost", "http://localhost:1420"]
@@ -390,6 +391,17 @@ def create_app(backend: Backend) -> FastAPI:
                 for row in found.matches
             ],
         )
+
+    @app.post("/api/update", response_model=schemas.Update)
+    def update() -> schemas.Update:
+        """Download the season in progress (the network, on the user's request only), then read
+        every league again and prepare its predictions again."""
+        try:
+            summary = backend.update_data()
+        except Exception as error:  # the previous data stays; the interface explains in Romanian
+            raise HTTPException(502, str(error)) from None
+        backend.reload()
+        return schemas.Update(summary=summary_text(summary))
 
     @app.get("/api/preferences", response_model=schemas.Preferences)
     def preferences() -> schemas.Preferences:

@@ -323,6 +323,7 @@ def api_backend(make_app_context, two_league_database, tmp_path):
         comparison=context.comparison,
         preferences=Preferences(tmp_path / "web-preferences.json"),
         compute=compute_here,
+        update_data=context.update_data,  # tests never use the network
         today=lambda: date(2007, 9, 4),
     )
     served.prepare_all(wait=True)

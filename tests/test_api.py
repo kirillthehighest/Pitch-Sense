@@ -3,11 +3,12 @@ services' own, in the shapes the interface reads."""
 
 import os
 import threading
-from datetime import date
+from datetime import UTC, date, datetime
 
 import pytest
 
 from app.api.__main__ import exit_with_window, option, port_of
+from app.data.live import UpdateSummary
 from app.prediction.outputs import ModelName
 
 
@@ -220,6 +221,27 @@ def test_images_are_served_and_a_missing_one_is_404(api_client):
     assert api_client.get("/api/images/crest/Barcelona").headers["content-type"] == "image/png"
     assert api_client.get("/api/images/crest/Alpha").status_code == 404
     assert api_client.get("/api/day/2007-09-03", params={"league": "XX"}).status_code == 404
+
+
+def test_a_failed_update_keeps_the_data(api_client, api_backend):
+    opened = api_backend.league("SP1")
+
+    answer = api_client.post("/api/update")
+
+    assert answer.status_code == 502 and "network" in answer.json()["detail"]
+    assert api_backend.league("SP1") is opened  # nothing was read again
+
+
+def test_an_update_reads_every_league_again(api_client, api_backend):
+    opened = api_backend.league("SP1")
+    api_backend.update_data = lambda: UpdateSummary("2008-09", datetime(2008, 9, 8, tzinfo=UTC), ())
+
+    answer = api_client.post("/api/update").json()
+
+    assert answer["summary"].startswith("Sezonul 2008/09: ")
+    api_backend.prepare_all(wait=True)
+    assert api_backend.league("SP1") is not opened
+    assert api_backend.is_prepared("SP1") and api_backend.is_prepared("E0")
 
 
 def test_the_command_line_options():
