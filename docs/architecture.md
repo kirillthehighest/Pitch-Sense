@@ -997,9 +997,10 @@ Rulări din 2026-10-15 și 2026-10-16:
   - animația în patru momente ale ei.
 
   Pe datele reale, niciun ecran nu se derulează în lateral la 1024, 1180, 1280, 1440 și 1920 px.
-- **Pachete.** Versiunea a rămas 0.3.0; o versiune nouă cere o fază de lansare.
-  - macOS: `.dmg` de 79 MB, cu fontul Plus Jakarta Sans și iconița nouă. Autoverificarea trece 25 din 25 din `dist/` și din imaginea `.dmg` montată doar pentru citire.
-  - Windows (GitHub Actions): toate cele 809 teste trec, `.zip` de 93 MB. Actualizarea cu `--update` din pachet reușește, iar autoverificarea trece 25 din 25.
+- **Pachete.** Versiunea a rămas 0.3.0; o versiune nouă cere o fază de lansare. În ambele pachete, autoverificarea își calculează predicțiile în procesul separat, deci încearcă și pornirea lui din pachet.
+  - macOS: `.dmg` de 79 MB. Autoverificarea trece 25 din 25 din `dist/` și din imaginea `.dmg` montată doar pentru citire, fără procese rămase după ea.
+  - Windows (GitHub Actions): toate cele 815 teste trec, `.zip` de 93 MB. Actualizarea cu `--update` din pachet reușește, iar autoverificarea trece 25 din 25.
+- **Procesul separat.** Aplicația pornită din sursă își calculează predicțiile în procesul de lucru. Oprită forțat (`kill -9`), nu lasă procese în urmă: procesul de lucru se oprește singur când dispare fereastra.
 
 ### 17.9. Limitări
 
