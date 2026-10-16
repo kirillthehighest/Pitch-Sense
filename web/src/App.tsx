@@ -2,6 +2,7 @@
 // the right. The chosen league's colours are set on the whole page; the predictions of every league
 // are prepared by the server, and the screens follow as each league becomes ready.
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { api } from "./api";
 import { FavouriteDialog } from "./components/FavouriteDialog";
 import { OtherMatch } from "./components/OtherMatch";
@@ -13,6 +14,7 @@ import { Matches } from "./screens/Matches";
 import { Predictions } from "./screens/Predictions";
 import { Standings } from "./screens/Standings";
 import { Team } from "./screens/Team";
+import { reveal } from "./reveal";
 import { applyTheme } from "./theme";
 import type { Favourite, Forecast, League, MatchKey, Preferences } from "./types";
 
@@ -110,10 +112,16 @@ export default function App() {
 
   const chooseLeague = useCallback(
     (code: string) => {
-      setLeague(code);
+      if (code !== league) {
+        // the page in the new league's colours, uncovered by the wave
+        reveal(() => {
+          applyTheme(code);
+          flushSync(() => setLeague(code));
+        });
+      }
       api.setPreferences({ competition: code, favourite: preferences?.favourite ?? null }).then(setPreferences);
     },
-    [preferences],
+    [league, preferences],
   );
 
   const chooseFavourite = useCallback(

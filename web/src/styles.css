@@ -45,6 +45,9 @@
 }
 
 * { box-sizing: border-box; }
+/* The change of league (reveal.ts): the new page is uncovered by its own animation, the old one
+   stays still under it */
+::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
 html, body, #root { margin: 0; height: 100%; }
 body { overflow: hidden; }
 button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; padding: 0; }
