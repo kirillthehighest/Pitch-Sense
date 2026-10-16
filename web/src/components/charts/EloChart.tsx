@@ -1,4 +1,4 @@
-// A team's Elo rating before each of its matches, one line per season (the window's chart): the
+// A team's Elo rating before each of its matches, one line per season (the Elo chart of Phase 12): the
 // chosen season in the league's accent and on top, the others thin and grey as its context (the
 // Elo blue was too close to Serie A's cyan); gaps are summers and seasons outside the league.
 // "Doar sezonul" narrows it to the chosen season.

@@ -1,7 +1,7 @@
 """Long computations in a separate process (Phase 21).
 
 A thread shares the Python interpreter with the program that started it: a long computation in
-Python makes every step of a window, or every answer of a server, wait for it.
+Python makes every answer of the server wait for it.
 ``compute_in_process`` runs a job in one worker process instead and returns its result pickled,
 so the caller decides when to spend the moment of unpickling it. ``compute_here`` does the same
 in the calling process; tests use it. The worker ends with the process that started it, even
@@ -41,7 +41,7 @@ def compute_here(job: Callable[[], Any]) -> bytes:
 
 
 def stop_processes() -> None:
-    """Stop the worker process at once, with any job it runs (the window is closing)."""
+    """Stop the worker process at once, with any job it runs (the server is stopping)."""
     global _processes
     if _processes is None:
         return

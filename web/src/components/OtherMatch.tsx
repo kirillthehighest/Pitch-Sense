@@ -1,5 +1,5 @@
 // "Alt meci": any two teams of a season on a day of it, predicted only from the matches played
-// before that day (the window's hypothetical match). The answer opens on the match page.
+// before that day (the hypothetical match of Phase 19). The answer opens on the match page.
 import { type FormEvent, useEffect, useState } from "react";
 import { api } from "../api";
 import { seasonText } from "../format";

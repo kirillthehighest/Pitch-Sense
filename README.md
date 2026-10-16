@@ -5,11 +5,11 @@ Aplicație desktop pentru analiza datelor istorice din fotbal și estimarea rezu
 Proiect de an la disciplina *Analiza și Proiectarea Algoritmilor* (APA), Universitatea Tehnică a Moldovei, Departamentul Ingineria Software și Automatică.
 Echipa (grupa TI-251): Goroșevschi Chiril, Cuzmici Nicolae, Păstru Alina.
 
-**Stadiu:** etapele 0–21 sunt încheiate (etapa 21, designul refăcut, pe 2026-10-16); etapa 22 (interfața web: React și TypeScript într-o fereastră Tauri, peste un server Python local) este realizată și așteaptă acceptarea echipei. Versiunea curentă este 0.3.0. Etapele 18 (sezonul în desfășurare), 19 (interfață centrată pe meciuri) și 20 (pachete și versiunea 0.3.0) au fost adăugate de echipă și încheiate pe 2026-10-15. Fazele 0–12 (planificare și arhitectură, prelucrarea datelor istorice, statisticile echipelor, ratingul Elo, modelul Poisson, regresia logistică, K-Means, motorul de predicție, backtesting cronologic, metricile de evaluare, compararea algoritmilor, interfața grafică, vizualizarea) au fost încheiate pe 2026-10-04, fazele 13 (testare de integrare și finisare), 14 (pachete de instalare pentru macOS și Windows), 15 (cinci ligi) și 16 (identitate vizuală și interfață nouă, în limba română) pe 2026-10-05, iar faza 17 (pachete și versiunea 0.2.0) pe 2026-10-06. Aplicația se pornește cu `python -m app` sau din pachetele de instalare.
+**Stadiu:** toate etapele, 0–22, sunt încheiate: etapele 21 (designul refăcut) și 22 (interfața web: React și TypeScript într-o fereastră Tauri, peste un server Python local; fereastra PySide6 a fost scoasă) pe 2026-10-16. Versiunea curentă este 0.3.0. Etapele 18 (sezonul în desfășurare), 19 (interfață centrată pe meciuri) și 20 (pachete și versiunea 0.3.0) au fost adăugate de echipă și încheiate pe 2026-10-15. Fazele 0–12 (planificare și arhitectură, prelucrarea datelor istorice, statisticile echipelor, ratingul Elo, modelul Poisson, regresia logistică, K-Means, motorul de predicție, backtesting cronologic, metricile de evaluare, compararea algoritmilor, interfața grafică, vizualizarea) au fost încheiate pe 2026-10-04, fazele 13 (testare de integrare și finisare), 14 (pachete de instalare pentru macOS și Windows), 15 (cinci ligi) și 16 (identitate vizuală și interfață nouă, în limba română) pe 2026-10-05, iar faza 17 (pachete și versiunea 0.2.0) pe 2026-10-06. Aplicația se pornește din pachetele de instalare sau, din codul sursă, cu `npm run tauri dev` (secțiunea *Pornirea aplicației*).
 
 ## Aplicația gata de instalat
 
-Pachetele se descarcă de pe pagina [Releases](https://github.com/kirillthehighest/Pitch-Sense/releases/latest) a depozitului (versiunea curentă: 0.3.0). Pachetele versiunii 0.3.0 conțin fereastra PySide6; cele construite din etapa 22 conțin interfața web (secțiunea *Construirea pachetelor*). Depozitul este privat, deci pagina se deschide doar pentru cei care au acces la el. Pachetele nu cer Python și conțin deja datele: baza de date cu cele cinci ligi, jurnalele predicțiilor fiecărei ligi și sezonul în desfășurare de la data construirii (butonul **Actualizează datele** îl aduce la zi).
+Pachetele se descarcă de pe pagina [Releases](https://github.com/kirillthehighest/Pitch-Sense/releases/latest) a depozitului (versiunea curentă: 0.3.0). Pachetele versiunii 0.3.0 conțin fereastra PySide6 de până în etapa 21; cele construite din etapa 22 conțin interfața web (secțiunea *Construirea pachetelor*). Depozitul este privat, deci pagina se deschide doar pentru cei care au acces la el. Pachetele nu cer Python și conțin deja datele: baza de date cu cele cinci ligi, jurnalele predicțiilor fiecărei ligi și sezonul în desfășurare de la data construirii (butonul **Actualizează datele** îl aduce la zi).
 
 | Sistem | Fișier | Cerințe |
 |---|---|---|
@@ -24,9 +24,9 @@ Prima pornire durează până la aproximativ 30 de secunde, pentru că se pregă
 
 ## Cerințe (pentru codul sursă)
 
-- Python 3.14 (PySide6 6.11 nu suportă încă Python 3.15)
+- Python 3.14
 - macOS sau Windows
-- pentru interfața web (din etapa 22): Node 26 și, pentru fereastra de desktop, Rust (pe macOS: `brew install node rustup`, apoi `rustup default stable`)
+- Node 26 pentru interfața web și Rust pentru fereastra de desktop (pe macOS: `brew install node rustup`, apoi `rustup default stable`)
 
 ## Instalare (din codul sursă)
 
@@ -67,7 +67,7 @@ python -m ruff check .
 python -m ruff format --check .
 ```
 
-Testele folosesc doar date sintetice. `tests/test_integration.py` rulează tot lanțul, de la fișierele CSV la fereastra aplicației, fără fereastră vizibilă. Serverul interfeței web este verificat de `tests/test_api.py` și `tests/test_api_analysis.py`, iar interfața web, din folderul `web`, cu:
+Testele folosesc doar date sintetice. `tests/test_integration.py` rulează tot lanțul, de la fișierele CSV la răspunsurile serverului pe care le afișează interfața. Serverul interfeței web este verificat de `tests/test_api.py` și `tests/test_api_analysis.py`, iar interfața web, din folderul `web`, cu:
 
 ```bash
 npm test
@@ -100,7 +100,7 @@ Comanda verifică toate sezoanele și afișează câte meciuri a salvat din fiec
 
 ## Pornirea aplicației
 
-**Interfața web (etapa 22).** Din folderul `web`, cu mediul virtual Python creat și baza de date construită:
+Din folderul `web`, cu mediul virtual Python creat și baza de date construită:
 
 ```bash
 npm run tauri dev
@@ -114,20 +114,15 @@ python -m app.api --port 8765
 
 Bara laterală are ecranele Meciuri, Clasament, Echipe, Predicții și Analiză, ligile, „Echipa ta” și actualizarea datelor. Ecranul **Predicții** arată, pentru un sezon și un model, meciurile nimerite, ratate și surprizele (rezultate cărora modelul le dădea sub 20%). Detalii: [`docs/architecture.md`](docs/architecture.md), secțiunea 18.
 
-**Interfața PySide6 (până în etapa 21)** rămâne în depozit până când echipa hotărăște altfel. Cu mediul virtual activat și baza de date construită:
+Ecranele:
 
-```bash
-python -m app
-```
-
-Liga se alege din panoul din stânga; aplicația ia culoarea ei de accent și imaginea ei, iar schimbarea se face cu un val care pornește din colțul din stânga sus. Fereastra se potrivește oricărei lățimi de la 1024 px în sus. După pornire, aplicația calculează în fundal predicțiile fiecărei ligi, întâi pe cea aleasă (aproximativ 7 secunde pe ligă; bara de stare arată „Predicțiile pentru … sunt gata”). Ultima ligă afișată este redeschisă la următoarea pornire. Ecranele, din bara de sus:
-
-- **Meciuri:** meciurile fiecărei zile, din toate ligile, cu stemele cluburilor și probabilitățile modelului ales (implicit regresia logistică); la meciurile jucate, scorul și dacă modelul a nimerit. Un clic pe un meci deschide pagina lui: toate modelele, scorurile probabile (Poisson) și cum vin echipele. „Alt meci…” prezice oricare două echipe ale unui sezon, la o dată aleasă;
-- **Clasament:** clasamentul unui sezon sau la o anumită dată, cu forma fiecărei echipe; un clic pe o echipă îi deschide pagina;
-- **Echipe:** pagina unei echipe: sezonul în cifre, forma, următorul meci și ultimele rezultate, profilul K-Means, ratingul Elo și grupurile;
+- **Meciuri:** meciurile fiecărei zile, din toate ligile (liga aleasă prima), din orice sezon, cu stemele cluburilor și probabilitățile modelului ales (implicit regresia logistică); la meciurile jucate, scorul și dacă modelul a nimerit. Sus, cardul „Meciul zilei” al ligii alese (când liga nu joacă în acea zi, următorul ei meci). Un clic pe un meci deschide pagina lui: toate modelele, scorurile probabile (Poisson) și cum vin echipele. „Alt meci…” prezice oricare două echipe ale unui sezon, la o dată aleasă;
+- **Clasament:** clasamentul unui sezon, la final sau înaintea unei zile, cu forma fiecărei echipe; un clic pe o echipă îi deschide pagina;
+- **Echipe:** pagina unei echipe, peste fotografia stadionului: sezonul în cifre, forma (acasă, în deplasare, total), șuturile, meciurile, profilul echipei, ratingul Elo și grupurile;
+- **Predicții:** meciurile nimerite, ratate și surprizele unui model într-un sezon;
 - **Analiză:** cum funcționează algoritmii, cum au prezis sezonul în desfășurare, compararea modelelor (tabele, calibrare, matricea de confuzie), comparația celor cinci ligi și sursele datelor și imaginilor.
 
-Butonul **Echipa ta** din dreapta sus păstrează echipa pe care o urmăriți: are cardul ei pe ecranul Meciuri, este evidențiată în liste și clasamente și aleasă din start pe ecranul Echipe.
+Liga se alege din bara din stânga; aplicația ia culoarea ei și imaginea ei, iar schimbarea se face cu un val care pornește din colțul din stânga sus. Fereastra se potrivește oricărei lățimi de la 1024 px în sus. După pornire, serverul calculează predicțiile fiecărei ligi, întâi pe cea aleasă (aproximativ 8 secunde pe ligă). „Echipa ta” păstrează echipa pe care o urmăriți: este evidențiată în liste și clasamente, are cardul ei pe ecranul Meciuri și meciul ei devine „Meciul zilei” când joacă în liga aleasă.
 
 Butonul **Actualizează datele** descarcă rezultatele și calendarul sezonului în desfășurare (câteva secunde, cu internet); restul aplicației funcționează fără internet. Panoul din stânga arată când au fost actualizate datele ultima dată.
 
@@ -153,7 +148,7 @@ Serverul unui pachet se poate verifica automat, fără fereastră: `--self-test`
 dist/PitchSense.app/Contents/Resources/server/pitchsense-server --self-test
 ```
 
-Din codul sursă, aceeași verificare este `python -m app.api --self-test`. Fereastra PySide6 are în continuare `python -m app --self-test` și `python -m app --update`.
+Din codul sursă, aceeași verificare este `python -m app.api --self-test`, iar actualizarea `python -m app.api --update`.
 
 ## Evaluare
 
@@ -189,7 +184,7 @@ python -m app.evaluation.leagues
 
 ### Imaginile
 
-Stemele cluburilor vin de pe Wikipedia, la rezoluție mică (`tools/crests.py`, care se rulează doar ca să le reîmprospăteze). Imaginile ligilor sunt imagini promoționale DAZN, alese de echipă. Stemele și imaginile aparțin deținătorilor lor: sunt folosite doar ca să recunoști echipele și ligile și rămân în depozitul privat și în pachete.
+Stemele cluburilor vin de pe Wikipedia, la rezoluție mică (`tools/crests.py`), iar fotografiile stadioanelor de pe Wikipedia și Wikimedia Commons (`tools/stadiums.py`); instrumentele se rulează doar ca să le reîmprospăteze și au nevoie de Qt (`python -m pip install -e ".[tools]"`). Imaginile ligilor sunt imagini promoționale DAZN, alese de echipă. Stemele, fotografiile și imaginile aparțin deținătorilor lor: sunt folosite doar ca să recunoști echipele și ligile și rămân în depozitul privat și în pachete.
 
 ## Documentație
 
@@ -224,4 +219,4 @@ Stemele cluburilor vin de pe Wikipedia, la rezoluție mică (`tools/crests.py`, 
 19. Interfață centrată pe meciuri: meciurile pe zile, clasamentul, pagina echipei și analiza modelelor
 20. Pachete și versiunea 0.3.0
 21. Design refăcut: suprafețe neutre cu accentul fiecărei ligi și animația schimbării lui, sigla nouă, o literă nouă, antetul cu imaginea ligii la rezoluția ecranului și ecrane pentru orice lățime
-22. Interfața web: ecranele refăcute ca aplicație web într-o fereastră de desktop, peste algoritmii și serviciile Python (în pregătire)
+22. Interfața web: ecranele refăcute ca aplicație web într-o fereastră de desktop, peste algoritmii și serviciile Python; fereastra PySide6 scoasă

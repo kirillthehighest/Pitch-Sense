@@ -3,13 +3,15 @@
 For every team in the database and in the season in progress, the club's English Wikipedia article
 is found (by the calendar's full club name when the team plays this season, otherwise by its
 Football-Data name and country), and the article's lead image, the crest of its infobox, is saved
-at most ``SIZE`` pixels wide and high as ``app/ui/assets/crests/<team>.png``. ``sources.json``
+at most ``SIZE`` pixels wide and high as ``app/assets/crests/<team>.png``. ``sources.json``
 lists the article and the image file of every crest; teams without a certain crest keep the
 initials badge drawn by the application.
 
 Crests are trademarks of their clubs. They are used here at low resolution only to identify the
 teams in a private university project, and are not published. Run it again only to refresh them;
 every result must be looked at before it is committed (``--sheet`` draws all of them on one page).
+
+The tool uses Qt for the images: install it with ``python -m pip install -e ".[tools]"``.
 """
 
 import argparse

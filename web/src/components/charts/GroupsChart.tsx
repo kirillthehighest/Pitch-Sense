@@ -1,5 +1,5 @@
 // A completed season's teams by goals scored and conceded per match, coloured by their K-Means
-// group (the window's chart), the group centres as crosses and the chosen team ringed in the
+// group (the groups chart of Phase 12), the group centres as crosses and the chosen team ringed in the
 // league's accent and named. The groups come from six values, so a team can sit nearer another
 // group's centre on these two axes; the note under the chart says so.
 import { CartesianGrid, Scatter, ScatterChart, Tooltip, XAxis, YAxis, ZAxis } from "recharts";

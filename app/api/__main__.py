@@ -77,15 +77,37 @@ def write_utf8() -> None:
             stream.reconfigure(encoding="utf-8", errors="replace")
 
 
+def copy_bundled() -> None:
+    """Copy what a package ships read-only to the user's folder: its prediction logs and its
+    snapshot of the season in progress. A failure is reported and start-up goes on with what
+    the folder holds."""
+    for copy, failure in (
+        (copy_bundled_results, "Jurnalele predicțiilor nu au putut fi copiate"),
+        (copy_bundled_live, "Sezonul în desfășurare nu a putut fi copiat"),
+    ):
+        try:
+            copy()
+        except OSError as error:
+            print(f"{failure}: {error}", file=sys.stderr, flush=True)
+
+
 def main(arguments: list[str]) -> int:
     write_utf8()
-    copy_bundled_results()  # a package ships its prediction logs read-only
-    copy_bundled_live()  # and a snapshot of the season in progress
+    copy_bundled()
     if "--update" in arguments:
         print(summary_text(update_season()), flush=True)
         return 0
     preferences = option(arguments, "--preferences")  # developers: a file of their own
-    backend = Backend.from_database(None if preferences is None else Path(preferences))
+    try:
+        backend = Backend.from_database(None if preferences is None else Path(preferences))
+    except FileNotFoundError as error:  # the window shows this line (web/src-tauri/src/lib.rs)
+        print(
+            "Baza de date nu a fost găsită. Construiți-o cu python -m app.data.build_database și "
+            f"porniți aplicația din nou. ({error})",
+            file=sys.stderr,
+            flush=True,
+        )
+        return 1
     if "--self-test" in arguments:
         try:
             return run_self_test(backend)

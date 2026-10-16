@@ -1,4 +1,4 @@
-// The Poisson probability of every score from 0–0 to 6–6, the window's heat map drawn as a grid:
+// The Poisson probability of every score from 0–0 to 6–6, drawn as a grid:
 // home goals down, away goals across; each cell mixes the league's accent into the card by its
 // share of the most likely score, and its number takes the ink that reads on it.
 import { inkOn, mix } from "../colour";

@@ -1,5 +1,5 @@
 """Where the images of the interface are: club crests and league images (Phase 19) and stadium
-photos (Phase 22), shared by the window and by the local server of the web interface. All stay in
+photos (Phase 22), which the local server sends to the web interface. All stay in
 the private repository and the packages only; their sources are in each folder's
 ``sources.json``."""
 

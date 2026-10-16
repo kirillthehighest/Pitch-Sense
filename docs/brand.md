@@ -325,6 +325,8 @@ Componentele folosesc stilul Qt Fusion și o paletă Qt și o foaie de stil gene
 
 ### 5.9. Interfața web (Faza 22)
 
+Din Faza 22 aceasta este singura interfață: fereastra PySide6 descrisă în secțiunile de mai sus a fost scoasă la acceptarea etapei; regulile ei de culoare, literă și formă rămân cele ale interfeței web.
+
 Interfața web păstrează identitatea de mai sus: aceleași suprafețe, aceleași accente ale ligilor (variabile CSS în `web/src/theme.ts`, copiate din `app/ui/themes.py`), aceleași litere (Plus Jakarta Sans, Barlow Condensed, Kanit, incluse în `web/public/fonts/`) și aceeași siglă, desenată în SVG.
 
 - **Așezarea A**, aleasă de echipă dintre patru: o singură bară laterală, cu sigla, ecranele cu iconițe, ligile, „Echipa ta”, actualizarea și sursele; sub 1200 px rămân doar iconițele și steagurile.
@@ -356,18 +358,19 @@ Graficele se construiesc cu un auriu pentru evidențiere și cu culoarea cardulu
 
 ## 7. Fișierele
 
+Din Faza 22, identitatea trăiește în interfața web (fișierele ferestrei PySide6, `app/ui/` și `app/visualization/`, au fost scoase).
+
 | Fișier | Conține |
 |---|---|
-| `app/ui/themes.py` | suprafețele comune și accentele celor cinci ligi |
-| `app/visualization/palette.py` | culorile care nu se schimbă (formă, modele, grupuri, grafice) |
-| `app/ui/brand.py` | sigla tăiată, iconița, sigla cu numele, steagurile, ecusoanele, stemele, imaginile ligilor |
-| `app/ui/theme.py` | fonturile, paleta Qt și foaia de stil, generate din paleta unei ligi |
-| `app/ui/transition.py` | schimbarea culorilor: cercul cu valuri peste cele două imagini ale ferestrei |
-| `app/ui/widgets.py` | piesele desenate ale interfeței, antetul cu imaginea ligii, `ResponsiveBox`, `ReflowGrid` |
-| `app/ui/match_widgets.py` | banda de zile, rândul de meci, capetele coloanelor de probabilități, bifa și crucea |
-| `app/ui/assets/fonts/` | Plus Jakarta Sans (cinci grosimi), Barlow Condensed (patru), Kanit (două) și licențele |
-| `app/ui/assets/crests/`, `app/ui/assets/leagues/` | stemele și imaginile ligilor, cu sursele lor |
-| `app/ui/assets/icons/` | săgeata listelor și bifa |
+| `web/src/theme.ts` | accentele celor cinci ligi și culorile modelelor, ca variabile CSS |
+| `web/src/styles.css` | suprafețele comune, literele, stilul fiecărei piese și adaptarea la lățime |
+| `web/src/colour.ts` | amestecul culorilor, contrastul și regula stemelor întunecate |
+| `web/src/reveal.ts` | schimbarea ligii: cercul cu valuri |
+| `web/src/components/Logo.tsx`, `Flag.tsx`, `Icons.tsx` | sigla tăiată, steagurile și iconițele barei laterale |
+| `web/src/components/charts/` | graficele (Recharts) și stilul lor comun |
+| `web/public/fonts/` | Plus Jakarta Sans (cinci grosimi), Barlow Condensed (patru), Kanit (două) și licențele |
+| `app/assets/crests/`, `app/assets/leagues/`, `app/assets/stadiums/` | stemele, imaginile ligilor și fotografiile stadioanelor, cu sursele lor |
+| `web/src-tauri/icons/` | iconițele aplicației, desenate din siglă |
 
 ## 8. Verificare
 

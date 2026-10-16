@@ -12,7 +12,7 @@ The matches screen (Phase 19) reads the cache day by day (``on_day``) and team b
 (``team_matches``); ``season_check`` scores the predictions of a season's matches played so far.
 
 The slow step can run anywhere: ``preparation`` gives it as a job that can be sent to another
-process (Phase 21: the window computes in a separate process, so the work never slows it), and
+process (Phase 21; the server computes in a separate process, so the work never slows it), and
 ``install`` takes the job's result.
 """
 

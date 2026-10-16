@@ -1,4 +1,4 @@
-// One model's three probabilities as a bar of three segments, as in the window (Phase 21): the
+// One model's three probabilities as a bar of three segments, as in Phase 21: the
 // home win in the league's accent, the draw dark grey, the away win light grey; the most likely
 // outcome's number is bold. A segment too narrow for its number leaves it to the legend.
 import { percent } from "../format";

@@ -1,5 +1,5 @@
 // Numbers, dates and seasons written the Romanian way, as app/services/formatting.py writes them
-// for the window: a decimal comma (0,5776; 53,4%), a dot between thousands (28.893), a true minus
+// for the server's sentences: a decimal comma (0,5776; 53,4%), a dot between thousands (28.893), a true minus
 // (−0,0073), dates as day.month.year and seasons as 2006/07.
 
 export const WEEKDAYS = ["lun.", "mar.", "mie.", "joi", "vin.", "sâm.", "dum."];

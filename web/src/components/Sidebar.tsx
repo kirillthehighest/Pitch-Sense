@@ -57,7 +57,7 @@ interface Props {
   updatedAt: string | null; // when the season in progress was downloaded (UTC, ISO)
 }
 
-/** 15.10.2026, 16:01 in the computer's time zone, as the window writes it. */
+/** 15.10.2026, 16:01 in the computer's time zone, as docs/brand.md writes dates. */
 export function updatedText(iso: string): string {
   const moment = new Date(iso);
   const two = (value: number) => String(value).padStart(2, "0");

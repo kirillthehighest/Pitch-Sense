@@ -18,8 +18,6 @@ jobs:
   windows:
     runs-on: windows-latest
     timeout-minutes: 45
-    env:
-      QT_QPA_PLATFORM: offscreen
     steps:
       - uses: actions/checkout@v7
 

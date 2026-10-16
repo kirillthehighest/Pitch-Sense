@@ -2,9 +2,9 @@
 
 The team asked for photos of stadiums to make the club and match pages livelier (Phase 22), and
 allowed protected images in this private project. For every club whose crest was found
-(``app/ui/assets/crests/sources.json`` names its Wikipedia article), the ground of the article's
+(``app/assets/crests/sources.json`` names its Wikipedia article), the ground of the article's
 infobox is read and the stadium article's lead image is saved ``WIDTH`` pixels wide as
-``app/ui/assets/stadiums/<stadium>.jpg``; clubs sharing a ground share the photo.
+``app/assets/stadiums/<stadium>.jpg``; clubs sharing a ground share the photo.
 ``sources.json`` lists every club's stadium, its article and the image file. A stadium without a
 photo, or with a lead image that is not a photo of it (a map, a logo), leaves its clubs without
 one: they keep the league's colour.
@@ -12,6 +12,8 @@ one: they keep the league's colour.
 The photos belong to their authors (their licences are on their Wikimedia pages). They are used
 only in this private university project and are not published. Run it again only to refresh them;
 look at every result before committing it (``--sheet`` draws all of them on one page).
+
+The tool uses Qt for the images: install it with ``python -m pip install -e ".[tools]"``.
 """
 
 import argparse

@@ -32,13 +32,6 @@ def test_installed_version_matches_pin(requirement):
     assert version(name.strip()) == pinned_version.strip()
 
 
-def test_matplotlib_qt_backend_loads_with_pyside6():
-    from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
-    from PySide6.QtWidgets import QWidget
-
-    assert issubclass(FigureCanvasQTAgg, QWidget)
-
-
 WEB = PYPROJECT.parent / "web"
 
 

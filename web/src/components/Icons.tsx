@@ -1,4 +1,4 @@
-// Line icons of the side bar (24-unit grid, round strokes), as app/ui/brand.py draws them.
+// Line icons of the side bar (24-unit grid, round strokes), as in Phase 21.
 import type { SVGProps } from "react";
 
 const base: SVGProps<SVGSVGElement> = {

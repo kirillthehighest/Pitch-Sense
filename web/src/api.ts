@@ -31,7 +31,12 @@ async function resolveBase(): Promise<string> {
   if (window.__TAURI_INTERNALS__) {
     const { invoke } = await import("@tauri-apps/api/core");
     for (;;) {
-      const url = await invoke<string | null>("backend_url");
+      let url: string | null;
+      try {
+        url = await invoke<string | null>("backend_url");
+      } catch (problem) {
+        throw new Error(String(problem)); // the server stopped before it listened, and why
+      }
       if (url) return url;
       await new Promise((resolve) => setTimeout(resolve, 100));
     }

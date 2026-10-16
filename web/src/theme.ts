@@ -1,4 +1,4 @@
-// The colours of each league (as app/ui/themes.py, Phase 21): neutral surfaces shared by every
+// The colours of each league (docs/brand.md, section 3; Phase 21): neutral surfaces shared by every
 // league, and each league's accent, the ink on it, the accent written on the dark and its deep
 // colour. Choosing a league sets them as CSS variables on the whole page.
 
@@ -31,7 +31,7 @@ export function applyTheme(code: string, root: HTMLElement = document.documentEl
   root.style.setProperty("--brand", theme.brand);
 }
 
-/** The models' identity colours (app/visualization/palette.py): fixed, never reassigned. */
+/** The models' identity colours (docs/brand.md, section 6): fixed, never reassigned. */
 export const MODEL_COLOURS: Record<string, string> = {
   Elo: "#4D8DFF",
   Poisson: "#EF5A6F",

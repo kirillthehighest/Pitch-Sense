@@ -4,7 +4,7 @@ from the services (the prediction logs of the backtests); nothing is computed he
 
 from collections.abc import Callable, Sequence
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 
 from app.api import schemas
 from app.api.backend import Backend
@@ -272,8 +272,12 @@ def add_analysis_routes(
 
     @app.post("/api/evaluation/{code}/backtest", response_model=schemas.Evaluation)
     def build_evaluation(code: str) -> schemas.Evaluation:
-        """Run the league's chronological backtest (about 10 s) and evaluate its log."""
-        league_of(code).evaluation.build_log()
+        """Run the league's chronological backtest (about 10 s) and evaluate its log; a failure is
+        answered with its reason, and the loaded data keeps working."""
+        try:
+            league_of(code).evaluation.build_log()
+        except (OSError, ValueError) as error:
+            raise HTTPException(500, str(error)) from None
         return evaluation(code)
 
     def leagues() -> schemas.LeaguesComparison:
@@ -294,5 +298,8 @@ def add_analysis_routes(
     @app.post("/api/leagues-comparison/backtest", response_model=schemas.LeaguesComparison)
     def build_leagues() -> schemas.LeaguesComparison:
         """Run the backtest of every league without a log (about 10 s each)."""
-        backend.comparison.build_missing_logs()
+        try:
+            backend.comparison.build_missing_logs()
+        except (OSError, ValueError) as error:
+            raise HTTPException(500, str(error)) from None
         return leagues()

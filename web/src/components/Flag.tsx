@@ -1,4 +1,4 @@
-// The round flags of the leagues' countries, as app/ui/brand.py draws them.
+// The round flags of the leagues' countries (docs/brand.md, 2.4).
 const FLAGS: Record<string, { kind: "cross" | "spain" | "vertical" | "horizontal"; colours: string[] }> = {
   E0: { kind: "cross", colours: ["#FFFFFF", "#CE1124"] },
   SP1: { kind: "spain", colours: ["#AA151B", "#F1BF00"] },

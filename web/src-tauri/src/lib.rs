@@ -2,7 +2,9 @@
 //! while developing, the packaged `pitchsense-server` in a package), reads the port the server
 //! announces on its first line (`PITCHSENSE_PORT=<port>`), gives the interface the server's
 //! address through the `backend_url` command, and stops the server when the window closes. The
-//! server also watches its input, so it ends even when this process is killed.
+//! server also watches its input, so it ends even when this process is killed. When the server
+//! stops before it listens (no database, say), `backend_url` answers with what it wrote on its
+//! error output, which the interface shows.
 
 use std::io::{BufRead, BufReader};
 use std::path::PathBuf;
@@ -15,13 +17,21 @@ use tauri::{AppHandle, Manager, RunEvent, State};
 #[derive(Default)]
 struct Server {
     url: Mutex<Option<String>>,
+    problem: Mutex<Option<String>>,
     child: Mutex<Option<Child>>,
 }
 
-/// The server's address once it listens; `None` while it starts.
+/// The server's address once it listens; `None` while it starts; an error when it stopped
+/// without listening.
 #[tauri::command]
-fn backend_url(server: State<Server>) -> Option<String> {
-    server.url.lock().unwrap().clone()
+fn backend_url(server: State<Server>) -> Result<Option<String>, String> {
+    if let Some(url) = server.url.lock().unwrap().clone() {
+        return Ok(Some(url));
+    }
+    match server.problem.lock().unwrap().clone() {
+        Some(problem) => Err(problem),
+        None => Ok(None),
+    }
 }
 
 /// The packaged server, or the project's Python while developing.
@@ -63,7 +73,10 @@ fn server_command(app: &AppHandle) -> Command {
 fn start_server(app: &AppHandle) -> std::io::Result<()> {
     let mut command = server_command(app);
     // The server ends when its input closes: when this process ends in any way, even killed
-    command.stdin(Stdio::piped()).stdout(Stdio::piped());
+    command
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
     #[cfg(windows)]
     {
         use std::os::windows::process::CommandExt;
@@ -71,6 +84,19 @@ fn start_server(app: &AppHandle) -> std::io::Result<()> {
     }
     let mut child = command.spawn()?;
     let stdout = child.stdout.take().expect("the server's output is piped");
+    let stderr = child
+        .stderr
+        .take()
+        .expect("the server's error output is piped");
+    // What the server reports (passed on to this program's error output as well)
+    let errors = std::thread::spawn(move || {
+        let mut lines = Vec::new();
+        for line in BufReader::new(stderr).lines().map_while(Result::ok) {
+            eprintln!("{line}");
+            lines.push(line);
+        }
+        lines
+    });
     let handle = app.clone();
     std::thread::spawn(move || {
         for line in BufReader::new(stdout).lines().map_while(Result::ok) {
@@ -78,6 +104,14 @@ fn start_server(app: &AppHandle) -> std::io::Result<()> {
                 let url = format!("http://127.0.0.1:{port}");
                 *handle.state::<Server>().url.lock().unwrap() = Some(url);
             }
+        }
+        // The output ended: the server stopped. Before it listened, say why.
+        let server = handle.state::<Server>();
+        if server.url.lock().unwrap().is_none() {
+            let reported = errors.join().unwrap_or_default();
+            let last = reported.iter().rev().find(|line| !line.trim().is_empty());
+            let problem = last.map_or("Serverul local s-a oprit la pornire.", |line| line.as_str());
+            *server.problem.lock().unwrap() = Some(problem.to_string());
         }
     });
     *app.state::<Server>().child.lock().unwrap() = Some(child);

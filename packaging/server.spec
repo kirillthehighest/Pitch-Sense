@@ -11,8 +11,6 @@ sys.path.insert(0, str(ROOT))
 
 from app.data.competitions import COMPETITIONS  # noqa: E402
 
-ASSETS = ROOT / "app" / "ui" / "assets"
-
 analysis = Analysis(
     [str(ROOT / "app" / "api" / "__main__.py")],
     pathex=[str(ROOT)],
@@ -25,15 +23,14 @@ analysis = Analysis(
         ),
         # The season in progress, downloaded by the build (python -m app.data.update).
         (str(ROOT / "data" / "live"), "data/live"),
-        # The images the server sends: crests, league images and stadium photos (the typefaces
-        # travel with the web interface itself).
-        *((str(ASSETS / folder), f"app/ui/assets/{folder}") for folder in ("crests", "leagues", "stadiums")),
+        # The images the server sends: crests, league images and stadium photos.
+        (str(ROOT / "app" / "assets"), "app/assets"),
     ],
     # uvicorn chooses its pieces when it starts, out of PyInstaller's sight
     hiddenimports=["uvicorn.logging", "uvicorn.loops.auto", "uvicorn.protocols.http.auto",
                    "uvicorn.protocols.websockets.auto", "uvicorn.lifespan.on"],  # fmt: skip
-    # The window of the earlier interface and its charts are not part of the server.
-    excludes=["PySide6", "shiboken6", "matplotlib", "tkinter", "pytest", "IPython"],
+    # Qt (used by the image tools only) and the test and notebook tools stay out of the server.
+    excludes=["PySide6", "shiboken6", "tkinter", "pytest", "IPython"],
 )
 pyz = PYZ(analysis.pure)
 exe = EXE(

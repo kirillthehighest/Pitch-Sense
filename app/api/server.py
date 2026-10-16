@@ -173,7 +173,7 @@ def create_app(backend: Backend) -> FastAPI:
         whole = before is None or before >= end
         day = end if whole else before
         rows = teams.standings(season, day)
-        forms = {row.team: teams.form(row.team, day) for row in rows}  # as the window shows it
+        forms = {row.team: teams.form(row.team, day) for row in rows}  # as Clasament shows it
         return schemas.Standings(
             competition=code,
             season=season,

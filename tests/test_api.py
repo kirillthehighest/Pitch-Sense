@@ -10,13 +10,12 @@ from datetime import UTC, date, datetime, timedelta
 
 import pytest
 
+from app.api import __main__ as server_main
 from app.api.__main__ import exit_with_window, option, port_of, write_utf8
-from app.api.backend import Backend
 from app.api.self_test import run_self_test
 from app.data.live import UpdateSummary
 from app.prediction.outputs import ModelName
 from app.services.images import STADIUMS_DIR, stadium_name, stadium_path, stadium_teams
-from app.services.preferences import Preferences
 from app.services.processes import compute_here
 
 
@@ -340,9 +339,8 @@ def test_every_stadium_photo_has_its_source_and_is_used():
 
 
 def test_waiting_for_the_predictions_waits_for_a_preparation_already_running(
-    make_app_context, two_league_database, tmp_path
+    make_backend, two_league_database
 ):
-    context = make_app_context(two_league_database, ("E0", "SP1"))
     started = threading.Event()
 
     def slow(job):
@@ -350,14 +348,7 @@ def test_waiting_for_the_predictions_waits_for_a_preparation_already_running(
         time.sleep(0.2)
         return compute_here(job)
 
-    backend = Backend(
-        context.competitions,
-        open_league=context.open_league,
-        comparison=context.comparison,
-        preferences=Preferences(tmp_path / "web-preferences.json"),
-        compute=slow,
-        update_data=context.update_data,
-    )
+    backend = make_backend(two_league_database, ("E0", "SP1"), compute=slow)
     backend.prepare_all()  # in the background
     assert started.wait(5)
 
@@ -375,3 +366,38 @@ def test_the_server_writes_utf8_whatever_the_console(monkeypatch):
 
     written = console.buffer.getvalue().decode("utf-8")
     assert written.rstrip().endswith("și programate")  # \r\n on Windows
+
+
+def test_a_missing_database_is_explained_at_start_up(monkeypatch, capsys):
+    calls = []
+
+    def missing(preferences=None):
+        calls.append("load")
+        raise FileNotFoundError("Database not found: data/pitchsense.db")
+
+    monkeypatch.setattr(server_main, "copy_bundled", lambda: calls.append("copy"))
+    monkeypatch.setattr(server_main.Backend, "from_database", missing)
+
+    assert server_main.main([]) == 1
+    assert calls == ["copy", "load"]  # the shipped results reach the user's folder first
+    error = capsys.readouterr().err
+    assert error.startswith("Baza de date nu a fost găsită.")
+    assert "python -m app.data.build_database" in error
+
+
+def test_a_failed_copy_is_reported_and_start_up_goes_on(monkeypatch, capsys):
+    def read_only():
+        raise PermissionError("read-only folder")
+
+    monkeypatch.setattr(server_main, "copy_bundled_results", read_only)
+    monkeypatch.setattr(server_main, "copy_bundled_live", lambda: None)
+    monkeypatch.setattr(
+        server_main,
+        "update_season",
+        lambda: UpdateSummary("2026-27", datetime(2026, 10, 16, tzinfo=UTC), ()),
+    )
+
+    assert server_main.main(["--update"]) == 0
+    written = capsys.readouterr()
+    assert written.err == "Jurnalele predicțiilor nu au putut fi copiate: read-only folder\n"
+    assert written.out.startswith("Sezonul 2026/27: ")

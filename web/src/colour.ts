@@ -1,6 +1,6 @@
 // Colour arithmetic for what the interface paints from data: a heat map's cells mix the league's
 // accent into the card by the size of their value, and their numbers take whichever ink reads
-// better on the result (WCAG contrast), as tests/test_themes.py checks the window's colours.
+// better on the result (WCAG contrast), the threshold docs/brand.md (3.2) sets.
 
 export const LIGHT_INK = "#F5F5F7";
 export const DARK_INK = "#0A0A0C";
@@ -14,7 +14,7 @@ function hex(values: number[]): string {
   return `#${values.map((value) => Math.round(value).toString(16).padStart(2, "0")).join("")}`;
 }
 
-/** The colour `share` of the way from `first` to `second` (blend in app/ui/themes.py). */
+/** The colour `share` of the way from `first` to `second` (as the colours of docs/brand.md were blended). */
 export function mix(first: string, second: string, share: number): string {
   const a = channels(first);
   const b = channels(second);
@@ -45,7 +45,7 @@ export function inkOn(fill: string, light = LIGHT_INK, dark = DARK_INK): string 
 
 // A crest whose visible pixels are nearly all darker than this vanishes on the dark surfaces
 // (Juventus, Tottenham, Derby...), so it sits on a light disc: the rule of is_dark in
-// app/ui/brand.py, on the same weights of the stored channels.
+// earlier PySide6 window (docs/brand.md), on the same weights of the stored channels.
 const LIGHT_LUMINANCE = 0.25;
 const LIGHT_SHARE = 0.1;
 export const CREST_DISC = "#E9EDF5";

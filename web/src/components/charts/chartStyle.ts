@@ -1,4 +1,4 @@
-// The look the charts share (app/visualization/palette.py): recessive grid and axes on the card,
+// The look the charts share (docs/brand.md, section 6): recessive grid and axes on the card,
 // text in the text colours, never in a series' colour.
 export const GRID = "#24242A";
 export const AXIS = "#9C9CA6";

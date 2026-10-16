@@ -4,7 +4,7 @@ import { cellColours, cellText } from "./components/ScoreGrid";
 import { THEMES } from "./theme";
 
 describe("colours painted from data", () => {
-  it("mixes and measures colours as app/ui/themes.py and tests/test_themes.py do", () => {
+  it("mixes colours and measures their contrast", () => {
     expect(mix("#000000", "#FFFFFF", 0)).toBe("#000000");
     expect(mix("#000000", "#FFFFFF", 1)).toBe("#ffffff");
     expect(mix("#000000", "#FF8000", 0.5)).toBe("#804000");

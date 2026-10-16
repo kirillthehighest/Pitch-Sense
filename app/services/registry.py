@@ -1,5 +1,5 @@
-"""The services of each league, opened from the real data; shared by the window and by the local
-server of the web interface (Phase 22)."""
+"""The services of each league, opened from the real data, as the local server of the web
+interface keeps them (Phase 22)."""
 
 from dataclasses import dataclass
 

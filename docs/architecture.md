@@ -1011,7 +1011,7 @@ Rulări din 2026-10-15 și 2026-10-16:
 
 ## 18. Interfața web (Faza 22)
 
-După Faza 21, echipa a hotărât ca ecranele să fie refăcute pe web, într-o fereastră de desktop, peste algoritmii și serviciile Python, care rămân neschimbate. Alegerile echipei din 2026-10-16: Tauri pentru fereastră (nu Electron), un server FastAPI local, grafice desenate în interfață (Recharts), Node și Rust instalate cu Homebrew. Interfața veche (PySide6) rămâne în depozit și pornește în continuare cu `python -m app`, până când echipa hotărăște să o scoată.
+După Faza 21, echipa a hotărât ca ecranele să fie refăcute pe web, într-o fereastră de desktop, peste algoritmii și serviciile Python, care rămân neschimbate. Alegerile echipei din 2026-10-16: Tauri pentru fereastră (nu Electron), un server FastAPI local, grafice desenate în interfață (Recharts), Node și Rust instalate cu Homebrew. La acceptarea etapei, echipa a cerut ca interfața veche (PySide6) să fie scoasă (secțiunea 18.9).
 
 ### 18.1. Straturile
 
@@ -1065,11 +1065,11 @@ Layoutul A, ales de echipă: o singură bară laterală cu sigla, ecranele cu ic
 
 ### 18.5. Fotografiile stadioanelor
 
-Echipa a cerut imagini cu stadioane și jucători și a permis imagini protejate în acest proiect privat. `tools/stadiums.py` citește terenul din articolul Wikipedia al fiecărui club (articolele găsite pentru steme), apoi imaginea principală a articolului stadionului (sau imaginea din infobox), la 1024 px lățime; desenele, siglele, hărțile și planurile sunt respinse. Cluburile cu același stadion împart fotografia. `app/ui/assets/stadiums/sources.json` dă, pentru fiecare club, stadionul, articolul și fișierul. Fotografiile aparțin autorilor lor; sunt folosite doar în proiectul privat și nu se publică.
+Echipa a cerut imagini cu stadioane și jucători și a permis imagini protejate în acest proiect privat. `tools/stadiums.py` citește terenul din articolul Wikipedia al fiecărui club (articolele găsite pentru steme), apoi imaginea principală a articolului stadionului (sau imaginea din infobox), la 1024 px lățime; desenele, siglele, hărțile și planurile sunt respinse. Cluburile cu același stadion împart fotografia. `app/assets/stadiums/sources.json` dă, pentru fiecare club, stadionul, articolul și fișierul. Fotografiile aparțin autorilor lor; sunt folosite doar în proiectul privat și nu se publică.
 
 ### 18.6. Împachetarea
 
-`python packaging/build.py` reconstruiește datele, construiește serverul cu PyInstaller (`packaging/server.spec`: fără Qt și matplotlib) și fereastra cu Tauri, cu serverul ca resursă și versiunea din `app/__init__.py`: pe macOS `PitchSense.app` într-un `.dmg`, pe Windows un program de instalare (NSIS). `--window` construiește încă fereastra PySide6. Fluxul GitHub Actions pentru Windows rulează ambele suite de teste, construiește pachetul, încearcă `--update` și `--self-test` ale serverului împachetat, instalează pachetul fără întrebări și rulează autoverificarea serverului instalat.
+`python packaging/build.py` reconstruiește datele, construiește serverul cu PyInstaller (`packaging/server.spec`: fără Qt și matplotlib) și fereastra cu Tauri, cu serverul ca resursă și versiunea din `app/__init__.py`: pe macOS `PitchSense.app` într-un `.dmg`, pe Windows un program de instalare (NSIS). Fluxul GitHub Actions pentru Windows rulează ambele suite de teste, construiește pachetul, încearcă `--update` și `--self-test` ale serverului împachetat, instalează pachetul fără întrebări și rulează autoverificarea serverului instalat.
 
 ### 18.7. Verificare
 
@@ -1089,7 +1089,15 @@ Rulări din 2026-10-16:
 - Ecranele arată o ligă abia după ce i s-au calculat predicțiile (aproximativ 8 secunde pe ligă, la pornire).
 - Fotografiile arată stadionul de acum al fiecărui club, nu pe cel din sezonul ales; cinci cluburi nu au fotografie (Arles, Carpi, Evian Thonon Gaillard, Nancy, Numancia), iar capul lor păstrează culoarea ligii.
 - Pachetele nu sunt semnate. Pe Windows, fereastra are nevoie de WebView2 (inclus în Windows 10 și 11 actualizate; programul de instalare îl aduce dacă lipsește).
-- Interfața PySide6 este încă în depozit și în teste; scoaterea ei este hotărârea echipei.
+
+### 18.9. Scoaterea ferestrei PySide6
+
+La acceptarea etapei (2026-10-16), echipa a cerut ca fereastra PySide6 să fie scoasă, pentru că interfața web face tot ce făcea ea.
+
+- **Ce a plecat:** `app/ui/` (cu autoverificarea ei), `app/visualization/` (graficele matplotlib și paleta lor), `app/__main__.py` (`python -m app`), `packaging/pitchsense.spec`, `packaging/icons.py` și testele lor (`test_ui`, `test_themes`, `test_brand`, `test_transition`, `test_charts`, `test_self_test`, `test_main`, `test_icons` și testele de pornire ale ferestrei din `test_paths`). Iconițele ferestrei Tauri fuseseră desenate din aceeași siglă și rămân în `web/src-tauri/icons/`.
+- **Ce s-a mutat:** imaginile (steme, imaginile ligilor, fotografiile stadioanelor) în `app/assets/`. PySide6 și matplotlib nu mai sunt dependențe ale aplicației; Qt rămâne doar pentru instrumentele imaginilor (`tools/crests.py`, `tools/stadiums.py`), în opțiunea `tools` (`python -m pip install -e ".[tools]"`).
+- **Ce a preluat serverul:** comportamentul de la pornire al ferestrei. O copiere eșuată a jurnalelor livrate sau a sezonului în desfășurare este raportată, iar pornirea continuă. O bază de date lipsă este explicată, iar fereastra Tauri arată mesajul în loc să aștepte. Un backtest eșuat răspunde cu motivul, iar datele încărcate merg mai departe.
+- **Testele:** `tests/test_integration.py` parcurge acum lanțul până la răspunsurile serverului (fișiere brute → bază de date → jurnal → evaluare → server), cu aceleași verificări ca înainte. Testul de arhitectură cere ca nimic din `app/` să nu importe Qt sau matplotlib. Rămân 682 de teste Python, care rulează în aproximativ 10 secunde (înainte, 852 în aproximativ 52 de secunde), și 18 teste ale interfeței web.
 
 ## 19. Setul de date și perioadele
 
@@ -1106,10 +1114,10 @@ Sursa datelor este Football-Data.co.uk: cinci ligi (Premier League, La Liga, Ser
 | Componentă | Versiune | Rol |
 |---|---|---|
 | Python | 3.14 | limbajul aplicației |
-| PySide6-Essentials | 6.11.2 | interfața grafică (Qt) |
+| PySide6-Essentials | 6.11.2 | interfața grafică (Qt) până în Faza 22; acum doar pentru instrumentele imaginilor |
 | NumPy | 2.5.3 | calculele numerice din algoritmi |
 | pandas | 3.0.6 | citirea și prelucrarea datelor |
-| matplotlib | 3.11.2 | grafice |
+| matplotlib | 3.11.2 | grafice, până în Faza 22 (înlocuit de Recharts) |
 | SQLite (`sqlite3`, inclus în Python) | – | stocarea datelor prelucrate |
 | pytest | 9.1.1 | testare |
 | ruff | 0.16.10 | verificarea și formatarea codului |

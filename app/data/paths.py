@@ -10,7 +10,7 @@ results the application writes go to the user's application-data folder instead,
 import os
 import shutil
 import sys
-from collections.abc import Mapping, MutableMapping
+from collections.abc import Mapping
 from pathlib import Path
 
 from app import __version__
@@ -50,8 +50,9 @@ BUNDLED_LIVE_DIR = DATA_DIR / "live"
 LIVE_DIR = user_data_dir() / "live" if PACKAGED else BUNDLED_LIVE_DIR
 # What the user chose in the application (league, "your team"); user state, kept per user.
 PREFERENCES_PATH = user_data_dir() / "preferences.json"
-# Fonts and other files of the interface, shipped with the code (and inside a package).
-ASSETS_DIR = BASE_DIR / "app" / "ui" / "assets"
+# The images the server sends (crests, league images, stadium photos), shipped with the code (and
+# inside a package).
+ASSETS_DIR = BASE_DIR / "app" / "assets"
 
 
 VERSION_FILE = "VERSION"  # in the results folder: the version whose logs are there
@@ -82,15 +83,3 @@ def copy_bundled_results(
             copied.append(destination)
     marker.write_text(version + "\n", encoding="utf-8")
     return copied
-
-
-def use_persistent_matplotlib_cache(environ: MutableMapping[str, str] = os.environ) -> None:
-    """In a packaged application, keep matplotlib's font cache from one start to the next.
-
-    PyInstaller points matplotlib at a new temporary folder on every start (needed for one-file
-    builds, which unpack to a new place each time), so the font cache, about 20 s to build, would
-    be rebuilt at every start. Our package is a folder that never moves, so the cache can stay in
-    the user's application-data folder. Must run before matplotlib is imported.
-    """
-    if PACKAGED:
-        environ["MPLCONFIGDIR"] = str(user_data_dir() / "matplotlib")

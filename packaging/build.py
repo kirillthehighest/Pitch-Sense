@@ -8,9 +8,6 @@
    resource, the version of ``app/__init__.py`` and, on macOS, the app and its ``.dmg``; on
    Windows an installer (NSIS). Both land in ``dist/``.
 
-``--window`` builds instead the earlier PySide6 window (``packaging/pitchsense.spec``) as a
-``.dmg`` or ``.zip``, while it is still in the repository.
-
 Neither PyInstaller nor Tauri cross-compiles: build the macOS package on macOS and the Windows
 package on Windows. The packages are not signed, so each system warns the first time they are
 opened. The window needs Node (``web/package.json``) and Rust (``web/src-tauri/Cargo.toml``).
@@ -104,28 +101,11 @@ def build_web() -> Path:
     raise SystemExit("The window is packaged on macOS and Windows only.")
 
 
-def build_window() -> Path | None:
-    python = sys.executable
-    run(python, str(ROOT / "packaging" / "icons.py"), str(BUILD / "icons"))
-    run(python, "-m", "PyInstaller", "--noconfirm", "--clean", "--distpath", str(DIST),
-        "--workpath", str(BUILD), str(ROOT / "packaging" / "pitchsense.spec"))  # fmt: skip
-    if sys.platform == "darwin":
-        return disk_image(DIST / f"{NAME}.app", package_name("macOS", ".dmg"))
-    if sys.platform == "win32":
-        base = package_name("Windows", "")
-        return Path(shutil.make_archive(str(base), "zip", DIST, NAME))
-    print(f"Application folder: {DIST / NAME} (no archive on this system)")
-    return None
-
-
 def main(arguments: list[str]) -> int:
-    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--window", action="store_true", help="the earlier PySide6 window")
-    chosen = parser.parse_args(arguments)
+    argparse.ArgumentParser(description=__doc__.splitlines()[0]).parse_args(arguments)
     build_data()
-    package = build_window() if chosen.window else build_web()
-    if package is not None:
-        print(f"Package: {package} ({package.stat().st_size / 1e6:.0f} MB)")
+    package = build_web()
+    print(f"Package: {package} ({package.stat().st_size / 1e6:.0f} MB)")
     return 0
 
 

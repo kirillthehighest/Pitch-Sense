@@ -1,6 +1,6 @@
-// The change of league, as in the window (Phase 21, the team's request): the page in the new
-// league's colours is uncovered by a circle growing from the top-left corner in 0.8 s, its edge
-// two travelling waves that calm as it grows (Material You-like). It uses the browser's view
+// The change of league, as in the earlier PySide6 window (Phase 21, the team's request): the
+// page in the new league's colours is uncovered by a circle growing from the top-left corner in
+// 0.8 s, its edge two travelling waves that calm as it grows (Material You-like). It uses the browser's view
 // transitions; where they are missing, or the user asked for less motion, the change is
 // immediate.
 
@@ -31,7 +31,7 @@ export function revealFrames(width: number, height: number): Keyframe[] {
   const end = Math.hypot(width, height) + START_HEIGHT * 2; // the waves too leave the window
   return Array.from({ length: FRAMES + 1 }, (_, frame) => {
     const t = frame / FRAMES;
-    const eased = 1 - (1 - t) ** 3; // OutCubic, as the window's
+    const eased = 1 - (1 - t) ** 3; // OutCubic, as in Phase 21
     const waves = START_HEIGHT + (END_HEIGHT - START_HEIGHT) * t;
     return { clipPath: wavyCircle(0, 0, eased * end, frame === 0 ? 0 : waves, 4 * Math.PI * t) };
   });

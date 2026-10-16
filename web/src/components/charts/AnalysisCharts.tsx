@@ -1,4 +1,4 @@
-// The charts of Analiză drawn with Recharts (the window's calibration and skill charts): every
+// The charts of Analiză drawn with Recharts (the calibration and skill charts of Phases 12 and 15): every
 // model keeps its identity colour, the reference is grey and dashed, text stays in the text
 // colours, and each chart has its legend.
 import { Bar, BarChart, CartesianGrid, ReferenceLine, Scatter, ScatterChart, Tooltip, XAxis, YAxis } from "recharts";

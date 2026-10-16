@@ -166,14 +166,14 @@ SOURCES = (
         "Stemele cluburilor",
         "Wikipedia (articolele cluburilor), la rezoluție mică. Stemele sunt mărci ale "
         "cluburilor; sunt folosite doar ca să recunoști echipele, într-un proiect universitar "
-        "privat. Fiecare stemă, cu articolul și fișierul ei: app/ui/assets/crests/sources.json.",
+        "privat. Fiecare stemă, cu articolul și fișierul ei: app/assets/crests/sources.json.",
     ),
     (
         "Fotografiile stadioanelor",
         "Wikipedia și Wikimedia Commons: fotografia din articolul stadionului fiecărui club, la "
         "1024 px. Fotografiile aparțin autorilor lor; sunt folosite doar în acest proiect "
         "universitar privat și nu se publică. Fiecare fotografie, cu stadionul și fișierul ei: "
-        "app/ui/assets/stadiums/sources.json.",
+        "app/assets/stadiums/sources.json.",
     ),
     (
         "Literele",

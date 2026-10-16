@@ -11,7 +11,7 @@ from app.services.labels import model_label
 from app.services.predictions import MatchForecast, ModelSummary
 from app.statistics.team_statistics import TeamStatistics
 
-SCORE_GRID_GOALS = 6  # the scores 0-0 to 6-6, as the window's heat map shows them
+SCORE_GRID_GOALS = 6  # the scores 0-0 to 6-6, the grid of a match page
 
 
 class Schema(BaseModel):

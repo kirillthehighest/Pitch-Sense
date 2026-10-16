@@ -2,7 +2,7 @@
 the server on a free port of this computer, over the real data, answering every kind of question
 the interface asks, with every league's predictions computed in the worker process as in use.
 It prints one line per check and returns 0 when all pass; the packages are checked with it,
-since the window itself needs a screen (Phase 22)."""
+since the window itself needs a screen."""
 
 import json
 import socket
