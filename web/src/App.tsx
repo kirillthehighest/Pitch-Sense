@@ -4,11 +4,14 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { api } from "./api";
 import { OtherMatch } from "./components/OtherMatch";
+import { ScreenHead } from "./components/ScreenHead";
 import { type ScreenName, SCREENS, Sidebar } from "./components/Sidebar";
 import { MatchPage } from "./screens/MatchPage";
 import { Matches } from "./screens/Matches";
+import { Standings } from "./screens/Standings";
+import { Team } from "./screens/Team";
 import { applyTheme } from "./theme";
-import type { Forecast, League, MatchKey, Preferences } from "./types";
+import type { Favourite, Forecast, League, MatchKey, Preferences } from "./types";
 
 const COMPACT_WIDTH = 1200;
 
@@ -22,6 +25,8 @@ export default function App() {
   const [compact, setCompact] = useState(window.innerWidth < COMPACT_WIDTH);
   const [match, setMatch] = useState<MatchKey | null>(null);
   const [otherMatch, setOtherMatch] = useState(false);
+  const [seasons, setSeasons] = useState<Record<string, string>>({}); // the season shown, by league
+  const [team, setTeam] = useState<{ code: string; team: string; season: string } | null>(null);
   const scroller = useRef<HTMLElement>(null);
   const screenScroll = useRef(0); // where the screen was when a match opened over it
 
@@ -66,12 +71,24 @@ export default function App() {
     if (league) applyTheme(league);
   }, [league]);
 
+  // A league's state (its predictions ready) as the server prepares them
+  useEffect(() => {
+    if (ready) api.leagues().then(setLeagues);
+  }, [ready]);
+
   const chooseLeague = useCallback(
     (code: string) => {
       setLeague(code);
       api.setPreferences({ competition: code, favourite: preferences?.favourite ?? null }).then(setPreferences);
     },
     [preferences],
+  );
+
+  const chooseFavourite = useCallback(
+    (favourite: Favourite | null) => {
+      api.setPreferences({ competition: league, favourite }).then(setPreferences);
+    },
+    [league],
   );
 
   // A match opens over the screen, which stays as it was (its day, its scroll) for "Înapoi"
@@ -104,8 +121,21 @@ export default function App() {
     setScreen(name);
   }, []);
 
+  const openTeam = useCallback(
+    (code: string, chosen: string, season: string) => {
+      if (code !== league) chooseLeague(code);
+      setSeasons((shown) => ({ ...shown, [code]: season }));
+      setTeam({ code, team: chosen, season });
+      setMatch(null);
+      setScreen("team");
+    },
+    [league, chooseLeague],
+  );
+
   const current = leagues.find((item) => item.code === league);
   const about = SCREENS.find((item) => item.name === screen);
+  const season = current ? (seasons[current.code] ?? current.seasons[current.seasons.length - 1]) : "";
+  const favourite = preferences?.favourite?.team ?? null;
   return (
     <div className={`app${compact ? " compact" : ""}`}>
       <Sidebar
@@ -125,24 +155,26 @@ export default function App() {
             <MatchPage
               matchKey={match}
               leagues={leagues}
-              favourite={preferences?.favourite?.team ?? null}
+              favourite={favourite}
               onBack={() => setMatch(null)}
-              onTeam={() => undefined}
+              onTeam={openTeam}
               onOther={() => setOtherMatch(true)}
             />
           )}
           <div className="screen-page" hidden={match !== null}>
-            <div className="page-head">
-              <div>
-                <h1>{about?.title}</h1>
-                <p>{about?.description}</p>
-              </div>
-              {screen === "matches" && (
+            {screen === "matches" ? (
+              <div className="page-head">
+                <div>
+                  <h1>{about?.title}</h1>
+                  <p>{about?.description}</p>
+                </div>
                 <button className="button" onClick={() => setOtherMatch(true)}>
                   Alt meci…
                 </button>
-              )}
-            </div>
+              </div>
+            ) : (
+              current && about && <ScreenHead league={current} title={about.title} description={about.description} />
+            )}
             {error && <p className="problem">Serverul nu răspunde: {error}</p>}
             {current && screen === "matches" && (
               <Matches
@@ -155,6 +187,31 @@ export default function App() {
                   chooseLeague(code);
                   chooseScreen("standings");
                 }}
+              />
+            )}
+            {current && screen === "team" && (
+              <Team
+                league={current}
+                season={season}
+                team={team?.code === current.code ? team.team : null}
+                favourite={preferences?.favourite ?? null}
+                ready={ready}
+                onChoice={(chosen, chosenSeason) => {
+                  setSeasons((shown) => ({ ...shown, [current.code]: chosenSeason }));
+                  setTeam(chosen ? { code: current.code, team: chosen, season: chosenSeason } : null);
+                }}
+                onOpenMatch={openMatch}
+                onFavourite={chooseFavourite}
+                onAnalysis={() => chooseScreen("analysis")}
+              />
+            )}
+            {current && screen === "standings" && (
+              <Standings
+                league={current}
+                season={season}
+                favourite={favourite}
+                onSeason={(chosen) => setSeasons((shown) => ({ ...shown, [current.code]: chosen }))}
+                onTeam={openTeam}
               />
             )}
           </div>

@@ -70,6 +70,8 @@ def main(arguments: list[str]) -> int:
     preferences = option(arguments, "--preferences")  # developers: a file of their own
     backend = Backend.from_database(None if preferences is None else Path(preferences))
     listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    if os.name != "nt":  # a port just freed can be bound again; on Windows this would share it
+        listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     listener.bind((HOST, port_of(arguments)))
     print(f"PITCHSENSE_PORT={listener.getsockname()[1]}", flush=True)
     if "--with-window" in arguments:

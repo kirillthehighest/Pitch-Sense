@@ -92,6 +92,7 @@ export interface TeamRecord {
   losses: number;
   goals_for: number;
   goals_against: number;
+  goal_difference: number;
   points: number;
 }
 
@@ -159,4 +160,49 @@ export interface SeasonDays {
   first_day: string;
   last_day: string;
   suggested_day: string;
+}
+
+export interface Shots {
+  matches: number;
+  shots: number | null;
+  opponent_shots: number | null;
+  shots_on_target: number | null;
+  opponent_shots_on_target: number | null;
+}
+
+export interface RatingSeason {
+  season: string;
+  points: { day: string; rating: number }[];
+}
+
+export interface GroupPoint {
+  team?: string;
+  goals_scored: number;
+  goals_conceded: number;
+  group: number;
+}
+
+export interface Groups {
+  teams: GroupPoint[];
+  centres: GroupPoint[];
+  names: Record<string, string>;
+}
+
+export interface TeamPage {
+  competition: string;
+  team: string;
+  season: string;
+  position: number;
+  teams: number;
+  in_progress: boolean;
+  record: TeamRecord;
+  home: TeamRecord;
+  away: TeamRecord;
+  form: string[];
+  shots: Shots;
+  pre_season_group: string;
+  season_group: string | null;
+  elo: RatingSeason[];
+  groups: Groups | null;
+  groups_problem: string | null;
 }

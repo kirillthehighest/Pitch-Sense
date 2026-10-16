@@ -17,6 +17,11 @@ from PySide6.QtWidgets import (
 )
 
 from app.prediction.outputs import ModelName
+from app.services.explanations import (
+    GROUPS_EXPLANATION,
+    GROUPS_IN_PROGRESS,
+    GROUPS_NO_STATISTICS,
+)
 from app.services.formatting import season_text
 from app.services.predictions import MatchForecast
 from app.services.registry import LeagueServices
@@ -44,18 +49,6 @@ TILE_WIDTH = 128
 MIDDLE_BREAKPOINT = 1000  # narrower, the form, matches and profile cards stack
 LAST_RESULTS = 5
 TILES = ("Loc", "Meciuri", "Victorii", "Goluri marcate", "Goluri primite", "Puncte")
-GROUPS_EXPLANATION = (
-    "K‑Means grupează echipele după șase valori pe meci ale unui sezon: goluri marcate și primite, "
-    "șuturi pe poartă date și primite, puncte și diferența dintre punctele de acasă și din "
-    "deplasare. Rezultă patru profiluri: Elită, Jumătatea de sus, Jumătatea de jos (puternică "
-    "acasă) și Slabă peste tot. Grupul de dinaintea sezonului vine din sezonul anterior; grupul "
-    "sezonului descrie sezonul încheiat."
-)
-GROUPS_IN_PROGRESS = (
-    "Sezonul este în desfășurare. Grupurile K‑Means descriu sezoane încheiate, așa că apar după "
-    "ultimul meci al sezonului."
-)
-GROUPS_NO_STATISTICS = "Sezonul nu are statistici de șuturi, deci echipele nu pot fi grupate."
 SEASON_NOT_FINISHED = "Sezonul nu este încheiat"
 NOT_READY = "Predicțiile ligii se pregătesc; meciurile apar imediat ce sunt gata."
 

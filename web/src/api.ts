@@ -11,6 +11,7 @@ import type {
   SeasonDays,
   Standings,
   Status,
+  TeamPage,
 } from "./types";
 
 declare global {
@@ -80,6 +81,11 @@ export const api = {
   },
   season: (code: string, season: string) =>
     request<SeasonDays>(`/api/season/${code}?season=${encodeURIComponent(season)}`),
+  team: (code: string, season: string, team?: string | null) => {
+    const query = new URLSearchParams({ season });
+    if (team) query.set("team", team);
+    return request<TeamPage>(`/api/team/${code}?${query}`);
+  },
   preferences: () => request<Preferences>("/api/preferences"),
   setPreferences: (preferences: Preferences) =>
     request<Preferences>("/api/preferences", {

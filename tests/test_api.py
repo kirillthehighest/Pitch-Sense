@@ -141,6 +141,62 @@ def test_any_two_teams_of_a_season_make_a_hypothetical_match(client):
     assert unknown.status_code == 404
 
 
+def test_the_table_of_a_whole_season_and_before_a_day(client, backend):
+    teams = backend.league("SP1").teams
+    whole = client.get("/api/standings/SP1", params={"season": "2006-07"}).json()
+
+    assert whole["whole_season"] is True and whole["in_progress"] is False
+    assert whole["before"] == teams.season_end("2006-07").isoformat()
+    expected = teams.standings("2006-07")
+    assert [row["team"] for row in whole["rows"]] == [row.team for row in expected]
+    assert [row["position"] for row in whole["rows"]] == list(range(1, len(expected) + 1))
+    for row in whole["rows"]:
+        record = row["record"]
+        assert record["goal_difference"] == record["goals_for"] - record["goals_against"]
+        assert len(row["form"]) == 5
+
+    matches = backend.league("SP1").catalog.season_matches("2006-07")
+    day = matches[len(matches) // 2].match_date.isoformat()
+    earlier = client.get("/api/standings/SP1", params={"season": "2006-07", "before": day}).json()
+    assert earlier["whole_season"] is False and earlier["before"] == day
+    played = {row["team"]: row["record"]["played"] for row in earlier["rows"]}
+    assert played == {
+        row.team: row.record.played for row in teams.standings("2006-07", date.fromisoformat(day))
+    }
+    assert client.get("/api/standings/SP1", params={"season": "1999-00"}).status_code == 404
+
+
+def test_a_team_page_has_its_season_its_ratings_and_its_groups(client, backend):
+    teams = backend.league("SP1").teams
+    leader = teams.standings("2006-07")[0].team
+
+    page = client.get("/api/team/SP1", params={"season": "2006-07"}).json()
+
+    assert page["team"] == leader and page["position"] == 1  # no favourite: the leader
+    overview = teams.overview("2006-07", leader)
+    assert page["record"]["points"] == overview.record.points
+    assert page["home"]["played"] + page["away"]["played"] == page["record"]["played"]
+    assert page["season_group"] == overview.season_group
+    history = teams.elo_history(leader)
+    assert [s["season"] for s in page["elo"]] == [s.season for s in history]
+    assert [p["rating"] for p in page["elo"][0]["points"]] == list(history[0].ratings)
+    groups = teams.season_groups("2006-07")
+    assert len(page["groups"]["teams"]) == len(groups.teams)
+    assert page["groups"]["names"]["0"] == "Elită"
+    assert page["groups_problem"] is None
+
+
+def test_a_team_page_opens_on_your_team_and_refuses_an_absent_team(client, backend):
+    last = backend.league("SP1").teams.standings("2006-07")[-1].team  # not the leader
+    client.put(
+        "/api/preferences",
+        json={"competition": "SP1", "favourite": {"competition": "SP1", "team": last}},
+    )
+    assert client.get("/api/team/SP1", params={"season": "2006-07"}).json()["team"] == last
+    absent = client.get("/api/team/SP1", params={"season": "2006-07", "team": "Nobody"})
+    assert absent.status_code == 404
+
+
 def test_preferences_are_kept(client):
     assert client.get("/api/preferences").json() == {"competition": None, "favourite": None}
     answer = client.put(

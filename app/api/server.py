@@ -12,6 +12,8 @@ from app.api import schemas
 from app.api.backend import Backend
 from app.data.competitions import competition
 from app.services.explanations import (
+    GROUPS_IN_PROGRESS,
+    GROUPS_NO_STATISTICS,
     MODEL_EXPLANATIONS,
     knowledge_text,
     status_text,
@@ -21,6 +23,7 @@ from app.services.images import crest_path, league_photo_path, photo_credit, pho
 from app.services.labels import country_label
 from app.services.predictions import MatchForecast, featured_match, forecast_of, summarize
 from app.services.preferences import FavouriteTeam
+from app.services.teams import GROUP_NAMES
 
 # The web interface is served by the desktop shell (Tauri) or, while developing, by Vite.
 ORIGINS = ["tauri://localhost", "http://tauri.localhost", "http://localhost:1420"]
@@ -252,6 +255,89 @@ def create_app(backend: Backend) -> FastAPI:
             teams=len(services.teams.standings(season)),
             home=team_state(services, season, home, before),
             away=team_state(services, season, away, before),
+        )
+
+    def groups_of(services, season: str) -> tuple[schemas.Groups | None, str | None]:
+        if season == services.teams.in_progress:
+            return None, GROUPS_IN_PROGRESS
+        try:
+            found = services.teams.season_groups(season)
+        except ValueError:  # a season without shot statistics has no groups
+            return None, GROUPS_NO_STATISTICS
+        return (
+            schemas.Groups(
+                teams=[
+                    schemas.GroupPoint(
+                        team=p.team,
+                        goals_scored=p.goals_scored,
+                        goals_conceded=p.goals_conceded,
+                        group=p.group,
+                    )
+                    for p in found.teams
+                ],
+                centres=[
+                    schemas.GroupCentre(
+                        group=c.group, goals_scored=c.goals_scored, goals_conceded=c.goals_conceded
+                    )
+                    for c in found.centres
+                ],
+                names=GROUP_NAMES,
+            ),
+            None,
+        )
+
+    @app.get("/api/team/{code}", response_model=schemas.TeamPage)
+    def team_page(code: str, season: str | None = None, team: str | None = None):
+        """A club's season: without a team, "your team" if it played the season, else the
+        leader."""
+        services = league_of(code)
+        season = season_of(services, season)
+        teams = services.teams
+        if team is None:
+            favourite = backend.preferences.favourite
+            played = services.catalog.teams(season)
+            if favourite and favourite.competition == code and favourite.team in played:
+                team = favourite.team
+            else:
+                team = teams.standings(season)[0].team
+        try:
+            overview = teams.overview(season, team)
+        except ValueError as error:
+            raise HTTPException(404, str(error)) from None
+        statistics = overview.match_statistics
+        groups, problem = groups_of(services, season)
+        return schemas.TeamPage(
+            competition=code,
+            team=team,
+            season=season,
+            position=overview.position,
+            teams=len(teams.standings(season)),
+            in_progress=overview.in_progress,
+            record=schemas.record_of(overview.record),
+            home=schemas.record_of(overview.home),
+            away=schemas.record_of(overview.away),
+            form=[result.value for result in overview.form],
+            shots=schemas.Shots(
+                matches=statistics.matches_with_statistics,
+                shots=statistics.shots,
+                opponent_shots=statistics.opponent_shots,
+                shots_on_target=statistics.shots_on_target,
+                opponent_shots_on_target=statistics.opponent_shots_on_target,
+            ),
+            pre_season_group=overview.pre_season_group,
+            season_group=overview.season_group,
+            elo=[
+                schemas.RatingSeason(
+                    season=history.season,
+                    points=[
+                        schemas.RatingPoint(day=day, rating=rating)
+                        for day, rating in zip(history.dates, history.ratings, strict=True)
+                    ],
+                )
+                for history in teams.elo_history(team)
+            ],
+            groups=groups,
+            groups_problem=problem,
         )
 
     @app.get("/api/preferences", response_model=schemas.Preferences)

@@ -87,6 +87,7 @@ class Record(BaseModel):
     losses: int
     goals_for: int
     goals_against: int
+    goal_difference: int
     points: int
 
 
@@ -141,6 +142,66 @@ class MatchPage(BaseModel):
     away: TeamState
 
 
+class Shots(BaseModel):
+    """A team's averages per match, its own and its opponents' (None without statistics)."""
+
+    matches: int  # with recorded statistics
+    shots: float | None
+    opponent_shots: float | None
+    shots_on_target: float | None
+    opponent_shots_on_target: float | None
+
+
+class RatingPoint(BaseModel):
+    day: date
+    rating: float
+
+
+class RatingSeason(BaseModel):
+    season: str
+    points: list[RatingPoint]  # the Elo rating before each of the team's matches
+
+
+class GroupPoint(BaseModel):
+    team: str
+    goals_scored: float
+    goals_conceded: float
+    group: int
+
+
+class GroupCentre(BaseModel):
+    group: int
+    goals_scored: float
+    goals_conceded: float
+
+
+class Groups(BaseModel):
+    """A completed season's descriptive K-Means groups, in goals per match."""
+
+    teams: list[GroupPoint]
+    centres: list[GroupCentre]
+    names: dict[int, str]
+
+
+class TeamPage(BaseModel):
+    competition: str
+    team: str
+    season: str
+    position: int
+    teams: int
+    in_progress: bool
+    record: Record
+    home: Record
+    away: Record
+    form: list[str]
+    shots: Shots
+    pre_season_group: str
+    season_group: str | None  # None until the season is over
+    elo: list[RatingSeason]
+    groups: Groups | None
+    groups_problem: str | None
+
+
 class SeasonDays(BaseModel):
     """What the form of a hypothetical match offers for a season."""
 
@@ -169,6 +230,7 @@ def record_of(record: TeamStatistics) -> Record:
         losses=record.losses,
         goals_for=record.goals_for,
         goals_against=record.goals_against,
+        goal_difference=record.goal_difference,
         points=record.points,
     )
 

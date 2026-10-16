@@ -12,7 +12,9 @@ export function chance(prediction: Prediction, outcome: Outcome): number {
   return outcome === "H" ? prediction.home : outcome === "D" ? prediction.draw : prediction.away;
 }
 
-export function statusText(forecast: Forecast): string {
+/** What the left column says: the day (in a team's list), "Final", "Amânat" or the kickoff. */
+export function statusText(forecast: Forecast, showDate = false): string {
+  if (showDate) return `${forecast.date.slice(8, 10)}.${forecast.date.slice(5, 7)}`;
   if (forecast.result !== null) return "Final";
   if (forecast.postponed) return "Amânat";
   return forecast.kickoff ?? "–";
@@ -53,6 +55,7 @@ interface Props {
   model: string;
   favourite?: string | null;
   stacked?: boolean; // a narrow column: home over away, each with its goals, the chips below
+  showDate?: boolean; // a team's matches: the day instead of the kickoff
   onOpen: (forecast: Forecast) => void;
 }
 
@@ -66,14 +69,14 @@ function StackedTeam({ team, goals, favourite, won }: { team: string; goals: num
   );
 }
 
-export function MatchRow({ forecast, model, favourite, stacked = false, onOpen }: Props) {
+export function MatchRow({ forecast, model, favourite, stacked = false, showDate = false, onOpen }: Props) {
   const played = forecast.result !== null;
   const prediction = forecast.predictions.find((p) => p.model === model);
   const upcoming = !played && !forecast.postponed;
   if (stacked) {
     return (
       <button className="match-row stacked" onClick={() => onOpen(forecast)} title="Deschide meciul">
-        <span className={`status${upcoming ? " upcoming" : ""}`}>{statusText(forecast)}</span>
+        <span className={`status${upcoming ? " upcoming" : ""}`}>{statusText(forecast, showDate)}</span>
         <span className="stack">
           <StackedTeam team={forecast.home_team} goals={forecast.home_goals} favourite={favourite === forecast.home_team} won={forecast.result === "H"} />
           <StackedTeam team={forecast.away_team} goals={forecast.away_goals} favourite={favourite === forecast.away_team} won={forecast.result === "A"} />

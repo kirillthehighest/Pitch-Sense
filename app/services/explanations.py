@@ -1,6 +1,6 @@
-"""The plain sentences of a match's page (Phase 19, shared with the web interface in Phase 22):
-what each model looks at, what happened or will happen, which matches the predictions use and,
-once played, which models expected the result."""
+"""The plain sentences of the match and team pages (Phase 19, shared with the web interface in
+Phase 22): what each model looks at, what happened or will happen, which matches the predictions
+use, once played which models expected the result, and what the K-Means profiles are."""
 
 from datetime import timedelta
 
@@ -25,6 +25,20 @@ MODEL_EXPLANATIONS = {
     ),
 }
 NO_POISSON = "Nu există o predicție Poisson pentru acest meci."
+
+# The K-Means profiles of a team page (the description itself is shown in Analiză)
+GROUPS_EXPLANATION = (
+    "K‑Means grupează echipele după șase valori pe meci ale unui sezon: goluri marcate și primite, "
+    "șuturi pe poartă date și primite, puncte și diferența dintre punctele de acasă și din "
+    "deplasare. Rezultă patru profiluri: Elită, Jumătatea de sus, Jumătatea de jos (puternică "
+    "acasă) și Slabă peste tot. Grupul de dinaintea sezonului vine din sezonul anterior; grupul "
+    "sezonului descrie sezonul încheiat."
+)
+GROUPS_IN_PROGRESS = (
+    "Sezonul este în desfășurare. Grupurile K‑Means descriu sezoane încheiate, așa că apar după "
+    "ultimul meci al sezonului."
+)
+GROUPS_NO_STATISTICS = "Sezonul nu are statistici de șuturi, deci echipele nu pot fi grupate."
 
 
 def status_text(forecast: MatchForecast) -> str:
