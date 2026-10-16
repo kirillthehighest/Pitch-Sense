@@ -1,0 +1,45 @@
+import { describe, expect, it } from "vitest";
+import {
+  abbreviation, dateText, dayName, integer, number, parseDay, percent, quantity, seasonText,
+  shortDateText, signed,
+} from "./format";
+
+describe("Romanian writing, as app/services/formatting.py", () => {
+  it("writes numbers with a decimal comma, a dot between thousands and a true minus", () => {
+    expect(number(0.57764, 4)).toBe("0,5776");
+    expect(number(-0.0073, 4)).toBe("−0,0073");
+    expect(number(null)).toBe("–");
+    expect(signed(0.0051, 4)).toBe("+0,0051");
+    expect(signed(-0.0073, 4)).toBe("−0,0073");
+    expect(percent(0.534)).toBe("53,4%");
+    expect(percent(0.534, 0)).toBe("53%");
+    expect(integer(28893)).toBe("28.893");
+    expect(integer(380)).toBe("380");
+  });
+
+  it("writes days and seasons", () => {
+    const day = parseDay("2026-10-17");
+    expect(dateText(day)).toBe("17.10.2026");
+    expect(shortDateText(day)).toBe("sâm. 17 oct.");
+    expect(dayName(day, parseDay("2026-10-17"))).toBe("Azi");
+    expect(dayName(day, parseDay("2026-10-16"))).toBe("Mâine");
+    expect(dayName(day, parseDay("2026-10-18"))).toBe("Ieri");
+    expect(dayName(day, parseDay("2026-10-10"))).toBe("sâm. 17 oct.");
+    expect(seasonText("2006-07")).toBe("2006/07");
+  });
+
+  it("counts with the Romanian 'de'", () => {
+    expect(quantity(1, "meci", "meciuri")).toBe("1 meci");
+    expect(quantity(19, "meci", "meciuri")).toBe("19 meciuri");
+    expect(quantity(20, "meci", "meciuri")).toBe("20 de meciuri");
+    expect(quantity(101, "meci", "meciuri")).toBe("101 meciuri");
+    expect(quantity(100, "meci", "meciuri")).toBe("100 de meciuri");
+    expect(quantity(6080, "meci", "meciuri")).toBe("6.080 de meciuri");
+  });
+
+  it("abbreviates teams as a scoreboard does", () => {
+    expect(abbreviation("Barcelona")).toBe("BAR");
+    expect(abbreviation("Real Madrid")).toBe("RMA");
+    expect(abbreviation("Nott'm Forest")).toBe("NFO");
+  });
+});

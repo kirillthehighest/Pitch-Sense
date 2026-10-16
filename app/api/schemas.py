@@ -9,6 +9,7 @@ from pydantic import BaseModel
 from app.prediction.outputs import ModelPrediction
 from app.services.labels import model_label
 from app.services.predictions import MatchForecast
+from app.statistics.team_statistics import TeamStatistics
 
 
 class League(BaseModel):
@@ -77,6 +78,32 @@ class Days(BaseModel):
     next_day: date | None
 
 
+class Record(BaseModel):
+    played: int
+    wins: int
+    draws: int
+    losses: int
+    goals_for: int
+    goals_against: int
+    points: int
+
+
+class StandingRow(BaseModel):
+    position: int
+    team: str
+    record: Record
+    form: list[str]  # the last five results, W, D or L, oldest first
+
+
+class Standings(BaseModel):
+    competition: str
+    season: str
+    before: date
+    whole_season: bool
+    in_progress: bool
+    rows: list[StandingRow]
+
+
 class Favourite(BaseModel):
     competition: str
     team: str
@@ -85,6 +112,18 @@ class Favourite(BaseModel):
 class Preferences(BaseModel):
     competition: str | None
     favourite: Favourite | None
+
+
+def record_of(record: TeamStatistics) -> Record:
+    return Record(
+        played=record.played,
+        wins=record.wins,
+        draws=record.draws,
+        losses=record.losses,
+        goals_for=record.goals_for,
+        goals_against=record.goals_against,
+        points=record.points,
+    )
 
 
 def prediction_of(prediction: ModelPrediction, forecast: MatchForecast) -> Prediction:

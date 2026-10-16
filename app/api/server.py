@@ -121,6 +121,58 @@ def create_app(backend: Backend) -> FastAPI:
             featured=None if featured is None else schemas.forecast_of(featured),
         )
 
+    def season_of(services, season: str | None) -> str:
+        seasons = services.catalog.seasons()
+        if season is None:
+            return seasons[-1]
+        if season not in seasons:
+            raise HTTPException(404, f"no season {season!r}")
+        return season
+
+    @app.get("/api/standings/{code}", response_model=schemas.Standings)
+    def standings(
+        code: str, season: str | None = None, before: date | None = None
+    ) -> schemas.Standings:
+        """A season's table, at its end or before a day, with each team's form."""
+        services = league_of(code)
+        season = season_of(services, season)
+        teams = services.teams
+        end = teams.season_end(season)
+        whole = before is None or before >= end
+        day = end if whole else before
+        rows = teams.standings(season, day)
+        forms = {row.team: teams.form(row.team, day) for row in rows}  # as the window shows it
+        return schemas.Standings(
+            competition=code,
+            season=season,
+            before=day,
+            whole_season=whole,
+            in_progress=season == services.catalog.current_season,
+            rows=[
+                schemas.StandingRow(
+                    position=row.position,
+                    team=row.team,
+                    record=schemas.record_of(row.record),
+                    form=[result.value for result in forms[row.team]],
+                )
+                for row in rows
+            ],
+        )
+
+    @app.get("/api/teams/{code}", response_model=list[str])
+    def teams(code: str, season: str | None = None) -> list[str]:
+        services = league_of(code)
+        return services.catalog.teams(season_of(services, season))
+
+    @app.get("/api/team-matches/{code}", response_model=list[schemas.Forecast])
+    def team_matches(code: str, team: str, season: str | None = None) -> list[schemas.Forecast]:
+        """A team's matches of one season, played and scheduled, once predictions are ready."""
+        services = league_of(code)
+        season = season_of(services, season)
+        if not services.predictions.is_prepared:
+            return []
+        return [schemas.forecast_of(f) for f in services.predictions.team_matches(team, season)]
+
     @app.get("/api/preferences", response_model=schemas.Preferences)
     def preferences() -> schemas.Preferences:
         favourite = backend.preferences.favourite

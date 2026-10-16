@@ -21,3 +21,8 @@ data/live/
 # Operating systems
 .DS_Store
 Thumbs.db
+
+# The web interface (Phase 22)
+web/node_modules/
+web/dist/
+web/src-tauri/target/
