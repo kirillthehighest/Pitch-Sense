@@ -19,10 +19,11 @@ from PySide6.QtWidgets import (
 from app.prediction.outputs import ModelName
 from app.services.formatting import season_text
 from app.services.predictions import MatchForecast
+from app.services.registry import LeagueServices
 from app.services.teams import RatingSeason, SeasonGroups, TeamOverview
 from app.statistics.team_statistics import TeamStatistics
 from app.ui.brand import team_badge
-from app.ui.context import AppContext, LeagueServices
+from app.ui.context import AppContext
 from app.ui.match_widgets import MatchRow
 from app.ui.widgets import (
     ChartView,

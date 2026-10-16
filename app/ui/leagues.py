@@ -10,8 +10,9 @@ from app.evaluation.comparison import COMPARED_MODELS, PairedDifference
 from app.services.formatting import integer, number, percent, quantity, signed
 from app.services.labels import country_label, model_label
 from app.services.leagues import LeaguesOverview
+from app.services.registry import LeagueServices
 from app.ui.brand import flag_pixmap
-from app.ui.context import AppContext, LeagueServices
+from app.ui.context import AppContext
 from app.ui.widgets import (
     ChartView,
     PageTabs,

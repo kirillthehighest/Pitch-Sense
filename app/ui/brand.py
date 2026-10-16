@@ -10,9 +10,7 @@ A team's badge is its club crest when ``assets/crests`` has one (Phase 19, colle
 Wikipedia by ``tools/crests.py``; the crests belong to the clubs), otherwise its three letters.
 """
 
-import json
 import math
-import re
 from functools import cache
 
 import numpy as np
@@ -35,7 +33,10 @@ from PySide6.QtGui import (
 )
 from PySide6.QtWidgets import QSizePolicy, QWidget
 
-from app.data.paths import ASSETS_DIR
+from app.services.images import (
+    crest_path,
+    league_photo_path,
+)
 from app.services.labels import team_abbreviation
 from app.ui.theme import DISPLAY_FAMILY, LOGO_FAMILY
 from app.ui.themes import Theme, current_theme
@@ -46,9 +47,6 @@ CUT_ANGLE = math.radians(15)  # the slash rises to the right
 CUT_HEIGHT = 0.56  # where the slash crosses the letters, from their top
 CUT_GAP = 0.09  # its width, as a share of the letters' height
 TILE_RADIUS = 0.23  # of the icon's side, as macOS draws its icons
-CRESTS_DIR = ASSETS_DIR / "crests"  # <crest_slug(team)>.png, at most 128 pixels
-LEAGUE_PHOTOS_DIR = ASSETS_DIR / "leagues"  # <code>.jpg, supplied by the team, see sources.json
-DEFAULT_TOP = 0.1  # where the banner's strip of an image starts, as a share of its height
 # A crest whose pixels are nearly all darker than this luminance vanishes on the dark surfaces
 # (Juventus, Tottenham, Derby...), so it is drawn on a light disc.
 LIGHT_LUMINANCE = 0.25
@@ -207,46 +205,20 @@ def flag_pixmap(code: str, size: int = 22) -> QPixmap:
     return pixmap
 
 
-def crest_slug(team: str) -> str:
-    """The file name of a team's crest: "Nott'm Forest" -> "nott-m-forest"."""
-    return re.sub(r"[^a-z0-9]+", "-", team.lower()).strip("-")
-
-
 @cache
 def crest_image(team: str) -> QImage | None:
     """The club's crest, or None when there is none for the team."""
-    path = CRESTS_DIR / f"{crest_slug(team)}.png"
-    image = QImage(str(path)) if path.is_file() else QImage()
+    path = crest_path(team)
+    image = QImage(str(path)) if path is not None else QImage()
     return None if image.isNull() else image
 
 
 @cache
 def league_photo(code: str) -> QImage | None:
     """The league's photo for the banner of the screens, or None."""
-    path = LEAGUE_PHOTOS_DIR / f"{code}.jpg"
-    image = QImage(str(path)) if path.is_file() else QImage()
+    path = league_photo_path(code)
+    image = QImage(str(path)) if path is not None else QImage()
     return None if image.isNull() else image
-
-
-@cache
-def _photo_sources() -> dict[str, dict]:
-    path = LEAGUE_PHOTOS_DIR / "sources.json"
-    if not path.is_file():
-        return {}
-    return {entry["competition"]: entry for entry in json.loads(path.read_text(encoding="utf-8"))}
-
-
-def photo_credit(code: str) -> str | None:
-    """Where the league's image comes from, as the banner shows it."""
-    entry = _photo_sources().get(code)
-    return f"Imagine: {entry['source']}" if entry else None
-
-
-def photo_top(code: str) -> float:
-    """Where the banner's strip of the league's image starts, as a share of the image's height:
-    just above the highest head, so no window width cuts the faces."""
-    entry = _photo_sources().get(code)
-    return float(entry.get("top", DEFAULT_TOP)) if entry else DEFAULT_TOP
 
 
 def is_dark(image: QImage) -> bool:

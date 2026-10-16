@@ -36,9 +36,12 @@ from app.data.competitions import competition
 from app.data.live import UpdateSummary, copy_bundled_live
 from app.data.paths import copy_bundled_results
 from app.services.formatting import season_text
+from app.services.images import photo_credit, photo_top
 from app.services.labels import country_label
 from app.services.predictions import MatchForecast
 from app.services.preferences import FavouriteTeam
+from app.services.processes import stop_processes
+from app.services.registry import LeagueServices
 from app.services.updates import summary_text, updated_text
 from app.ui.analysis import AnalysisPage
 from app.ui.brand import (
@@ -46,11 +49,9 @@ from app.ui.brand import (
     app_icon,
     flag_pixmap,
     league_photo,
-    photo_credit,
-    photo_top,
     team_badge,
 )
-from app.ui.context import AppContext, LeagueServices, default_context
+from app.ui.context import AppContext, default_context
 from app.ui.matches import MatchesPage
 from app.ui.standings import StandingsPage
 from app.ui.team_page import TeamPage
@@ -58,7 +59,6 @@ from app.ui.theme import apply_theme, apply_window_theme
 from app.ui.themes import current_theme, theme_for
 from app.ui.transition import ThemeReveal
 from app.ui.widgets import Backdrop, ChartView, HeroBanner, LeagueButton, label
-from app.ui.worker import stop_processes
 
 WINDOW_TITLE = "PitchSense – analiza și predicția meciurilor de fotbal"
 SIDE_PANEL_WIDTH = 248

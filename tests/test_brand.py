@@ -15,25 +15,22 @@ from PySide6.QtGui import (
 )
 
 from app.data.competitions import COMPETITIONS
+from app.services.images import DEFAULT_TOP, crest_slug, photo_credit, photo_top
 from app.ui.brand import (
     CREST_DISC,
     CUT_HEIGHT,
-    DEFAULT_TOP,
     FLAGS,
     ICON_SIZES,
     Lockup,
     LogoWidget,
     app_icon,
     crest_image,
-    crest_slug,
     flag_pixmap,
     icon_image,
     is_dark,
     league_photo,
     logo_parts,
     paint_logo,
-    photo_credit,
-    photo_top,
     team_badge,
 )
 from app.ui.theme import (

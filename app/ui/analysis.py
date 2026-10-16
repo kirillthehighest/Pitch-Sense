@@ -9,11 +9,12 @@ from PySide6.QtWidgets import QSizePolicy, QVBoxLayout, QWidget
 
 from app.data.competitions import competition
 from app.services.formatting import date_text, number, percent, quantity, season_text
+from app.services.images import CRESTS_DIR, LEAGUE_PHOTOS_DIR
 from app.services.labels import model_label
 from app.services.predictions import SeasonCheck
+from app.services.registry import LeagueServices
 from app.ui.algorithm_comparison import AlgorithmComparisonTab
-from app.ui.brand import CRESTS_DIR, LEAGUE_PHOTOS_DIR
-from app.ui.context import AppContext, LeagueServices
+from app.ui.context import AppContext
 from app.ui.leagues import LeaguesTab
 from app.ui.widgets import PageTabs, card, fill_table, label, make_table
 

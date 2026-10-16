@@ -9,33 +9,17 @@ from typing import Any
 
 from PySide6.QtWidgets import QMessageBox
 
-from app.data.competitions import competition
-from app.data.paths import LIVE_DIR
-from app.evaluation.backtesting import log_path
-from app.services.catalog import DataCatalog, available_competitions
-from app.services.evaluation import EvaluationService
+from app.services.catalog import available_competitions
 from app.services.leagues import LeagueComparisonService
-from app.services.predictions import PredictionService
 from app.services.preferences import Preferences
-from app.services.teams import TeamService
+from app.services.processes import Computer, compute_in_process
+from app.services.registry import LeagueServices, open_league
 from app.services.updates import update_season
-from app.ui.worker import Computer, Runner, compute_in_process, run_in_background
+from app.ui.worker import Runner, run_in_background
 
 
 def show_error_dialog(message: str) -> None:
     QMessageBox.warning(None, "PitchSense", f"A apărut o problemă:\n\n{message}")
-
-
-@dataclass(eq=False)
-class LeagueServices:
-    """The services of one league."""
-
-    code: str
-    name: str
-    catalog: DataCatalog
-    predictions: PredictionService
-    teams: TeamService
-    evaluation: EvaluationService
 
 
 @dataclass(eq=False)
@@ -73,19 +57,6 @@ class AppContext:
         """The league to show at start: the one shown last time, or else the first one."""
         remembered = self.preferences.competition
         return remembered if remembered in self.competitions else self.competitions[0]
-
-
-def open_league(code: str) -> LeagueServices:
-    """Load one league from the real database and its season in progress, when downloaded."""
-    catalog = DataCatalog.load(competition=code, live_dir=LIVE_DIR)
-    return LeagueServices(
-        code=code,
-        name=competition(code).name,
-        catalog=catalog,
-        predictions=PredictionService(catalog.matches, catalog.fixtures),
-        teams=TeamService(catalog.matches, in_progress=catalog.current_season),
-        evaluation=EvaluationService(log_path(code), competition=code),
-    )
 
 
 def default_context() -> AppContext:

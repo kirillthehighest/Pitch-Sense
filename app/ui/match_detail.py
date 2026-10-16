@@ -31,9 +31,10 @@ from app.prediction.outputs import ModelName
 from app.services.formatting import date_text, number, percent, season_text
 from app.services.labels import model_label, outcome_label
 from app.services.predictions import MatchForecast, forecast_of, summarize
+from app.services.registry import LeagueServices
 from app.services.teams import TeamOverview
 from app.ui.brand import flag_pixmap, team_badge
-from app.ui.context import AppContext, LeagueServices
+from app.ui.context import AppContext
 from app.ui.themes import Theme, theme_for
 from app.ui.widgets import (
     BarRow,

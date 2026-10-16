@@ -18,7 +18,8 @@ from app.evaluation.comparison import (
 from app.services.evaluation import EvaluationResults
 from app.services.formatting import number, percent, quantity, season_text, signed
 from app.services.labels import MEASURE_LABELS, OUTCOME_LABELS, model_label
-from app.ui.context import AppContext, LeagueServices
+from app.services.registry import LeagueServices
+from app.ui.context import AppContext
 from app.ui.widgets import (
     ChartView,
     PageTabs,

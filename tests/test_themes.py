@@ -5,7 +5,8 @@ import pytest
 from PySide6.QtGui import QColor
 
 from app.data.competitions import COMPETITIONS
-from app.ui.brand import league_photo, photo_top
+from app.services.images import photo_top
+from app.ui.brand import league_photo
 from app.ui.theme import STYLE_SHEET, style_sheet
 from app.ui.themes import DEFAULT_THEME, THEMES, blend, theme_for
 from app.ui.widgets import ProbabilityBars, edge_colour

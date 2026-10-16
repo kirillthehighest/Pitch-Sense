@@ -28,8 +28,9 @@ from app.prediction.outputs import ModelName
 from app.services.formatting import day_name, quantity, season_text, short_date_text
 from app.services.labels import country_label, model_label
 from app.services.predictions import MatchForecast
+from app.services.registry import LeagueServices
 from app.ui.brand import flag_pixmap, team_badge
-from app.ui.context import AppContext, LeagueServices
+from app.ui.context import AppContext
 from app.ui.match_detail import HypotheticalDialog, MatchDetail
 from app.ui.match_widgets import DayStrip, MatchRow, ProbabilityHeading
 from app.ui.themes import current_theme

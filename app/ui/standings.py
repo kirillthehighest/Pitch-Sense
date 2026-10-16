@@ -17,10 +17,11 @@ from PySide6.QtWidgets import (
 
 from app.data.preprocessing import season_date_window
 from app.services.formatting import date_text, season_text
+from app.services.registry import LeagueServices
 from app.services.teams import StandingRow
 from app.statistics.team_statistics import TeamResult
 from app.ui.brand import team_badge
-from app.ui.context import AppContext, LeagueServices
+from app.ui.context import AppContext
 from app.ui.widgets import FormStrip, card, fill_table, label, make_table
 
 HEADERS = ["Loc", "Echipă", "M", "V", "E", "Î", "GM", "GP", "Dif.", "Pct.", "Ultimele 5"]

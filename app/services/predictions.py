@@ -160,6 +160,25 @@ def compute_predictions(
     return PreparedPredictions(tuple(results), ())
 
 
+def featured_match(
+    forecasts: Sequence[MatchForecast],
+    league: str,
+    strength: Callable[[MatchForecast], float],
+    favourite: str | None = None,
+) -> MatchForecast | None:
+    """The match of the day among ``forecasts`` (one day's matches): the favourite team's, else
+    the match of ``league`` whose teams are strongest by ``strength`` (the sum of their ratings,
+    for instance), else the strongest match of any league; None without matches. Ties go to
+    the earliest."""
+    if favourite is not None:
+        for forecast in forecasts:
+            if favourite in (forecast.home_team, forecast.away_team):
+                return forecast
+    candidates = [forecast for forecast in forecasts if forecast.competition == league]
+    candidates = candidates or list(forecasts)
+    return max(candidates, key=strength) if candidates else None
+
+
 def _forecast_order(forecast: MatchForecast) -> tuple[date, time, str]:
     return forecast.match_date, forecast.kickoff_time or time.min, forecast.home_team
 

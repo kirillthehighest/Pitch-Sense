@@ -240,9 +240,11 @@ def make_app_context(application, tmp_path: Path, errors: list[str]):
     from app.services.leagues import LeagueComparisonService
     from app.services.predictions import PredictionService
     from app.services.preferences import Preferences
+    from app.services.processes import compute_here
+    from app.services.registry import LeagueServices
     from app.services.teams import TeamService
-    from app.ui.context import AppContext, LeagueServices
-    from app.ui.worker import compute_here, run_now
+    from app.ui.context import AppContext
+    from app.ui.worker import run_now
 
     results_dir = tmp_path / "results"
 
