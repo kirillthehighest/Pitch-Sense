@@ -8,7 +8,7 @@ Acest document compară cei patru algoritmi din PitchSense pe aceleași date ale
 |---|---|---|
 | Ratingul Elo | un rating pentru fiecare echipă, actualizat după fiecare meci; scorul așteptat $E$; prin modelul egalurilor, probabilitățile victorie gazde / egal / victorie oaspeți | predicții; evoluția forței echipelor în timp |
 | Modelul Poisson | golurile așteptate ale fiecărei echipe; probabilitatea fiecărui scor; scorurile cele mai probabile; probabilitățile celor trei rezultate | singurul model care prezice scorul și numărul de goluri |
-| Regresia logistică | probabilitățile celor trei rezultate și ponderea fiecăruia dintre cei 5 indicatori | predicții; arată cât contează fiecare indicator |
+| Regresia logistică | probabilitățile celor trei rezultate și ponderea fiecăruia dintre indicatori (5 până la 7, după ligă) | predicții; arată cât contează fiecare indicator |
 | K-Means | grupuri de echipe cu profiluri asemănătoare și profilul mediu al fiecărui grup | nu prezice meciuri: descrie tipurile de echipe și împarte evaluarea pe tipuri de meciuri |
 
 ## 2. Metoda: comparare meci cu meci
@@ -19,20 +19,20 @@ Pentru că ambele modele sunt evaluate pe aceleași meciuri, dificultatea comun�
 
 ## 3. Care diferențe sunt reale
 
-Rulare din 2026-10-05 (cu fereastra Poisson $N = 76$, aleasă în Faza 15; rezultatele care nu implică modelul Poisson sunt aceleași ca în rularea din 2026-10-04). La scorul Brier și la pierderea logaritmică, o diferență negativă înseamnă că primul model este mai bun; la acuratețe, una pozitivă.
+Rulare din 2026-10-16, cu setările din Faza 23 (`docs/evaluation.md`, secțiunea 3). La scorul Brier și la pierderea logaritmică, o diferență negativă înseamnă că primul model este mai bun; la acuratețe, una pozitivă.
 
 | Comparație | Scor Brier | Pierdere logaritmică | Acuratețe | Concluzie |
 |---|---|---|---|---|
-| Elo – regresie logistică | −0,0001 [−0,0023; +0,0022] | +0,0014 [−0,0024; +0,0052] | −0,20 pp [−0,71; +0,32] | nicio diferență reală |
-| Elo – Poisson | −0,0051 [−0,0083; −0,0019] | −0,0059 [−0,0111; −0,0007] | +0,79 pp [+0,11; +1,47] | Elo mai bun la toate trei |
-| Poisson – regresie logistică | +0,0050 [+0,0023; +0,0078] | +0,0073 [+0,0032; +0,0113] | −0,99 pp [−1,69; −0,28] | regresia logistică mai bună la toate trei |
-| Elo – frecvențele trecute | −0,0629 [−0,0703; −0,0555] | −0,0878 [−0,0991; −0,0766] | +6,74 pp [+5,65; +7,83] | Elo mult mai bun |
-| Poisson – frecvențele trecute | −0,0578 [−0,0638; −0,0518] | −0,0820 [−0,0905; −0,0734] | +5,95 pp [+4,94; +6,97] | Poisson mult mai bun |
-| Regresie logistică – frecvențele trecute | −0,0629 [−0,0690; −0,0567] | −0,0892 [−0,0982; −0,0803] | +6,94 pp [+5,88; +8,01] | regresia logistică mult mai bună |
+| Elo – regresie logistică | +0,0021 [−0,0003; +0,0045] | +0,0066 [+0,0019; +0,0113] | −0,20 pp [−0,72; +0,33] | regresia logistică mai bună doar la pierderea logaritmică |
+| Elo – Poisson | −0,0035 [−0,0071; +0,0001] | −0,0014 [−0,0078; +0,0050] | +0,38 pp [−0,26; +1,02] | nicio diferență reală |
+| Poisson – regresie logistică | +0,0057 [+0,0036; +0,0077] | +0,0080 [+0,0048; +0,0111] | −0,58 pp [−1,09; −0,06] | regresia logistică mai bună la toate trei |
+| Elo – frecvențele trecute | −0,0622 [−0,0702; −0,0542] | −0,0848 [−0,0974; −0,0721] | +6,92 pp [+5,81; +8,04] | Elo mult mai bun |
+| Poisson – frecvențele trecute | −0,0586 [−0,0643; −0,0530] | −0,0834 [−0,0914; −0,0753] | +6,55 pp [+5,53; +7,56] | Poisson mult mai bun |
+| Regresie logistică – frecvențele trecute | −0,0643 [−0,0709; −0,0577] | −0,0914 [−0,1009; −0,0819] | +7,12 pp [+6,07; +8,18] | regresia logistică mult mai bună |
 
 (pp = puncte procentuale)
 
-Ordinea este deci: **Elo ≈ regresia logistică > Poisson > frecvențele trecute.**
+Ordinea este deci: **regresia logistică ≥ Elo ≈ Poisson > frecvențele trecute**, cu regresia logistică real mai bună decât Poisson pe toate măsurile și decât Elo doar la pierderea logaritmică. Înainte de Faza 23 (rulare din 2026-10-05), ordinea era Elo ≈ regresia logistică > Poisson: Elo era real mai bun decât Poisson (−0,0051 la scorul Brier), iar regresia logistică nu se deosebea de Elo la nicio măsură. Poisson s-a apropiat de Elo (ponderile meciurilor recente și corecția Dixon–Coles), iar regresia logistică s-a îndepărtat puțin de el (cele două caracteristici în plus). Toate trei modelele rămân în urma caselor de pariuri (`docs/evaluation.md`, secțiunea 3.4).
 
 ## 4. Unde funcționează bine fiecare model
 
@@ -42,37 +42,37 @@ Ordinea este deci: **Elo ≈ regresia logistică > Poisson > frecvențele trecut
 
 | Sezon | Elo | Poisson | Regresie logistică | Frecvențele trecute | Cel mai bun |
 |---|---|---|---|---|---|
-| 2010/11 | 0,5506 | 0,5673 | 0,5545 | 0,6160 | Elo |
-| 2011/12 | 0,5727 | 0,5767 | 0,5720 | 0,6305 | regresie logistică |
-| 2012/13 | 0,5620 | 0,5687 | 0,5648 | 0,6272 | Elo |
-| 2013/14 | 0,5734 | 0,5801 | 0,5734 | 0,6378 | Elo |
-| 2014/15 | 0,5477 | 0,5565 | 0,5541 | 0,6457 | Elo |
-| 2015/16 | 0,5713 | 0,5669 | 0,5683 | 0,6339 | Poisson |
-| 2016/17 | 0,5414 | 0,5467 | 0,5439 | 0,6355 | Elo |
-| 2017/18 | 0,5866 | 0,5862 | 0,5791 | 0,6376 | regresie logistică |
-| 2018/19 | 0,6144 | 0,6136 | 0,6143 | 0,6534 | Poisson |
-| 2019/20 | 0,6022 | 0,6083 | 0,6017 | 0,6449 | regresie logistică |
-| 2020/21 | 0,5973 | 0,6046 | 0,5969 | 0,6602 | regresie logistică |
-| 2021/22 | 0,6039 | 0,6064 | 0,5982 | 0,6534 | regresie logistică |
-| 2022/23 | 0,5901 | 0,5914 | 0,5918 | 0,6373 | Elo |
-| 2023/24 | 0,5732 | 0,5824 | 0,5760 | 0,6532 | Elo |
-| 2024/25 | 0,5763 | 0,5845 | 0,5782 | 0,6489 | Elo |
-| 2025/26 | 0,5786 | 0,5829 | 0,5753 | 0,6326 | regresie logistică |
+| 2010/11 | 0,5506 | 0,5630 | 0,5530 | 0,6160 | Elo |
+| 2011/12 | 0,5722 | 0,5748 | 0,5710 | 0,6305 | regresie logistică |
+| 2012/13 | 0,5608 | 0,5679 | 0,5624 | 0,6272 | Elo |
+| 2013/14 | 0,5755 | 0,5786 | 0,5730 | 0,6378 | regresie logistică |
+| 2014/15 | 0,5431 | 0,5538 | 0,5486 | 0,6457 | Elo |
+| 2015/16 | 0,5752 | 0,5710 | 0,5675 | 0,6339 | regresie logistică |
+| 2016/17 | 0,5383 | 0,5473 | 0,5413 | 0,6355 | Elo |
+| 2017/18 | 0,5924 | 0,5863 | 0,5813 | 0,6376 | regresie logistică |
+| 2018/19 | 0,6200 | 0,6126 | 0,6132 | 0,6534 | Poisson |
+| 2019/20 | 0,6027 | 0,6078 | 0,6014 | 0,6449 | regresie logistică |
+| 2020/21 | 0,5981 | 0,6017 | 0,5942 | 0,6602 | regresie logistică |
+| 2021/22 | 0,6017 | 0,6018 | 0,5989 | 0,6534 | regresie logistică |
+| 2022/23 | 0,5912 | 0,5949 | 0,5894 | 0,6373 | regresie logistică |
+| 2023/24 | 0,5737 | 0,5824 | 0,5743 | 0,6532 | Elo |
+| 2024/25 | 0,5781 | 0,5858 | 0,5768 | 0,6489 | regresie logistică |
+| 2025/26 | 0,5800 | 0,5803 | 0,5731 | 0,6326 | regresie logistică |
 
-- Elo este cel mai bun în 8 sezoane, regresia logistică în 6, Poisson în 2. În niciun sezon avantajul nu este real: 380 de meciuri nu sunt suficiente pentru a separa modelele.
+- Regresia logistică este cea mai bună în 10 sezoane, Elo în 5, Poisson în unul. În niciun sezon avantajul nu este real: 380 de meciuri nu sunt suficiente pentru a separa modelele.
 - Toate modelele sunt mai bune decât frecvențele trecute în fiecare sezon.
-- Cele mai grele sezoane au fost 2018/19–2021/22 (scor Brier în jur de 0,60–0,61). Sunt sezoane cu multe egaluri (27,6–29,2%, `docs/architecture.md`, secțiunea 6.5), dar egalurile nu explică singure dificultatea: 2023/24 a avut 28,2% egaluri și a fost totuși un sezon obișnuit (0,573–0,582).
+- Cele mai grele sezoane au fost 2018/19–2021/22 (scor Brier în jur de 0,59–0,62). Sunt sezoane cu multe egaluri (27,6–29,2%, `docs/architecture.md`, secțiunea 6.5), dar egalurile nu explică singure dificultatea: 2023/24 a avut 28,2% egaluri și a fost totuși un sezon obișnuit (0,574–0,582).
 - Sezonul 2020/21, jucat fără spectatori, a fost cel mai slab sezon al frecvențelor trecute (0,6602), pentru că această referință se bazează mult pe avantajul gazdelor, care a scăzut.
 
 ### 4.2. Pe rezultatul real
 
 | Rezultat real | Meciuri | Elo | Poisson | Regresie logistică | Frecvențele trecute | Cel mai bun |
 |---|---|---|---|---|---|---|
-| Victoria gazdelor | 2.836 | 0,3477 | 0,3736 | 0,3567 | 0,4276 | Elo (avantaj real) |
-| Egal | 1.522 | 0,9235 | 0,8852 | 0,8994 | 0,8586 | Poisson (avantaj real) |
-| Victoria oaspeților | 1.722 | 0,6506 | 0,6596 | 0,6572 | 0,7984 | Elo (avantaj real) |
+| Victoria gazdelor | 2.836 | 0,3507 | 0,3810 | 0,3538 | 0,4276 | Elo |
+| Egal | 1.522 | 0,9334 | 0,8579 | 0,9068 | 0,8586 | Poisson (avantaj real) |
+| Victoria oaspeților | 1.722 | 0,6395 | 0,6687 | 0,6502 | 0,7984 | Elo (avantaj real) |
 
-Aici apar diferențe reale. Elo este cel mai bun la meciurile cu învingător, iar Poisson la egaluri. Probabilitățile mai moderate ale modelului Poisson dau egalurilor mai multă șansă, ceea ce ajută la egaluri, dar costă la meciurile cu învingător. De aceea Poisson este mai slab în total, deși este cel mai bine calibrat (`docs/evaluation.md`).
+Aici apar diferențe reale. Elo este cel mai bun la meciurile cu învingător (real la victoriile oaspeților), iar Poisson la egaluri, unde, cu corecția Dixon–Coles, ajunge chiar puțin înaintea frecvențelor trecute. Probabilitățile mai moderate ale modelului Poisson dau egalurilor mai multă șansă, ceea ce ajută la egaluri, dar costă la meciurile cu învingător. Elo face invers: e sigur pe favoriți, câștigă când aceștia câștigă și pierde mult la egaluri.
 
 ### 4.3. Pe tipuri de meciuri (grupurile K-Means)
 
@@ -80,18 +80,18 @@ Tipul unui meci se stabilește din grupurile momentane ale echipelor (secțiunea
 
 | Tip de meci | Meciuri | Elo | Poisson | Regresie logistică | Frecvențele trecute | Cel mai bun |
 |---|---|---|---|---|---|---|
-| implică o echipă promovată | 1.728 | 0,5803 | 0,5890 | 0,5803 | 0,6390 | Elo |
-| implică o echipă din elită | 930 | 0,4368 | 0,4403 | 0,4394 | 0,6302 | Elo |
-| ambele echipe din același grup | 1.132 | 0,6221 | 0,6264 | 0,6243 | 0,6502 | Elo |
-| grupuri diferite | 2.290 | 0,6107 | 0,6142 | 0,6087 | 0,6411 | regresie logistică |
+| implică o echipă promovată | 1.728 | 0,5816 | 0,5879 | 0,5797 | 0,6390 | regresie logistică |
+| implică o echipă din elită | 930 | 0,4387 | 0,4439 | 0,4343 | 0,6302 | regresie logistică |
+| ambele echipe din același grup | 1.132 | 0,6206 | 0,6260 | 0,6229 | 0,6502 | Elo |
+| grupuri diferite | 2.290 | 0,6117 | 0,6115 | 0,6081 | 0,6411 | regresie logistică (avantaj real) |
 
-Niciun avantaj nu este real. Meciurile cu o echipă din elită sunt cele mai previzibile (0,437), iar cele dintre echipe din același grup cele mai grele (0,622).
+Un singur avantaj este real: regresia logistică la meciurile dintre echipe din grupuri diferite. Meciurile cu o echipă din elită sunt cele mai previzibile (0,434), iar cele dintre echipe din același grup cele mai grele (0,621).
 
 Din tabelul complet „grupul gazdelor contra grupul oaspeților” (celule cu cel puțin 100 de meciuri):
 
-- cea mai previzibilă pereche este elita acasă contra unei echipe din grupul 2 (0 v 2, 127 de meciuri, scor Brier 0,23);
-- cele mai grele sunt meciurile în care gazdele sunt o echipă promovată sau din jumătatea de jos, iar oaspeții sunt din grupul 1 (scorul Brier al lui Elo: promoted v 1 0,6683; 3 v 1 0,6644; 2 v 1 0,6625);
-- între echipe din jumătatea de jos (2 v 2, 3 v 2), modelele sunt abia mai bune decât frecvențele trecute (de exemplu 0,648 față de 0,652 la 2 v 2).
+- cea mai previzibilă pereche este elita acasă contra unei echipe din grupul 2 (0 v 2, 127 de meciuri, scor Brier 0,22);
+- cele mai grele sunt meciurile în care gazdele sunt o echipă promovată sau din jumătatea de jos, iar oaspeții sunt din grupul 1 (scorul Brier al lui Elo: promoted v 1 0,6670; 3 v 1 0,6662; 2 v 1 0,6618);
+- între echipe din jumătatea de jos (2 v 2, 3 v 2), modelele sunt abia mai bune decât frecvențele trecute (de exemplu 0,646–0,649 față de 0,652 la 2 v 2).
 
 ## 5. Cât de diferite sunt predicțiile
 
@@ -99,31 +99,31 @@ Distanța dintre două predicții este distanța de variație totală, $\tfrac{1
 
 | Pereche | Același rezultat prezis | Distanța medie |
 |---|---|---|
-| Elo – regresie logistică | 93,9% | 0,0520 |
-| Poisson – regresie logistică | 88,9% | 0,0616 |
-| Elo – Poisson | 90,0% | 0,0733 |
+| Poisson – regresie logistică | 94,3% | 0,0486 |
+| Elo – regresie logistică | 93,6% | 0,0556 |
+| Elo – Poisson | 90,9% | 0,0841 |
 
-Toate trei modelele prezic același rezultat în 86,4% dintre meciuri. Elo și regresia logistică sunt cele mai apropiate, ceea ce era de așteptat: regresia logistică folosește diferența Elo ca intrare.
+Toate trei modelele prezic același rezultat în 89,4% dintre meciuri. Din Faza 23, în La Liga, regresia logistică primește golurile așteptate ale modelului Poisson, așa că s-a apropiat de el (înainte, Poisson – regresie logistică: 88,9% și 0,0616); Elo și regresia logistică rămân apropiate, pentru că diferența Elo este tot o intrare. Elo și Poisson s-au îndepărtat (înainte 90,0% și 0,0733): Elo a devenit mai sigur pe favoriți, iar Poisson mai prudent.
 
 Cele mai mari diferențe dintre modele (victorie gazde / egal / victorie oaspeți):
 
 | Meci | Elo | Poisson | Regresie logistică |
 |---|---|---|---|
-| Athletic 0–1 Cádiz (01.10.2020) | 0,63 / 0,22 / 0,15 | 0,44 / 0,28 / 0,27 | 0,33 / 0,25 / 0,42 |
-| Las Palmas 0–3 Atlético Madrid (17.01.2016) | 0,13 / 0,18 / 0,69 | 0,29 / 0,31 / 0,40 | 0,17 / 0,26 / 0,57 |
-| Getafe 1–2 Atlético Madrid (21.09.2021) | 0,13 / 0,23 / 0,64 | 0,32 / 0,33 / 0,35 | 0,17 / 0,25 / 0,58 |
-| Getafe 2–0 Oviedo (13.09.2025) | 0,61 / 0,22 / 0,17 | 0,39 / 0,30 / 0,32 | 0,67 / 0,20 / 0,14 |
-| Atlético Madrid 4–0 Cádiz (07.11.2020) | 0,79 / 0,15 / 0,06 | 0,53 / 0,28 / 0,19 | 0,52 / 0,23 / 0,26 |
+| Atlético Madrid 4–0 Cádiz (07.11.2020) | 0,80 / 0,17 / 0,03 | 0,45 / 0,32 / 0,23 | 0,54 / 0,20 / 0,26 |
+| Real Madrid 0–1 Cádiz (17.10.2020) | 0,88 / 0,08 / 0,04 | 0,54 / 0,26 / 0,20 | 0,69 / 0,15 / 0,15 |
+| Girona 0–1 Sevilla (17.09.2017) | 0,17 / 0,23 / 0,59 | 0,46 / 0,25 / 0,29 | 0,38 / 0,25 / 0,37 |
+| Oviedo 0–3 Real Madrid (24.08.2025) | 0,03 / 0,18 / 0,78 | 0,26 / 0,25 / 0,49 | 0,17 / 0,22 / 0,62 |
+| Las Palmas 0–3 Atlético Madrid (17.01.2016) | 0,10 / 0,19 / 0,70 | 0,26 / 0,32 / 0,41 | 0,20 / 0,22 / 0,57 |
 
-Patru dintre cele cinci meciuri implică o echipă nou promovată (Cádiz în 2020/21, Oviedo în 2025/26, Las Palmas în 2015/16). Cauza este felul diferit în care modelele tratează echipele fără istoric. Elo le dă media ratingurilor echipelor retrogradate, deci le consideră slabe. Poisson le consideră echipe medii (forța 1). Regresia logistică folosește media ligii pentru indicatorii lipsă. Ca exemplu, în Atlético Madrid – Cádiz (07.11.2020), Elo dădea 79% pentru Atlético, Poisson și regresia logistică doar 53% și 52%; Atlético a câștigat cu 4–0.
+Toate cele cinci meciuri implică o echipă nou promovată (Cádiz în 2020/21, Girona în 2017/18, Oviedo în 2025/26, Las Palmas în 2015/16). Cauza este felul diferit în care modelele tratează echipele fără istoric. Elo le dă media ratingurilor echipelor retrogradate, deci le consideră slabe. Poisson le consideră echipe medii (forța 1). Regresia logistică folosește media ligii pentru indicatorii lipsă. Ca exemplu, în Atlético Madrid – Cádiz (07.11.2020), Elo dădea 80% pentru Atlético, Poisson și regresia logistică doar 45% și 54%; Atlético a câștigat cu 4–0. În Real Madrid – Cádiz, trei săptămâni mai devreme, Elo dădea 88% pentru Real Madrid, iar Cádiz a câștigat.
 
 ## 6. Concluzii
 
-- **Ratingul Elo** este cel mai simplu model (doi parametri) și este cel mai bun sau la egalitate cu cel mai bun pe toate măsurile. Este cel mai bun la meciurile cu învingător. Este ușor prea sigur pe favoriți și, ca toate modelele, nu prezice niciodată egalul ca rezultat cel mai probabil.
-- **Modelul Poisson** este singurul care prezice scorul și golurile și este cel mai bine calibrat. Este cel mai bun la egaluri, dar mai puțin precis în total decât Elo și regresia logistică, iar diferența este reală. Tratează echipele promovate ca medii, de unde vin majoritatea celor mai mari diferențe față de celelalte modele.
-- **Regresia logistică** este la egalitate cu Elo pe toate măsurile în La Liga. Aici, cei patru indicatori adăugați peste diferența Elo nu aduc o îmbunătățire măsurabilă; în Premier League și Serie A însă, și pe toate cele cinci ligi la un loc, regresia logistică este real mai bună decât Elo (`docs/leagues.md`). În schimb, ponderile ei arată cât contează fiecare indicator (`docs/algorithms/logistic_regression.md`).
+- **Ratingul Elo** este cel mai simplu model (trei alegeri: $K$, $H$ și ponderea golurilor) și este cel mai bun la meciurile cu învingător. În La Liga nu se deosebește real de regresia logistică la scorul Brier și la acuratețe, dar pierde la pierderea logaritmică, pentru că este prea sigur pe favoriți (eroarea de calibrare 0,0252, cea mai mare dintre modele).
+- **Modelul Poisson** este singurul care prezice scorul și golurile. Este cel mai bun la egaluri, iar din Faza 23 nu se mai deosebește real de Elo; regresia logistică rămâne real mai bună decât el pe toate măsurile. Tratează echipele promovate ca medii, de unde vin cele mai mari diferențe față de celelalte modele.
+- **Regresia logistică** are cele mai bune valori pe toate cele trei măsuri și este cea mai bine calibrată dintre modele. Avantajul ei față de Elo este real în La Liga doar la pierderea logaritmică, dar în Premier League și Serie A, și pe toate cele cinci ligi la un loc, este real și la scorul Brier (`docs/leagues.md`). Ponderile ei arată cât contează fiecare indicator (`docs/algorithms/logistic_regression.md`).
 - **K-Means** nu prezice meciuri, dar explică unde predicția este ușoară (meciurile cu elita) și unde este grea (echipe din același grup, jumătatea de jos a clasamentului).
-- Toate cele trei modele de predicție sunt clar și real mai bune decât referințele, cu aproximativ 6–7 puncte procentuale de acuratețe și 0,06 la scorul Brier.
+- Toate cele trei modele de predicție sunt clar și real mai bune decât referințele, cu aproximativ 6,5–7 puncte procentuale de acuratețe și 0,06 la scorul Brier, dar toate rămân în urma caselor de pariuri, cu 0,010–0,016 la scorul Brier (`docs/evaluation.md`, secțiunea 3.4).
 
 ## 7. Limitări ale comparației
 
