@@ -357,4 +357,5 @@ def test_the_server_writes_utf8_whatever_the_console(monkeypatch):
     write_utf8()
     print("Sezonul 2026/27: 78 de meciuri jucate și programate", file=console, flush=True)
 
-    assert console.buffer.getvalue().decode("utf-8").endswith("și programate\n")
+    written = console.buffer.getvalue().decode("utf-8")
+    assert written.rstrip().endswith("și programate")  # \r\n on Windows
