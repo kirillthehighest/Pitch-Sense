@@ -13,6 +13,7 @@ from app.api.analysis import add_analysis_routes
 from app.api.backend import Backend
 from app.data.competitions import competition
 from app.data.models import Outcome
+from app.evaluation.metrics import CONFIDENCE_THRESHOLDS
 from app.prediction.outputs import ModelName
 from app.services.explanations import (
     GROUPS_IN_PROGRESS,
@@ -396,12 +397,18 @@ def create_app(backend: Backend) -> FastAPI:
                 )
                 for outcome in (Outcome.HOME_WIN, Outcome.DRAW, Outcome.AWAY_WIN)
             ],
+            sure=[
+                schemas.SureReview(threshold=threshold, hits=hits, matches=matches)
+                for threshold in CONFIDENCE_THRESHOLDS
+                for hits, matches in [found.when_sure(threshold)]
+            ],
             rows=[
                 schemas.ReviewedMatch(
                     forecast=schemas.forecast_of(row.forecast),
                     chance=row.chance,
                     hit=row.hit,
                     surprise=row.surprise,
+                    confidence=row.confidence,
                 )
                 for row in found.matches
             ],

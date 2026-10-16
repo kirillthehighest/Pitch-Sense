@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Self
 
 from app.data.models import Match, MatchStatistics, Outcome
+from app.data.odds import MarketOdds
 from app.data.preprocessing import STATISTICS_COLUMNS, sort_chronologically
 
 SCHEMA = """
@@ -37,6 +38,18 @@ CREATE TABLE IF NOT EXISTS matches (
     UNIQUE (competition, match_date, home_team, away_team)
 );
 CREATE INDEX IF NOT EXISTS matches_by_competition_and_season ON matches (competition, season);
+-- The bookmakers' average decimal odds (Phase 23): a reference for the evaluation only, apart
+-- from the matches, so that nothing which predicts can read them.
+CREATE TABLE IF NOT EXISTS market_odds (
+    competition  TEXT NOT NULL,
+    match_date   TEXT NOT NULL,
+    home_team    TEXT NOT NULL,
+    away_team    TEXT NOT NULL,
+    home         REAL NOT NULL CHECK (home > 1),
+    draw         REAL NOT NULL CHECK (draw > 1),
+    away         REAL NOT NULL CHECK (away > 1),
+    UNIQUE (competition, match_date, home_team, away_team)
+);
 """
 
 _STATISTICS_FIELDS = tuple(STATISTICS_COLUMNS.values())
@@ -96,6 +109,53 @@ class MatchRepository:
             self._connection.execute("DELETE FROM matches WHERE competition = ?", (competition,))
             self._connection.executemany(_INSERT, [_to_row(match) for match in matches])
         return len(matches)
+
+    def replace_market_odds(self, competition: str, odds: Iterable[MarketOdds]) -> int:
+        """Replace the stored odds of ``competition`` in one transaction; returns how many."""
+        rows = [
+            (
+                item.competition,
+                item.match_date.isoformat(),
+                item.home_team,
+                item.away_team,
+                item.home,
+                item.draw,
+                item.away,
+            )
+            for item in odds
+        ]
+        if any(row[0] != competition for row in rows):
+            raise ValueError(f"odds of another competition than {competition}")
+        with self._connection:
+            self._connection.execute(
+                "DELETE FROM market_odds WHERE competition = ?", (competition,)
+            )
+            self._connection.executemany(
+                "INSERT INTO market_odds (competition, match_date, home_team, away_team, home, "
+                "draw, away) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                rows,
+            )
+        return len(rows)
+
+    def market_odds(self, competition: str) -> list[MarketOdds]:
+        """The stored bookmakers' odds of a competition (empty in a database built before
+        Phase 23)."""
+        rows = self._connection.execute(
+            "SELECT * FROM market_odds WHERE competition = ? ORDER BY match_date, home_team",
+            (competition,),
+        )
+        return [
+            MarketOdds(
+                competition=row["competition"],
+                match_date=date.fromisoformat(row["match_date"]),
+                home_team=row["home_team"],
+                away_team=row["away_team"],
+                home=row["home"],
+                draw=row["draw"],
+                away=row["away"],
+            )
+            for row in rows
+        ]
 
     def matches(self, competition: str, season: str | None = None) -> list[Match]:
         """Return the matches of a competition, optionally of one season, in chronological order."""

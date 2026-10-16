@@ -152,6 +152,7 @@ class ReviewedMatch:
     chance: float  # the probability the model gave the result that happened
     hit: bool  # the model's most likely outcome happened
     surprise: bool  # the result had less than SURPRISE_CHANCE
+    confidence: float = 0.0  # the model's largest probability: how sure it was (Phase 23)
 
 
 @dataclass(frozen=True, eq=False)
@@ -169,6 +170,12 @@ class SeasonReview:
     @property
     def surprises(self) -> int:
         return sum(match.surprise for match in self.matches)
+
+    def when_sure(self, threshold: float) -> tuple[int, int]:
+        """(matches the model got right, matches) among those it gave at least ``threshold``
+        to its most likely outcome."""
+        sure = [match for match in self.matches if match.confidence >= threshold]
+        return sum(match.hit for match in sure), len(sure)
 
     def by_result(self) -> dict[Outcome, tuple[int, int]]:
         """For each result that happened: (matches the model got right, matches)."""
@@ -338,6 +345,7 @@ class PredictionService:
                     chance=chance,
                     hit=probabilities.most_likely == match.result,
                     surprise=chance < SURPRISE_CHANCE,
+                    confidence=max(probabilities.as_tuple()),
                 )
             )
         reviewed.sort(key=lambda match: _forecast_order(match.forecast))

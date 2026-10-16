@@ -9,7 +9,18 @@ import { type Column, DataTable } from "../components/DataTable";
 import { Flag } from "../components/Flag";
 import { dateText, integer, number, parseDay, percent, quantity, seasonText, signed } from "../format";
 import { themeFor } from "../theme";
-import type { About, Difference, Evaluation, League, LeaguesComparison, SeasonCheck, Subset } from "../types";
+import type {
+  About,
+  BookmakerComparison,
+  ConfidentAccuracy,
+  Difference,
+  Evaluation,
+  League,
+  LeaguesComparison,
+  ModelEvaluation,
+  SeasonCheck,
+  Subset,
+} from "../types";
 import { MODEL_LABELS } from "../types";
 
 const CalibrationChart = lazy(() =>
@@ -39,6 +50,7 @@ function differenceText(difference: Difference): string {
 
 const label = (model: string) => MODEL_LABELS[model] ?? model;
 const EVEN = "minmax(0, 1fr)"; // number columns that share a table's width evenly
+const SURE = 0.65; // the threshold of "when the model is sure" shown beside the bookmakers
 const chartFallback = <p className="caption chart-message">Se încarcă graficul…</p>;
 const loading = <p className="caption">Se încarcă…</p>;
 
@@ -274,6 +286,8 @@ function Models({ league }: { league: League }) {
           </p>
         </section>
       </div>
+      <WhenSure models={evaluation.models.filter((m) => m.confident.length > 0)} />
+      {evaluation.bookmakers && <Bookmakers comparison={evaluation.bookmakers} />}
       <section className="card">
         <h2>Diferențele meci cu meci</h2>
         <DataTable
@@ -338,6 +352,91 @@ function Models({ league }: { league: League }) {
         )}
       </section>
     </div>
+  );
+}
+
+/** 72,4% · 1.234 (21%): the accuracy among the sure matches, how many and their share. */
+function sureCell(found: ConfidentAccuracy | undefined): ReactNode {
+  if (!found) return "–"; // a model without probabilities
+  if (found.accuracy === null) return <span className="caption">niciun meci</span>;
+  return (
+    <span className="sure-cell">
+      <strong>{percent(found.accuracy)}</strong>
+      <small>
+        {integer(found.matches)} ({percent(found.share, 0)})
+      </small>
+    </span>
+  );
+}
+
+function WhenSure({ models }: { models: ModelEvaluation[] }) {
+  if (models.length === 0) return null;
+  const thresholds = models[0].confident.map((c) => c.threshold);
+  return (
+    <section className="card">
+      <h2>Când modelul e sigur</h2>
+      <DataTable
+        columns={[
+          { label: "Model", width: "minmax(150px, 1.6fr)" },
+          ...thresholds.map((threshold) => ({ label: `Peste ${percent(threshold, 0)}`, width: EVEN })),
+        ]}
+        rows={models.map((model) => [
+          model.label,
+          ...thresholds.map((threshold) => sureCell(model.confident.find((c) => c.threshold === threshold))),
+        ])}
+      />
+      <p className="caption table-note">
+        Acuratețea pe meciurile în care modelul dădea rezultatului socotit cel mai probabil cel puțin pragul din coloană,
+        apoi câte meciuri au fost și ce parte din toate. Cu cât pragul e mai mare, cu atât meciurile sunt mai puține, dar
+        mai des nimerite. Un model bine calibrat nimerește pe aceste meciuri cel puțin cât arată pragul.
+      </p>
+    </section>
+  );
+}
+
+function Bookmakers({ comparison }: { comparison: BookmakerComparison }) {
+  const lowestBrier = Math.min(...comparison.models.map((m) => m.brier ?? Infinity));
+  return (
+    <section className="card">
+      <h2>Față de casele de pariuri</h2>
+      <DataTable
+        columns={[
+          { label: "Model", width: "minmax(150px, 1.6fr)" },
+          { label: "Acuratețe", width: EVEN },
+          { label: "Scor Brier", width: EVEN },
+          { label: "Pierdere logaritmică", width: EVEN },
+          { label: `Peste ${percent(SURE, 0)}`, width: EVEN },
+        ]}
+        rows={comparison.models.map((model) => [
+          model.label,
+          percent(model.accuracy),
+          model.brier === lowestBrier ? <strong className="best">{number(model.brier)}</strong> : number(model.brier),
+          number(model.log_loss),
+          sureCell(model.confident.find((c) => c.threshold === SURE)),
+        ])}
+      />
+      <DataTable
+        columns={[
+          { label: "Comparație (scor Brier)", width: "minmax(220px, 2fr)" },
+          { label: "Diferență", width: EVEN },
+          { label: "Interval de 95%", width: "minmax(0, 1.4fr)" },
+          { label: "Mai bun", width: "minmax(0, 1.2fr)", align: "left" },
+        ]}
+        rows={comparison.differences.map((d) => [
+          `${d.first_label} – ${d.second_label}`,
+          signed(d.mean),
+          `[${signed(d.lower)}; ${signed(d.upper)}]`,
+          d.better_label ? <strong className="best">{d.better_label}</strong> : <span className="caption">nicio diferență reală</span>,
+        ])}
+      />
+      <p className="caption table-note">
+        Cotele medii ale caselor de pariuri, luate înainte de fiecare meci (Football-Data.co.uk), transformate în
+        probabilități fără marja lor. Sunt doar o referință: nu intră în niciun model. Comparația folosește{" "}
+        {quantity(comparison.matches, "meci", "meciuri")} cu cote
+        {comparison.missing > 0 ? ` (${quantity(comparison.missing, "meci", "meciuri")} nu au)` : ""}; o diferență pozitivă
+        înseamnă că modelul greșește mai mult decât casele de pariuri.
+      </p>
+    </section>
   );
 }
 

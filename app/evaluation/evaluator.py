@@ -23,11 +23,14 @@ from app.evaluation.backtesting import (
     read_log,
 )
 from app.evaluation.metrics import (
+    CONFIDENCE_THRESHOLDS,
     CalibrationBin,
+    ConfidentAccuracy,
     Estimate,
     accuracy,
     brier_score,
     calibration_table,
+    confident_accuracy,
     confusion_matrix,
     expected_calibration_error,
     log_loss,
@@ -51,6 +54,7 @@ class ModelEvaluation:
     calibration: tuple[CalibrationBin, ...] | None = None
     calibration_error: float | None = None
     goals_error: Estimate | None = None
+    confident: tuple[ConfidentAccuracy, ...] = ()  # one per CONFIDENCE_THRESHOLDS (Phase 23)
 
 
 def evaluate(rows: Sequence[PredictionLogRow]) -> list[ModelEvaluation]:
@@ -96,6 +100,17 @@ def main(log: Path | None = None) -> int:
             f"{_format(evaluation.brier):>17s} {_format(evaluation.log_loss):>17s} "
             f"{_plain(evaluation.calibration_error):>18s} {_format(evaluation.goals_error):>15s}"
         )
+    print(
+        "\nWhen the model is sure (largest probability at least the threshold): accuracy, matches"
+    )
+    for evaluation in evaluations:
+        cells = [
+            f">={c.threshold:.0%}: "
+            + (f"{c.accuracy.value:.1%} of {c.matches}" if c.accuracy else "none")
+            for c in evaluation.confident
+        ]
+        if cells:
+            print(f"  {evaluation.model:22s} " + " | ".join(cells))
     print("\nConfusion matrices (rows: actual H, D, A; columns: predicted H, D, A)")
     for evaluation in evaluations:
         cells = " | ".join(" ".join(f"{count:5d}" for count in row) for row in evaluation.confusion)
@@ -144,6 +159,10 @@ def _evaluate_model(model: str, rows: Sequence[PredictionLogRow]) -> ModelEvalua
         calibration=calibration,
         calibration_error=expected_calibration_error(calibration),
         goals_error=goals_error,
+        confident=tuple(
+            confident_accuracy(probabilities, actual, threshold)
+            for threshold in CONFIDENCE_THRESHOLDS
+        ),
     )
 
 

@@ -5,6 +5,7 @@ from pathlib import Path
 import pandas as pd
 
 from app.data.models import Match
+from app.data.odds import MarketOdds, odds_from_frame
 from app.data.preprocessing import DataValidationError, matches_from_frame, sort_chronologically
 
 
@@ -23,6 +24,15 @@ def load_season(path: Path) -> list[Match]:
     """Load and validate one season file named after its season, such as ``2006-07.csv``."""
     matches = matches_from_frame(read_raw_season(path), season=path.stem, source=path.name)
     return sort_chronologically(matches)
+
+
+def load_competition_odds(folder: Path) -> list[MarketOdds]:
+    """The bookmakers' average odds of every season file of one competition folder (Phase 23)."""
+    return [
+        item
+        for path in sorted(folder.glob("*.csv"))
+        for item in odds_from_frame(read_raw_season(path), source=path.name)
+    ]
 
 
 def load_competition(folder: Path) -> list[Match]:

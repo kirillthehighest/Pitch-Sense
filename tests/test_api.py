@@ -197,6 +197,9 @@ def test_a_review_counts_hits_and_surprises_of_a_model(api_client, api_backend):
     )
     assert [r["result"] for r in answer["by_result"]] == ["H", "D", "A"]
     assert sum(r["matches"] for r in answer["by_result"]) == answer["matches"]
+    for sure in answer["sure"]:
+        chosen = [r for r in answer["rows"] if r["confidence"] >= sure["threshold"]]
+        assert (sure["hits"], sure["matches"]) == (sum(r["hit"] for r in chosen), len(chosen))
     for row in answer["rows"]:
         prediction = next(
             p for p in row["forecast"]["predictions"] if p["model"] == "Logistic regression"

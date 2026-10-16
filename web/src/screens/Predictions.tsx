@@ -1,7 +1,7 @@
 // Predicții (the team's request after Phase 21): what a model predicted for a season's played
 // matches and what happened. The matches it got right, those it missed, and the surprises: results
 // it gave less than a fifth of a chance. Every prediction was made before its match, from earlier
-// matches only.
+// matches only. Since Phase 23 it also tells how often the model was right when it was sure.
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api";
 import { MatchRow } from "../components/MatchRow";
@@ -9,21 +9,23 @@ import { capitalised, integer, percent, quantity, seasonText } from "../format";
 import type { Forecast, League, Review, ReviewedMatch } from "../types";
 import { MODEL_LABELS, MODELS } from "../types";
 
-type Kind = "all" | "hits" | "misses" | "surprises";
+type Kind = "all" | "hits" | "misses" | "surprises" | "sure";
 type Order = "recent" | "surprising" | "confident";
 
 const PAGE = 40;
+export const SURE = 0.65; // a sure prediction gives its most likely result at least this much
 
-export function chosenRows(rows: ReviewedMatch[], kind: Kind, order: Order, model: string): ReviewedMatch[] {
+export function chosenRows(rows: ReviewedMatch[], kind: Kind, order: Order): ReviewedMatch[] {
   const kept = rows.filter(
-    (row) => kind === "all" || (kind === "hits" && row.hit) || (kind === "misses" && !row.hit) || (kind === "surprises" && row.surprise),
+    (row) =>
+      kind === "all" ||
+      (kind === "hits" && row.hit) ||
+      (kind === "misses" && !row.hit) ||
+      (kind === "surprises" && row.surprise) ||
+      (kind === "sure" && row.confidence >= SURE),
   );
-  const top = (row: ReviewedMatch) => {
-    const prediction = row.forecast.predictions.find((p) => p.model === model);
-    return prediction ? Math.max(prediction.home, prediction.draw, prediction.away) : 0;
-  };
   if (order === "surprising") return [...kept].sort((a, b) => a.chance - b.chance);
-  if (order === "confident") return [...kept].sort((a, b) => top(b) - top(a));
+  if (order === "confident") return [...kept].sort((a, b) => b.confidence - a.confidence);
   return [...kept].reverse(); // the latest first
 }
 
@@ -59,13 +61,14 @@ export function Predictions({ league, season, favourite, ready, onSeason, onOpen
 
   useEffect(() => setShown(PAGE), [league.code, season, model, kind, order]);
 
-  const rows = useMemo(() => (review ? chosenRows(review.rows, kind, order, model) : []), [review, kind, order, model]);
+  const rows = useMemo(() => (review ? chosenRows(review.rows, kind, order) : []), [review, kind, order]);
   const counts: [Kind, string, number][] = review
     ? [
         ["all", "Toate", review.matches],
         ["hits", "Nimerite", review.hits],
         ["misses", "Ratate", review.matches - review.hits],
         ["surprises", "Surprize", review.surprises],
+        ["sure", `Sigure (peste ${percent(SURE, 0)})`, review.sure.find((s) => s.threshold === SURE)?.matches ?? 0],
       ]
     : [];
 
@@ -133,6 +136,7 @@ export function Predictions({ league, season, favourite, ready, onSeason, onOpen
               ))}
               <p className="caption">Cât din fiecare fel de rezultat a anticipat modelul.</p>
             </section>
+            <WhenSure review={review} />
           </div>
           <div className="control-row">
             {counts.map(([name, label, count]) => (
@@ -180,6 +184,29 @@ export function Predictions({ league, season, favourite, ready, onSeason, onOpen
         </>
       )}
     </div>
+  );
+}
+
+function WhenSure({ review }: { review: Review }) {
+  return (
+    <section className="card review-sure">
+      <h2>Când modelul era sigur</h2>
+      <div className="sure-tiles">
+        {review.sure.map((sure) => (
+          <div key={sure.threshold} className={`sure-tile${sure.threshold === SURE ? " chosen" : ""}`}>
+            <span className="caption">Peste {percent(sure.threshold, 0)}</span>
+            <strong>{sure.matches ? percent(sure.hits / sure.matches, 0) : "–"}</strong>
+            <span className="caption">
+              {integer(sure.hits)} din {quantity(sure.matches, "meci", "meciuri")}
+            </span>
+          </div>
+        ))}
+      </div>
+      <p className="caption">
+        Meciurile în care modelul dădea rezultatului socotit cel mai probabil cel puțin pragul și cât din ele a nimerit.
+        Când e mai sigur, modelul greșește mai rar, dar asemenea meciuri sunt mai puține.
+      </p>
+    </section>
   );
 }
 
