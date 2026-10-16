@@ -84,12 +84,12 @@ class Backend:
         """Compute the predictions of every league, the remembered one first, one at a time
         (in a background thread, unless ``wait``)."""
         with self._lock:
-            if self._worker is not None and self._worker.is_alive():
-                return
-            self._worker = threading.Thread(target=self._prepare_all, daemon=True)
-            self._worker.start()
-        if wait:
-            self._worker.join()
+            if self._worker is None or not self._worker.is_alive():
+                self._worker = threading.Thread(target=self._prepare_all, daemon=True)
+                self._worker.start()
+            worker = self._worker
+        if wait:  # also when the preparation was already running
+            worker.join()
 
     def _prepare_all(self) -> None:
         first = self.first_league

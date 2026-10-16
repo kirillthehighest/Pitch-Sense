@@ -4,15 +4,19 @@ services' own, in the shapes the interface reads."""
 import json
 import os
 import threading
+import time
 from datetime import UTC, date, datetime
 
 import pytest
 
 from app.api.__main__ import exit_with_window, option, port_of
+from app.api.backend import Backend
 from app.api.self_test import run_self_test
 from app.data.live import UpdateSummary
 from app.prediction.outputs import ModelName
 from app.services.images import STADIUMS_DIR, stadium_name, stadium_path, stadium_teams
+from app.services.preferences import Preferences
+from app.services.processes import compute_here
 
 
 def test_the_leagues_come_with_their_seasons_and_state(api_client):
@@ -316,3 +320,30 @@ def test_every_stadium_photo_has_its_source_and_is_used():
     assert stadium_teams() == teams
     assert stadium_name("Ein Frankfurt") == "Waldstadion"
     assert stadium_path("Alpha") is None and stadium_name("Alpha") is None
+
+
+def test_waiting_for_the_predictions_waits_for_a_preparation_already_running(
+    make_app_context, two_league_database, tmp_path
+):
+    context = make_app_context(two_league_database, ("E0", "SP1"))
+    started = threading.Event()
+
+    def slow(job):
+        started.set()
+        time.sleep(0.2)
+        return compute_here(job)
+
+    backend = Backend(
+        context.competitions,
+        open_league=context.open_league,
+        comparison=context.comparison,
+        preferences=Preferences(tmp_path / "web-preferences.json"),
+        compute=slow,
+        update_data=context.update_data,
+    )
+    backend.prepare_all()  # in the background
+    assert started.wait(5)
+
+    backend.prepare_all(wait=True)
+
+    assert backend.is_prepared("E0") and backend.is_prepared("SP1")

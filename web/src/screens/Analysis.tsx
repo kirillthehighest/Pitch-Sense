@@ -108,11 +108,11 @@ function SeasonCheckTab({ league, ready }: { league: League; ready: string }) {
     empty: `Niciun meci al sezonului ${check.season ? seasonText(check.season) : ""} nu are încă predicțiile tuturor modelelor.`,
   };
   const columns: Column[] = [
-    { label: "Model", width: "minmax(180px, 1fr)" },
-    { label: "Meciuri", width: "96px" },
-    { label: "Acuratețe", width: "112px" },
-    { label: "Scor Brier", width: "168px" },
-    { label: "Pierdere logaritmică", width: "184px" },
+    { label: "Model", width: "minmax(150px, 1.6fr)" },
+    { label: "Meciuri", width: EVEN },
+    { label: "Acuratețe", width: EVEN },
+    { label: "Scor Brier", width: "minmax(0, 1.4fr)" },
+    { label: "Pierdere logaritmică", width: "minmax(0, 1.4fr)" },
   ];
   return (
     <section className="card">
@@ -226,12 +226,12 @@ function Models({ league }: { league: League }) {
         <h2>Măsurile generale</h2>
         <DataTable
           columns={[
-            { label: "Model", width: "minmax(190px, 1fr)" },
-            { label: "Acuratețe", width: "104px" },
-            { label: "Scor Brier", width: "112px" },
-            { label: "Pierdere logaritmică", width: "164px" },
-            { label: "Eroare de calibrare", width: "156px" },
-            { label: "Eroarea golurilor", width: "144px" },
+            { label: "Model", width: "minmax(150px, 1.6fr)" },
+            { label: "Acuratețe", width: EVEN },
+            { label: "Scor Brier", width: EVEN },
+            { label: "Pierdere logaritmică", width: EVEN },
+            { label: "Eroare de calibrare", width: EVEN },
+            { label: "Eroarea golurilor", width: EVEN },
           ]}
           rows={evaluation.models.map((model) => [
             model.label,
@@ -278,11 +278,11 @@ function Models({ league }: { league: League }) {
         <h2>Diferențele meci cu meci</h2>
         <DataTable
           columns={[
-            { label: "Comparație", width: "minmax(220px, 1fr)" },
-            { label: "Măsură", width: "176px", align: "left" },
-            { label: "Diferență", width: "104px" },
-            { label: "Interval de 95%", width: "176px" },
-            { label: "Mai bun", width: "minmax(150px, 0.6fr)", align: "left" },
+            { label: "Comparație", width: "minmax(170px, 1.5fr)" },
+            { label: "Măsură", width: "minmax(0, 1.2fr)", align: "left" },
+            { label: "Diferență", width: EVEN },
+            { label: "Interval de 95%", width: "minmax(0, 1.4fr)" },
+            { label: "Mai bun", width: "minmax(0, 1.2fr)", align: "left" },
           ]}
           rows={evaluation.differences.map((d) => [
             `${d.first_label} – ${d.second_label}`,
@@ -305,11 +305,11 @@ function Models({ league }: { league: League }) {
         </div>
         <DataTable
           columns={[
-            { label: "Categorie", width: "minmax(190px, 1fr)" },
-            { label: "Meciuri", width: "84px" },
-            ...evaluation.compared.map((model) => ({ label: label(model), width: "128px" })),
-            { label: "Cel mai bun", width: "150px", align: "left" as const },
-            { label: "Avantaj real", width: "104px", align: "center" as const },
+            { label: "Categorie", width: "minmax(140px, 1.6fr)" },
+            { label: "Meciuri", width: EVEN },
+            ...evaluation.compared.map((model) => ({ label: label(model), width: EVEN })),
+            { label: "Cel mai bun", width: "minmax(0, 1.3fr)", align: "left" as const },
+            { label: "Avantaj real", width: EVEN, align: "center" as const },
           ]}
           rows={subsets.map((subset) => [
             subset.label,
@@ -327,9 +327,9 @@ function Models({ league }: { league: League }) {
         <h2>Cât de diferite sunt predicțiile</h2>
         <DataTable
           columns={[
-            { label: "Modele", width: "minmax(220px, 1fr)" },
-            { label: "Același rezultat prezis", width: "200px" },
-            { label: "Distanța medie", width: "150px" },
+            { label: "Modele", width: "minmax(170px, 1.6fr)" },
+            { label: "Același rezultat prezis", width: EVEN },
+            { label: "Distanța medie", width: EVEN },
           ]}
           rows={evaluation.agreements.map((a) => [`${a.first_label} – ${a.second_label}`, percent(a.same), number(a.distance)])}
         />
