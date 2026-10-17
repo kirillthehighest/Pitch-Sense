@@ -7,6 +7,7 @@ from app.evaluation.metrics import (
     accuracy,
     brier_score,
     calibration_table,
+    confident_accuracy,
     confusion_matrix,
     expected_calibration_error,
     log_loss,
@@ -55,6 +56,25 @@ def test_log_loss_hand_example():
 
     assert log_loss(FORECASTS, ACTUAL).value == pytest.approx(expected)
     assert expected == pytest.approx(0.876640, abs=1e-6)
+
+
+def test_confident_accuracy_hand_example():
+    # largest probabilities 0.5, 0.5, 0.6 and 1/3; right, wrong, right, wrong
+    at_half = confident_accuracy(FORECASTS, ACTUAL, 0.5)
+    assert (at_half.matches, at_half.share) == (3, 0.75)
+    assert at_half.accuracy.value == pytest.approx(2 / 3)
+    sixty = confident_accuracy(FORECASTS, ACTUAL, 0.6)
+    assert (sixty.matches, sixty.accuracy.value, sixty.accuracy.standard_error) == (1, 1.0, None)
+    none = confident_accuracy(FORECASTS, ACTUAL, 0.7)
+    assert (none.matches, none.share, none.accuracy) == (0, 0.0, None)
+    everything = confident_accuracy(FORECASTS, ACTUAL, 1 / 3)
+    assert everything.accuracy.value == pytest.approx(0.5)  # the plain accuracy
+
+
+@pytest.mark.parametrize("threshold", [0, -0.1, 1.2])
+def test_a_confidence_threshold_is_a_probability(threshold):
+    with pytest.raises(ValueError, match="threshold"):
+        confident_accuracy(FORECASTS, ACTUAL, threshold)
 
 
 def test_confusion_matrix_hand_example():

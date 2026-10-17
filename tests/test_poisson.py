@@ -4,8 +4,11 @@ import numpy as np
 import pytest
 
 from app.algorithms.poisson import (
+    admissible_rho,
     expected_goals,
     goal_probabilities,
+    low_score_correction,
+    recency_weights,
     score_distribution,
     strength,
 )
@@ -162,6 +165,12 @@ def test_a_team_without_matches_is_average():
     assert strength(0, 0, league_average=1.5, prior_matches=5) == 1.0
 
 
+def test_strength_of_weighted_matches():
+    assert strength(2.5, 1.75, league_average=1.5, prior_matches=0) == pytest.approx(
+        2.5 / 1.75 / 1.5
+    )
+
+
 def test_expected_goals_hand_example():
     assert expected_goals(1.2, 0.9, league_average=1.5) == pytest.approx(1.62)
 
@@ -179,3 +188,74 @@ def test_invalid_strength_arguments(goals, matches, league_average, prior_matche
 def test_invalid_expected_goals_arguments(arguments):
     with pytest.raises(ValueError):
         expected_goals(*arguments)
+
+
+# --- Eq. 6: the Dixon-Coles correction of the low scores ---
+
+
+def test_low_score_correction_hand_example():
+    assert low_score_correction(1.0, 2.0, -0.1) == pytest.approx(np.array([[1.2, 0.9], [0.8, 1.1]]))
+
+
+def test_rho_moves_probability_from_one_goal_wins_to_draws():
+    plain = score_distribution(1.0, 1.0)
+    corrected = score_distribution(1.0, 1.0, rho=-0.1)
+
+    tau = np.ones_like(plain.probabilities)
+    tau[:2, :2] = [[1.1, 0.9], [0.9, 1.1]]
+    assert corrected.probabilities == pytest.approx(plain.probabilities * tau, rel=1e-12)
+    # e^-2 * (-0.1, +0.2, -0.1): 0-0 and 1-1 gain what 1-0 and 0-1 lose
+    change = np.subtract(corrected.outcome_probabilities(), plain.outcome_probabilities())
+    assert change == pytest.approx(math.exp(-2) * np.array([-0.1, 0.2, -0.1]), abs=1e-12)
+    assert corrected.rho == -0.1
+
+
+@pytest.mark.parametrize(
+    ("home", "away", "rho"), [(1.4, 1.1, -0.15), (2.6, 0.7, -0.08), (0.9, 3.1, 0.1)]
+)
+def test_the_correction_keeps_the_total_and_the_expected_goals(home, away, rho):
+    plain = score_distribution(home, away)
+    corrected = score_distribution(home, away, rho=rho)
+    goals = np.arange(plain.probabilities.shape[0])
+
+    assert corrected.probabilities.sum() == pytest.approx(1, abs=1e-12)
+    assert corrected.truncated_mass == pytest.approx(plain.truncated_mass, abs=1e-12)
+    for axis in (1, 0):  # the home goals' distribution, then the away goals'
+        assert goals @ corrected.probabilities.sum(axis=axis) == pytest.approx(
+            goals @ plain.probabilities.sum(axis=axis), abs=1e-12
+        )
+
+
+def test_rho_is_limited_so_that_no_low_score_loses_more_than_half():
+    assert admissible_rho(5.0, 1.0, -0.2) == pytest.approx(-0.1)  # 1 + 5 rho >= 1/2
+    assert admissible_rho(2.0, 2.0, 0.5) == 0.125  # 1 - 2 * 2 * rho >= 1/2
+    assert admissible_rho(0.5, 0.5, 0.9) == 0.5  # 1 - rho >= 1/2
+    assert admissible_rho(1.2, 0.8, -0.1) == -0.1  # a usual match keeps its rho
+    assert admissible_rho(0.0, 0.0, -3.0) == -3.0  # no low score to correct but 0-0
+
+    plain = score_distribution(5.0, 1.0)
+    distribution = score_distribution(5.0, 1.0, rho=-0.2)
+
+    assert distribution.rho == pytest.approx(-0.1)
+    assert distribution.probabilities[0, 1] == pytest.approx(plain.probabilities[0, 1] / 2)
+
+
+def test_rho_must_be_a_number():
+    with pytest.raises(ValueError, match="rho"):
+        score_distribution(1.0, 1.0, rho=math.nan)
+
+
+# --- Eq. 7: recency weights ---
+
+
+def test_recency_weights_halve_every_half_life():
+    assert recency_weights(3, half_life=1) == [0.25, 0.5, 1.0]
+    assert recency_weights(3, half_life=2) == pytest.approx([0.5, 2**-0.5, 1.0])
+    assert recency_weights(3, half_life=None) == [1.0, 1.0, 1.0]
+    assert recency_weights(0, half_life=4) == []
+
+
+@pytest.mark.parametrize(("count", "half_life"), [(-1, 2), (3, 0), (3, -1), (3, math.inf)])
+def test_invalid_recency_weights_arguments(count, half_life):
+    with pytest.raises(ValueError):
+        recency_weights(count, half_life)

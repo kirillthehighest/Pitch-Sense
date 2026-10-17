@@ -215,6 +215,13 @@ class ReviewedMatch(Schema):
     chance: float  # the probability the model gave the result that happened
     hit: bool
     surprise: bool
+    confidence: float  # the model's largest probability
+
+
+class SureReview(Schema):
+    threshold: float
+    hits: int
+    matches: int
 
 
 class ResultReview(Schema):
@@ -236,6 +243,7 @@ class Review(Schema):
     hits: int
     surprises: int
     by_result: list[ResultReview]
+    sure: list[SureReview]  # when the model was sure (Phase 23)
     rows: list[ReviewedMatch]
 
 
@@ -389,6 +397,15 @@ class CalibrationBin(Schema):
     observed: float | None
 
 
+class ConfidentAccuracy(Schema):
+    """Among the matches the model gave at least ``threshold`` to its most likely outcome."""
+
+    threshold: float
+    matches: int
+    share: float  # of all the matches
+    accuracy: float | None  # None without such matches
+
+
 class ModelEvaluation(Schema):
     model: str
     label: str
@@ -400,6 +417,7 @@ class ModelEvaluation(Schema):
     goals_error: float | None
     calibration: list[CalibrationBin] | None
     confusion: list[list[int]]  # rows actual, columns predicted: H, D, A
+    confident: list[ConfidentAccuracy]  # when the model is sure (Phase 23)
 
 
 class Subset(Schema):
@@ -421,6 +439,15 @@ class Agreement(Schema):
     distance: float  # the mean total variation distance
 
 
+class BookmakerComparison(Schema):
+    """The models and the bookmakers' odds on the evaluation matches with odds (Phase 23)."""
+
+    matches: int
+    missing: int
+    models: list[ModelEvaluation]  # the models, then the bookmakers
+    differences: list[Difference]  # Brier score, each model minus the bookmakers
+
+
 class Evaluation(Schema):
     """A league's chronological backtest, evaluated and compared."""
 
@@ -438,6 +465,7 @@ class Evaluation(Schema):
     by_matchup_type: list[Subset]
     agreements: list[Agreement]
     all_agree: float | None
+    bookmakers: BookmakerComparison | None
 
 
 class Character(Schema):

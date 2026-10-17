@@ -81,6 +81,15 @@ def model_evaluation_of(evaluation: ModelEvaluation) -> schemas.ModelEvaluation:
             for bin_ in calibration
         ],
         confusion=evaluation.confusion.astype(int).tolist(),
+        confident=[
+            schemas.ConfidentAccuracy(
+                threshold=c.threshold,
+                matches=c.matches,
+                share=c.share,
+                accuracy=None if c.accuracy is None else c.accuracy.value,
+            )
+            for c in evaluation.confident
+        ],
     )
 
 
@@ -126,6 +135,14 @@ def evaluation_of(code: str, results: EvaluationResults) -> schemas.Evaluation:
         by_matchup_type=subsets_of(results.by_matchup_type),
         agreements=[agreement_of(a) for a in results.agreements],
         all_agree=results.all_agree,
+        bookmakers=None
+        if results.bookmakers is None
+        else schemas.BookmakerComparison(
+            matches=results.bookmakers.matches,
+            missing=results.bookmakers.missing,
+            models=[model_evaluation_of(e) for e in results.bookmakers.evaluations],
+            differences=[difference_of(d) for d in results.bookmakers.differences],
+        ),
     )
 
 
@@ -145,6 +162,7 @@ def no_evaluation(code: str, has_log: bool, problem: str | None) -> schemas.Eval
         by_matchup_type=[],
         agreements=[],
         all_agree=None,
+        bookmakers=None,
     )
 
 

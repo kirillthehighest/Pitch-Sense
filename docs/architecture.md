@@ -622,7 +622,7 @@ Faza a avut mai multe variante. Prima (deschisă la culoare, cu un semn neutru) 
 - **Echipa ta.** Utilizatorul își alege o echipă, păstrată între porniri (`app/services/preferences.py`). Echipa este evidențiată în clasamente și aleasă din start în Predicție și Echipe (`docs/brand.md`, secțiunea 5.2).
 - **Ecranul Acasă** (`app/ui/home.py`) a înlocuit Dashboard.
   - Are patru cifre mari (`StatTile`) și cardul echipei tale, cu ecuson și ultimele cinci rezultate (`FormStrip`).
-  - Nu mai numește „cel mai bun model” doar după cel mai mic scor Brier: spune și dacă diferența față de următorul model este reală. În La Liga, de exemplu, Elo (0,5776) și regresia logistică (0,5777) nu diferă real.
+  - Nu mai numește „cel mai bun model” doar după cel mai mic scor Brier: spune și dacă diferența față de următorul model este reală. În La Liga, de exemplu, Elo (0,5776) și regresia logistică (0,5777) nu difereau real (rularea din 2026-10-05).
 - **Cardul meciului** (ecranul Predicție) are ecusoanele echipelor, scorul și câte o bară de probabilitate pe model (`ProbabilityBars`). Cifrele exacte rămân și într-un tabel.
 - **Limba.** Tot textul afișat este în română, cu numerele scrise românește (`app/services/formatting.py`, `labels.py`). Jurnalele și codul își păstrează identificatorii în engleză.
 - **Aspectul** stă în câteva fișiere:
@@ -1100,7 +1100,42 @@ La acceptarea etapei (2026-10-16), echipa a cerut ca fereastra PySide6 să fie s
 - **Testele:** `tests/test_integration.py` parcurge acum lanțul până la răspunsurile serverului (fișiere brute → bază de date → jurnal → evaluare → server), cu aceleași verificări ca înainte. Testul de arhitectură cere ca nimic din `app/` să nu importe Qt sau matplotlib. Rămân 682 de teste Python, care rulează în aproximativ 10 secunde (înainte, 852 în aproximativ 52 de secunde), și 18 teste ale interfeței web.
 - **Verificare după scoatere (2026-10-16):** pe macOS, pachetul reconstruit de la zero (`.dmg` de 86 MB) își trece autoverificarea din `dist/` și din imaginea `.dmg` montată doar pentru citire; aplicația pornește normal, iar cu baza de date mutată temporar arată motivul în fereastră. Pe Windows (GitHub Actions) trec toate cele 682 de teste, programul de instalare are 67 MB, `--update` din pachet descarcă sezonul, iar autoverificarea trece atât pentru serverul din pachet, cât și pentru cel instalat.
 
-## 19. Setul de date și perioadele
+## 19. Predicții mai bune (Faza 23)
+
+Echipa a cerut, după Faza 22: precizia exactă pe meciurile în care un model e sigur, arătată în aplicație; comparația cu casele de pariuri, ca reper; și trei îmbunătățiri ale algoritmilor (Elo cu diferența de goluri, Poisson cu meciurile recente mai importante și corecția Dixon–Coles, mai multe caracteristici pentru regresia logistică).
+
+### 19.1. Măsurarea
+
+- **Când modelul e sigur.** `confident_accuracy` (`app/evaluation/metrics.py`) dă acuratețea pe meciurile în care cea mai mare probabilitate a modelului este cel puțin un prag, cu numărul și partea lor; evaluatorul o calculează pentru pragurile 50%, 60%, 65% și 70% (`CONFIDENCE_THRESHOLDS`), pentru fiecare model cu probabilități. `SeasonReview.when_sure` face același lucru pentru meciurile unui sezon.
+- **Cotele.** `app/data/odds.py` citește media cotelor din fișierele brute (`BbAvH/D/A` până în 2018/19, `AvgH/D/A` din 2019/20); un meci fără toate trei este lăsat deoparte, o valoare greșită sau imposibilă (cel mult 1) este o eroare cu rândul ei. `build_database` le păstrează în tabelul `market_odds`, separat de meciuri, pe care modelele nu îl citesc niciodată. Probabilitățile se obțin scoțând marja proporțional.
+- **Casele de pariuri.** `app/evaluation/bookmakers.py` face din cote un rând „Bookmakers” al jurnalului, pentru fiecare meci de evaluare cu cote, și îl compară meci cu meci cu fiecare model (scorul Brier); `python -m app.evaluation.bookmakers` tipărește comparația fiecărei ligi. `EvaluationService` o adaugă rezultatelor (`EvaluationResults.bookmakers`), iar o bază de date construită înainte de Faza 23, fără cote, doar o lasă deoparte.
+- **Serverul și ecranele.** `ModelEvaluation.confident`, `Evaluation.bookmakers`, `Review.sure` și `ReviewedMatch.confidence` (`app/api/schemas.py`). Analiză → Modele are două carduri noi, „Când modelul e sigur” (modelele și cele patru praguri) și „Față de casele de pariuri” (măsurile, pragul de 65% și diferențele meci cu meci, cu nota că cotele sunt doar un reper). Predicții are cardul „Când modelul era sigur” (cele patru praguri ale sezonului, cel de 65% evidențiat) și filtrul „Sigure (peste 65%)”; ordinea „Cele mai sigure predicții” folosește acum `confidence`.
+
+### 19.2. Algoritmii
+
+Fiecare îmbunătățire este o opțiune în plus a grilei de calibrare a modelului ei, aleasă sau nu pentru fiecare ligă doar pe sezoanele 2007/08–2009/10 (`app/prediction/settings.py`, `league_settings` cu argumentele `goal_margin`, `half_life`, `rho`, `extra_features`). Fără ele, modelele dau exact predicțiile de dinainte.
+
+- **Elo** (`docs/algorithms/elo.md`, Ec. 7): ponderea diferenței de goluri a World Football Elo Ratings; aleasă în Premier League, La Liga și Bundesliga.
+- **Poisson** (`docs/algorithms/poisson.md`, Ec. 6–7): ponderi $2^{-j/h}$ pentru meciurile unei echipe (alese peste tot, în afară de Serie A) și corecția Dixon–Coles a scorurilor 0–0, 0–1, 1–0, 1–1, cu $\rho$ limitat astfel încât niciun scor să nu piardă mai mult de jumătate din probabilitate (aleasă în toate ligile).
+- **Regresia logistică** (`docs/algorithms/logistic_regression.md`, secțiunea 4): distanța Elo, $|$diferența Elo$|$, și diferența golurilor așteptate de Poisson; prima aleasă doar în La Liga, a doua în Premier League, La Liga și Serie A. `predict_history` dă caracteristicilor predicțiile Poisson pe care le-a calculat deja, ca modelul să nu ruleze de două ori.
+
+Rezultatele, ligă cu ligă și față de setările de dinainte: `docs/leagues.md`, secțiunile 5–7. Pe scurt: Poisson s-a îmbunătățit real, regresia logistică nu s-a schimbat real pe toate ligile la un loc, iar Elo cu ponderea golurilor este cu foarte puțin mai slab pe sezoanele de evaluare, deși calibrarea l-a ales. Opțiunile nu au fost schimbate după ce s-au văzut aceste rezultate.
+
+### 19.3. Verificare
+
+Rulări din 2026-10-16:
+
+- **Date.** Baza de date a fost reconstruită (`python -m app.data.build_database`, toate sezoanele complete) cu cotele: toate meciurile de evaluare au cote, în afară de unul din Serie A. Calibrarea tuturor ligilor (`league_calibration`, aproximativ 5 minute) a fost rulată de două ori: a doua oară cu grilele lărgite, aceleași valori. Jurnalele celor cinci ligi au fost reconstruite (aproximativ 6,5–10 s pe ligă) și sunt identice octet cu octet la o nouă rulare, inclusiv după ce Poisson a început să fie împărțit cu caracteristicile regresiei logistice.
+- **Teste.** Testele noi verifică exemple calculate de mână (ponderea golurilor, $\tau$, ponderile meciurilor recente, caracteristicile noi, acuratețea când modelul e sigur, cotele și marja), invariantele (suma ratingurilor, suma tabelului și golurile așteptate după corecție), cazurile limită ($\rho$ limitat, meciuri fără cote), intrările greșite, absența scurgerii de informații cu caracteristicile noi și faptul că fiecare alegere a calibrării are măsura modelului rulat cu ea. Un test leagă textele din Analiză de ligile care folosesc fiecare opțiune.
+- **Ecrane.** Analiză → Modele și Predicții au fost deschise cu datele reale la 1280 × 900 și 1024 × 800; niciun tabel nu se derulează în lateral.
+
+### 19.4. Limitări
+
+- Câștigurile sunt mici (cel mult 0,004 la scorul Brier într-o ligă), iar casele de pariuri rămân real mai bune decât fiecare model, cu 0,009–0,026 la scorul Brier.
+- Grilele au acum mult mai multe alegeri pe aceleași trei sezoane de calibrare, deci alegerea poate urma zgomotul (cazul ponderii golurilor la Elo).
+- Pregătirea predicțiilor unei ligi durează puțin mai mult (aproximativ o secundă), pentru că regresia logistică are până la șapte caracteristici.
+
+## 20. Setul de date și perioadele
 
 Sursa datelor este Football-Data.co.uk: cinci ligi (Premier League, La Liga, Serie A, Bundesliga, Ligue 1), fiecare cu 20 de sezoane încheiate, 2006/07–2025/26 (36.197 de meciuri). Perioadele sunt aceleași pentru toate ligile. Sezonul în desfășurare (2026/27) este descărcat separat și nu face parte din evaluare (secțiunea 15).
 
@@ -1110,7 +1145,7 @@ Sursa datelor este Football-Data.co.uk: cinci ligi (Premier League, La Liga, Ser
 | 2007/08–2009/10 | Calibrare: se aleg hiperparametrii; rezultatele nu sunt raportate. |
 | 2010/11–2025/26 | Evaluarea raportată: 16 sezoane; 6.080 de meciuri în fiecare ligă cu 20 de echipe, 4.896 în Bundesliga, 5.757 în Ligue 1; 28.893 în total. |
 
-## 20. Tehnologii
+## 21. Tehnologii
 
 | Componentă | Versiune | Rol |
 |---|---|---|
@@ -1134,7 +1169,7 @@ Sursa datelor este Football-Data.co.uk: cinci ligi (Premier League, La Liga, Ser
 | Vitest, Testing Library, jsdom | 5.0.5, 16.3.3, 30.1.3 | testele interfeței web |
 | Rust / Tauri | 1.99 / 2.12.4 | fereastra de desktop a interfeței web |
 
-## 21. Decizii tehnice
+## 22. Decizii tehnice
 
 | Decizie | Motiv |
 |---|---|

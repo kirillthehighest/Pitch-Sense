@@ -110,22 +110,27 @@ EXPLANATIONS = (
         "Ratingul Elo",
         "Fiecare echipă are un număr care îi arată puterea. După fiecare meci, câștigătoarea ia "
         "puncte de la învinsă: mai multe dacă a învins o echipă mai puternică, mai puține dacă "
-        "era favorită. Din diferența de rating (plus avantajul terenului propriu) rezultă șansa "
-        "fiecărei echipe; șansa de egal a fost învățată din meciurile trecute.",
+        "era favorită. În Premier League, La Liga și Bundesliga contează și la câte goluri a "
+        "câștigat: un 4–0 mută mai multe puncte decât un 1–0. Din diferența de rating (plus "
+        "avantajul terenului propriu) rezultă șansa fiecărei echipe; șansa de egal a fost "
+        "învățată din meciurile trecute.",
     ),
     (
         "Modelul Poisson",
         "Estimează câte goluri va marca fiecare echipă, din cât marchează ea și cât primește "
         "adversarul, acasă și în deplasare, față de media ligii. Din cele două medii rezultă "
         "probabilitatea fiecărui scor (0–0, 1–0, 2–1...), iar din scoruri, șansele de victorie, "
-        "egal și înfrângere. Presupune că golurile celor două echipe nu depind unele de altele, "
-        "de aceea subestimează puțin egalurile.",
+        "egal și înfrângere. Meciurile recente cântăresc mai mult (în toate ligile, în afară de "
+        "Serie A). Socotite independent, golurile celor două echipe ar da prea puține egaluri; "
+        "corecția Dixon–Coles mută puțină probabilitate de la 1–0 și 0–1 la 0–0 și 1–1.",
     ),
     (
         "Regresia logistică",
         "Primește cinci diferențe dintre gazde și oaspeți (rating Elo, puncte și goluri pe meci, "
         "forma recentă, șuturi pe poartă) și a învățat, din toate meciurile trecute, cât "
-        "contează fiecare. Este reantrenată în fiecare luni, doar pe meciurile deja jucate.",
+        "contează fiecare. În Premier League, La Liga și Serie A primește și diferența golurilor "
+        "așteptate de modelul Poisson, iar în La Liga și cât de apropiate sunt echipele ca "
+        "rating. Este reantrenată în fiecare luni, doar pe meciurile deja jucate.",
     ),
     (
         "K‑Means",
@@ -139,13 +144,16 @@ EXPLANATIONS = (
         "Ca în viața reală: meciurile sunt parcurse în ordinea datelor, fiecare predicție "
         "folosește doar meciurile jucate înaintea ei, iar rezultatul se află abia după. "
         "Sezonul 2006/07 doar pornește modelele, 2007/08–2009/10 au servit la alegerea "
-        "setărilor, iar rezultatele raportate vin din 2010/11–2025/26.",
+        "setărilor, iar rezultatele raportate vin din 2010/11–2025/26. Ca reper, modelele sunt "
+        "comparate și cu cotele caselor de pariuri, care nu intră în niciun model.",
     ),
     (
         "Cum citești măsurile",
         "Acuratețea: cât de des rezultatul cel mai probabil s-a întâmplat. Scorul Brier: cât de "
         "departe au fost probabilitățile de rezultat (0 ar fi perfect; mai mic e mai bine). "
         "Pierderea logaritmică: pedepsește mult o predicție sigură pe ea și greșită. "
+        "Când modelul e sigur: acuratețea doar pe meciurile în care dădea rezultatului cel mai "
+        "probabil cel puțin 65% (sau alt prag); sunt mai puține meciuri, dar mai des nimerite. "
         "O diferență între modele este reală doar dacă intervalul ei de încredere nu conține 0.",
     ),
 )

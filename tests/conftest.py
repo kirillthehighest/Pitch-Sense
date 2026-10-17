@@ -40,6 +40,10 @@ def raw_season_rows() -> list[dict[str, str]]:
                 "FTAG": str(away_goals),
                 "FTR": result,
                 **{column: str(number % 5) for column in STATISTICS_HEADER},
+                # the bookmakers' average odds, as the files until 2018-19 name them
+                "BbAvH": f"{1.5 + number % 4 * 0.5:.2f}",
+                "BbAvD": "3.40",
+                "BbAvA": f"{2.0 + number % 3:.2f}",
             }
         )
     return rows

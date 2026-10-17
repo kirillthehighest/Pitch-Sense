@@ -1,12 +1,13 @@
+import math
 from dataclasses import replace
 from datetime import date
 
 import pytest
 
 from app.data.models import Match, Outcome
-from app.prediction.poisson_predictions import predict_match, run_poisson
+from app.prediction.poisson_predictions import predict_match, run_poisson, weighted_record
 from app.prediction.settings import PoissonSettings
-from app.statistics.team_statistics import MatchHistory
+from app.statistics.team_statistics import MatchHistory, Venue
 
 SETTINGS = PoissonSettings(team_window=19, prior_matches=1, league_window=380)
 
@@ -81,6 +82,35 @@ def test_only_the_last_team_window_matches_count():
     assert prediction.home_attack == pytest.approx((0 + 1 * 1.2) / 2 / 1.2)
 
 
+def test_recent_matches_weigh_more_with_a_half_life():
+    later_home_match = make(5, "A", "B", 0, 0)
+    target = make(6, "A", "C", 1, 1)
+    history = MatchHistory([*EARLIER, later_home_match, target])
+
+    prediction = predict_match(history, target, PoissonSettings(19, 1, 380, half_life=1))
+
+    # A's home matches weigh 0.5 (2-1 on 1 September) and 1 (0-0 on 5 September): 1 goal scored
+    # in 1.5 weighted matches. The league has 1.2 home goals per match before 6 September.
+    assert prediction.home_attack == pytest.approx((1 + 1 * 1.2) / (1.5 + 1) / 1.2)
+    record = weighted_record(
+        history, "A", target.match_date, last=19, venue=Venue.HOME, half_life=1
+    )
+    assert (record.goals_for, record.goals_against, record.matches) == (1.0, 0.5, 1.5)
+
+
+def test_the_settings_rho_reaches_the_score_table():
+    target = make(5, "A", "C", 1, 1)
+    history = MatchHistory([*EARLIER, target])
+
+    plain = predict_match(history, target, SETTINGS)
+    corrected = predict_match(history, target, replace(SETTINGS, rho=-0.1))
+
+    assert numbers(corrected) == numbers(plain)  # the same strengths and expected goals
+    assert corrected.distribution.rho == -0.1
+    draw = corrected.distribution.outcome_probabilities()[1]
+    assert draw > plain.distribution.outcome_probabilities()[1]
+
+
 def test_no_prediction_without_league_goals():
     target = make(2, "C", "D", 1, 1)
     goalless_first_day = make(1, "A", "B", 0, 0)
@@ -127,6 +157,8 @@ def test_changing_a_result_never_changes_predictions_on_or_before_its_day(season
         PoissonSettings(team_window=0, prior_matches=1, league_window=380),
         PoissonSettings(team_window=19, prior_matches=0, league_window=380),
         PoissonSettings(team_window=19, prior_matches=1, league_window=0),
+        PoissonSettings(team_window=19, prior_matches=1, league_window=380, half_life=0),
+        PoissonSettings(team_window=19, prior_matches=1, league_window=380, rho=math.nan),
     ],
 )
 def test_invalid_settings_are_rejected(season_matches, settings):

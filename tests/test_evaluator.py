@@ -11,7 +11,13 @@ from app.evaluation.backtesting import (
     write_log,
 )
 from app.evaluation.evaluator import evaluate, main
-from app.evaluation.metrics import brier_score, calibration_table, expected_calibration_error
+from app.evaluation.metrics import (
+    CONFIDENCE_THRESHOLDS,
+    brier_score,
+    calibration_table,
+    confident_accuracy,
+    expected_calibration_error,
+)
 
 # The four hand-worked forecasts of tests/test_metrics.py: results H, A, H, D.
 FORECASTS = [(0.5, 0.3, 0.2), (0.2, 0.5, 0.3), (0.6, 0.2, 0.2), (1 / 3, 1 / 3, 1 / 3)]
@@ -63,7 +69,10 @@ def test_models_are_scored_with_the_metrics(log):
     table = calibration_table(probabilities, actual)
     assert poisson.calibration_error == pytest.approx(expected_calibration_error(table))
     np.testing.assert_array_equal(poisson.confusion, [[2, 0, 0], [1, 0, 0], [0, 1, 0]])
+    assert [c.threshold for c in poisson.confident] == list(CONFIDENCE_THRESHOLDS)
+    assert poisson.confident[0] == confident_accuracy(probabilities, actual, 0.5)
     assert home_win.model == ALWAYS_HOME_WIN
+    assert home_win.confident == ()  # always 100% sure: nothing to tell
 
 
 def test_expected_goals_error_pools_home_and_away_goals(log):

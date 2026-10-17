@@ -15,7 +15,7 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 
 from app.data.competitions import COMPETITIONS, Competition
-from app.data.loader import load_competition
+from app.data.loader import load_competition, load_competition_odds
 from app.data.models import Match
 from app.data.paths import DATABASE_PATH, RAW_DATA_DIR
 from app.data.preprocessing import DataValidationError, season_structure_problems
@@ -46,6 +46,9 @@ def build_database(
                 matches = load_competition(folder)
                 _check_seasons(folder.name, matches, competitions)
                 repository.replace_competition(folder.name, matches)
+                played = {(m.match_date, m.home_team, m.away_team) for m in matches}
+                odds = [item for item in load_competition_odds(folder) if item.key in played]
+                repository.replace_market_odds(folder.name, odds)
                 summary[folder.name] = Counter(match.season for match in matches)
     except Exception:
         temporary_path.unlink(missing_ok=True)

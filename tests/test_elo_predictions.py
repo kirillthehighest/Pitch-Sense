@@ -6,7 +6,7 @@ import pytest
 
 from app.data.models import Match, Outcome
 from app.prediction.elo_predictions import run_elo
-from app.prediction.settings import EloSettings
+from app.prediction.settings import EloSettings, settings_for
 
 
 def make(day: date, home_team: str, away_team: str, home_goals: int, away_goals: int) -> Match:
@@ -117,9 +117,8 @@ def test_each_league_is_rated_with_its_own_settings(season_matches):
 
     la_liga_run, premier_league_run = run_elo(season_matches), run_elo(premier_league)
 
-    assert la_liga_run.final_ratings == run_elo(season_matches, EloSettings(15, 80)).final_ratings
-    assert (
-        premier_league_run.final_ratings
-        == run_elo(premier_league, EloSettings(25, 80)).final_ratings
-    )
+    la_liga, english = EloSettings(10, 80, goal_margin=True), EloSettings(15, 80, goal_margin=True)
+    assert settings_for("SP1").elo == la_liga and settings_for("E0").elo == english
+    assert la_liga_run.final_ratings == run_elo(season_matches, la_liga).final_ratings
+    assert premier_league_run.final_ratings == run_elo(premier_league, english).final_ratings
     assert la_liga_run.final_ratings != premier_league_run.final_ratings

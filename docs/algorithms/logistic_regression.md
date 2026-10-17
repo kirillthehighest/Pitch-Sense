@@ -67,6 +67,15 @@ Cele cinci caracteristici ale unui meci sunt diferențe „gazde minus oaspeți�
 
 O echipă fără istoricul necesar primește media ligii din ultimele 380 de meciuri, separat pentru gazde și oaspeți, astfel încât avantajul terenului propriu se păstrează. De exemplu, punctele pe meci ale gazdelor sunt $3 \cdot P(H) + P(D)$.
 
+**Două caracteristici în plus (Faza 23)**, adăugate doar în ligile în care calibrarea le alege (secțiunea 7.3):
+
+| Caracteristică | Calcul |
+|---|---|
+| `elo_gap` | $|$diferența Elo$|$: cât de apropiate sunt echipele, indiferent care e mai puternică |
+| `expected_goals_difference` | $\lambda_h - \lambda_a$ ale modelului Poisson pentru meci, din meciurile dinaintea zilei lui; până când modelul Poisson poate prezice, golurile gazdelor minus ale oaspeților pe meci în ligă |
+
+Modelul este liniar în caracteristici, iar cele cinci de bază sunt diferențe „gazde minus oaspeți”: cu ele, probabilitatea egalului poate urma doar avantajul uneia dintre echipe. `elo_gap` îi permite să crească atunci când echipele sunt apropiate, oricare ar fi mai puternică. `expected_goals_difference` aduce în model estimarea golurilor, cu forțele de atac și de apărare ale modelului Poisson.
+
 Alte intrări: rezultatele meciurilor anterioare (clasele), puterea penalizării $\lambda$, toleranța și numărul maxim de iterații.
 
 ## 5. Ieșiri
@@ -111,51 +120,52 @@ PREDICȚII_SĂPTĂMÂNALE(meciuri, λ):
 | Fișier | Conținut |
 |---|---|
 | `app/algorithms/logistic_regression.py` | Ec. 1–7: standardizarea, codificarea one-hot, softmax, pierderea, gradientul, antrenarea și modelul antrenat. Folosește doar NumPy și biblioteca standard Python. |
-| `app/prediction/logistic_features.py` | Cele cinci caracteristici ale fiecărui meci, din datele dinaintea zilei lui. |
+| `app/prediction/logistic_features.py` | Cele cinci caracteristici ale fiecărui meci și, după setări, cele două în plus, din datele dinaintea zilei lui; `feature_names` dă lista lor. |
 | `app/prediction/logistic_predictions.py` | Reantrenarea săptămânală și predicțiile; valorile alese sunt implicite. |
-| `app/evaluation/logistic_calibration.py` | Alegerea lui $\lambda$: `python -m app.evaluation.logistic_calibration`. |
+| `app/evaluation/logistic_calibration.py` | Alegerea lui $\lambda$ și a caracteristicilor în plus: `python -m app.evaluation.logistic_calibration`. |
 
 ### 7.2. Valorile parametrilor
 
 | Parametru | Valoare | Cum a fost ales |
 |---|---|---|
 | $\lambda$ (L2) | 0,1 | calibrare (secțiunea 7.3) |
+| caracteristicile în plus | `elo_gap` și `expected_goals_difference` | calibrare (secțiunea 7.3), din Faza 23 |
 | toleranța de oprire | $10^{-8}$ (relativă) | valoare implicită documentată |
-| numărul maxim de iterații | 10.000 | valoare implicită documentată; în practică nu se atinge niciodată (maximum 65) |
+| numărul maxim de iterații | 10.000 | valoare implicită documentată; în practică nu se atinge niciodată (maximum 79) |
 | meciuri minime de antrenare | 100 | valoare implicită; prima predicție este pe 25 noiembrie 2006, în sezonul de încălzire |
 | reantrenare | o dată pe săptămână (luni), cu fereastră care crește | decizia echipei |
 | ferestrele caracteristicilor | 19 meciuri acasă/deplasare, 5 pentru formă, 380 pentru liga | un sezon de meciuri acasă (sau în deplasare); forma din Faza 2; un sezon al ligii |
 
-Valorile sunt cele ale La Liga. Fiecare ligă își alege $\lambda$ pe propriile sezoane de calibrare (Premier League: 0,01; celelalte: 0,1), folosește diferența Elo calculată cu propriile $K$ și $H$, iar ferestrele urmează mărimea ligii: 17 meciuri acasă/deplasare și 306 pentru liga la 18 echipe (`docs/leagues.md`, secțiunea 2).
+Valorile sunt cele ale La Liga. Fiecare ligă își alege $\lambda$ și caracteristicile în plus pe propriile sezoane de calibrare (rulare din 2026-10-16: toate ligile $\lambda = 0{,}1$; Premier League și Serie A adaugă `expected_goals_difference`, Bundesliga și Ligue 1 rămân la cele cinci), folosește diferența Elo calculată cu propriul Elo și golurile așteptate ale propriului model Poisson, iar ferestrele urmează mărimea ligii: 17 meciuri acasă/deplasare și 306 pentru liga la 18 echipe (`docs/leagues.md`, secțiunea 2). Până în Faza 23, Premier League avea $\lambda = 0{,}01$.
 
-### 7.3. Calibrarea lui λ
+### 7.3. Calibrarea lui λ și a caracteristicilor
 
-Modelul a fost rulat doar pe sezonul de încălzire 2006/07 și pe sezoanele de calibrare 2007/08–2009/10; sezoanele de evaluare nu sunt citite. Pentru fiecare valoare $\lambda \in \{0; 0{,}001; 0{,}01; 0{,}1; 1\}$ s-a calculat pierderea logaritmică (media lui $-\ln P(\text{rezultatul real})$) pe cele 1.140 de meciuri de calibrare. Este chiar mărimea pe care modelul o minimizează la antrenare. Rulare din 2026-10-04:
+Modelul a fost rulat doar pe sezonul de încălzire 2006/07 și pe sezoanele de calibrare 2007/08–2009/10; sezoanele de evaluare nu sunt citite. Pentru fiecare valoare $\lambda \in \{0; 0{,}001; 0{,}01; 0{,}1; 1\}$ și fiecare set de caracteristici (cele cinci de bază, plus niciuna, una sau ambele caracteristici din Faza 23; 20 de alegeri) s-a calculat pierderea logaritmică (media lui $-\ln P(\text{rezultatul real})$) pe cele 1.140 de meciuri de calibrare. Este chiar mărimea pe care modelul o minimizează la antrenare. Diferența Elo folosește Elo-ul ales de calibrarea lui ($K = 10$, $H = 80$, cu ponderea golurilor), iar golurile așteptate modelul Poisson ales de calibrarea lui. Rulare din 2026-10-16:
 
-| λ | Pierderea logaritmică |
-|---|---|
-| **0,1** | **0,98627** |
-| 0,01 | 0,98687 |
-| 0,001 | 0,98749 |
-| 0 | 0,98758 |
-| 1 | 1,00363 |
+| λ | Caracteristici în plus | Pierderea logaritmică |
+|---|---|---|
+| **0,1** | **`elo_gap`, `expected_goals_difference`** | **0,98299** |
+| 0,1 | `elo_gap` | 0,98342 |
+| 0,1 | `expected_goals_difference` | 0,98372 |
+| 0,01 | `expected_goals_difference` | 0,98400 |
+| 0,1 | niciuna | 0,98435 |
 
-Ca referință, o predicție constantă cu frecvențele rezultatelor din sezonul de încălzire are 1,04696; regresia logistică o reduce cu 5,8%. Valoarea aleasă este în interiorul grilei.
+Până în Faza 23, cu cele cinci caracteristici și Elo-ul de atunci ($K = 15$, $H = 80$), cea mai bună valoare a fost tot $\lambda = 0{,}1$, cu 0,98627. Ca referință, o predicție constantă cu frecvențele rezultatelor din sezonul de încălzire are 1,04696; regresia logistică o reduce acum cu 6,1%. Valoarea aleasă pentru $\lambda$ este în interiorul grilei.
 
 ### 7.4. Diagnostic pe sezoanele de calibrare
 
-Cu $\lambda = 0{,}1$, pe cele 1.140 de meciuri din 2007/08–2009/10:
+Cu setările La Liga ($\lambda = 0{,}1$, șapte caracteristici), pe cele 1.140 de meciuri din 2007/08–2009/10 (rulare din 2026-10-16):
 
-- Media probabilităților prezise este 47,5% / 24,1% / 28,3%, față de rezultatele reale 49,1% / 23,2% / 27,6%.
-- Probabilitatea egalului variază între 10,9% și 37,9%, iar cea a victoriei gazdelor între 10,8% și 83,2%.
-- Egalul este rezultatul cel mai probabil la doar 0,1% dintre meciuri (victoria gazdelor la 78,8%, a oaspeților la 21,1%). Chiar când egalul are o probabilitate mare, una dintre victorii are de obicei una și mai mare. Acest lucru contează pentru acuratețe: un model care alege mereu rezultatul cel mai probabil aproape nu prezice niciodată egaluri.
-- Toate cele 106 reantrenări săptămânale au convers, cu o mediană de 25 de iterații (maximum 40), datorită pornirii de la ponderile săptămânii anterioare.
+- Media probabilităților prezise este 48,4% / 23,4% / 28,1%, față de rezultatele reale 49,1% / 23,2% / 27,6%.
+- Probabilitatea egalului variază între 6,0% și 44,0% (între 10,9% și 37,9% cu cele cinci caracteristici), iar cea a victoriei gazdelor între 12,9% și 89,6%.
+- Egalul este rezultatul cel mai probabil la doar 0,3% dintre meciuri (victoria gazdelor la 79,6%, a oaspeților la 20,1%). Chiar când egalul are o probabilitate mare, una dintre victorii are de obicei una și mai mare. Acest lucru contează pentru acuratețe: un model care alege mereu rezultatul cel mai probabil aproape nu prezice niciodată egaluri.
+- Toate cele 106 reantrenări săptămânale au convers, cu o mediană de 33 de iterații (maximum 57), datorită pornirii de la ponderile săptămânii anterioare.
 
-**Antrenarea pe toate cele 1.519 meciuri de încălzire și calibrare**, pornind de la ponderi zero, a convers în 52 de iterații. Pierderea a scăzut astfel:
+**Antrenarea pe toate cele 1.519 meciuri de încălzire și calibrare**, pornind de la ponderi zero, a convers în 74 de iterații. Pierderea a scăzut astfel:
 
-| Iterația | 0 | 1 | 5 | 10 | 50 | 52 (final) |
+| Iterația | 0 | 1 | 5 | 10 | 50 | 74 (final) |
 |---|---|---|---|---|---|---|
-| Pierderea | 1,09861 | 1,04017 | 1,00941 | 1,00361 | 1,00256 | 1,00256 |
+| Pierderea | 1,09861 | 1,04111 | 1,00981 | 1,00144 | 0,99892 | 0,99892 |
 
 La iterația 0, toate probabilitățile sunt 1/3, iar pierderea este $\ln 3 = 1{,}09861$.
 
@@ -163,18 +173,24 @@ La iterația 0, toate probabilitățile sunt 1/3, iar pierderea este $\ln 3 = 1{
 
 | Caracteristică (abaterea standard) | H | D | A |
 |---|---|---|---|
-| termenul liber | +0,417 | −0,249 | −0,168 |
-| diferența Elo (89,6 puncte) | +0,205 | −0,049 | −0,156 |
-| puncte pe meci (0,75) | +0,017 | +0,034 | −0,051 |
-| golaveraj pe meci (1,02) | +0,028 | +0,009 | −0,037 |
-| formă (0,94) | +0,071 | +0,003 | −0,074 |
-| șuturi pe poartă (2,11) | +0,127 | −0,026 | −0,101 |
+| termenul liber | +0,421 | −0,255 | −0,166 |
+| diferența Elo (93,6 puncte) | +0,185 | −0,044 | −0,141 |
+| puncte pe meci (0,75) | +0,004 | +0,043 | −0,047 |
+| golaveraj pe meci (1,02) | −0,011 | +0,027 | −0,016 |
+| formă (0,94) | +0,071 | +0,002 | −0,073 |
+| șuturi pe poartă (2,11) | +0,106 | −0,017 | −0,089 |
+| distanța Elo, $|$diferența Elo$|$ (62,6 puncte) | +0,042 | −0,073 | +0,030 |
+| diferența golurilor așteptate (0,49) | +0,095 | −0,047 | −0,048 |
 
-Toate semnele sunt cele așteptate: o valoare mai mare favorizează gazdele și defavorizează oaspeții. Diferența Elo are cea mai mare influență, urmată de șuturile pe poartă. Termenul liber pozitiv pentru H reprezintă avantajul terenului propriu. Punctele și golaverajul au ponderi mici, pentru că informația lor se suprapune cu cea a ratingului Elo: corelațiile diferenței Elo cu celelalte patru caracteristici sunt 0,66, 0,71, 0,58 și 0,60.
+Semnele diferențelor sunt cele așteptate: o valoare mai mare favorizează gazdele și defavorizează oaspeții (golaverajul are o pondere aproape nulă). Diferența Elo are cea mai mare influență, urmată de șuturile pe poartă și de golurile așteptate. Termenul liber pozitiv pentru H reprezintă avantajul terenului propriu. Distanța Elo face exact ce i se cere: cu cât echipele sunt mai departe una de alta, cu atât egalul e mai puțin probabil (−0,073). Punctele și golaverajul au ponderi mici, pentru că informația lor se suprapune cu cea a ratingului Elo: corelațiile diferenței Elo cu celelalte caracteristici sunt 0,64, 0,72, 0,56, 0,62, 0,00 (distanța) și 0,86 (golurile așteptate).
+
+### 7.5. Modificare în Faza 23: două caracteristici în plus
+
+Echipa a cerut mai multe caracteristici. Cele două de mai sus au fost adăugate ca opțiuni ale grilei de calibrare: La Liga le-a ales pe amândouă, Premier League și Serie A doar golurile așteptate, iar Bundesliga și Ligue 1 niciuna. Pe sezoanele de evaluare (2010/11–2025/26), comparat meci cu meci cu modelul de dinainte, scorul Brier s-a schimbat cu +0,0014 (Premier League, o înrăutățire reală; acolo s-au schimbat și $\lambda$, de la 0,01 la 0,1, și Elo-ul din care vine diferența Elo), −0,0015 (La Liga, reală), −0,0006 (Serie A), −0,0004 (Bundesliga, reală, doar din noul Elo) și 0 (Ligue 1, neschimbată). Pe toate ligile la un loc, −0,0002, cu intervalul [−0,0005; +0,0001]: nicio schimbare reală. Regresia logistică rămâne cel mai bun model în patru ligi (`docs/leagues.md`).
 
 ## 8. Complexitate
 
-Notații: $n$ — numărul de exemple de antrenare, $d$ — numărul de caracteristici (5), $C$ — numărul de clase (3), $T$ — numărul de iterații, $R$ — numărul de reantrenări.
+Notații: $n$ — numărul de exemple de antrenare, $d$ — numărul de caracteristici (5 până la 7), $C$ — numărul de clase (3), $T$ — numărul de iterații, $R$ — numărul de reantrenări.
 
 | Operație | Timp | Memorie |
 |---|---|---|
@@ -185,22 +201,22 @@ Notații: $n$ — numărul de exemple de antrenare, $d$ — numărul de caracter
 | Predicția unui meci | O(d C) | O(C) |
 | Toate predicțiile, cu reantrenare săptămânală | O(R · T · n d C) | O(n d) |
 
-Pe datele reale, cu $R = 698$ reantrenări și $T \le 65$ iterații datorită pornirii de la ponderile anterioare, toate cele 7.490 de predicții se calculează în aproximativ 6 s, iar calibrarea în aproximativ 5 s.
+Pe datele reale ale La Liga, cu $R = 698$ reantrenări și $T \le 79$ iterații datorită pornirii de la ponderile anterioare, toate cele 7.490 de predicții se calculează în aproximativ 7,4 s (cu rularea Poisson pentru golurile așteptate), iar calibrarea pe cele 20 de alegeri, cu calibrarea Elo și Poisson de care are nevoie, în aproximativ 60 s (rulare din 2026-10-16).
 
 ## 9. Ipoteze
 
 - Logaritmul raportului dintre probabilitățile a două rezultate este o funcție liniară de caracteristici.
 - Meciurile sunt independente între ele, iar relația dintre caracteristici și rezultat se schimbă lent, deci un model antrenat pe meciurile trecute se aplică și săptămâna următoare.
-- Cele cinci caracteristici descriu suficient diferența de forță dintre echipe.
+- Caracteristicile (cele cinci de bază și cele alese în plus) descriu suficient diferența de forță dintre echipe.
 
 ## 10. Limitări
 
-- Modelul este liniar în caracteristici, deci nu poate surprinde direct efecte precum „egalurile sunt mai frecvente când echipele sunt foarte apropiate” decât prin combinația celor trei clase.
+- Modelul este liniar în caracteristici, deci nu poate surprinde direct efecte precum „egalurile sunt mai frecvente când echipele sunt foarte apropiate” decât printr-o caracteristică făcută anume (distanța Elo, aleasă doar în La Liga).
 - Caracteristicile sunt corelate, deci ponderile individuale trebuie interpretate cu grijă: L2 le stabilizează, dar nu le face independente.
-- Folosește ratingul Elo ca intrare, deci nu este complet independentă de algoritmul Elo. Acest lucru trebuie menționat în compararea algoritmilor.
+- Folosește ratingul Elo ca intrare și, în trei ligi, golurile așteptate ale modelului Poisson, deci nu este independentă de celelalte două modele. Acest lucru trebuie menționat în compararea algoritmilor.
 - Egalul nu este aproape niciodată rezultatul cel mai probabil, chiar dacă probabilitatea lui este realistă.
 - Echipele fără istoric primesc media ligii, deși echipele promovate sunt de obicei mai slabe.
-- Calibrarea folosește doar trei sezoane, iar grila lui $\lambda$ are doar cinci valori.
+- Calibrarea folosește doar trei sezoane, iar grila lui $\lambda$ are doar cinci valori. Cu 20 de alegeri pe 1.140 de meciuri, diferențele mici dintre seturile de caracteristici pot fi întâmplătoare (secțiunea 7.5).
 
 ## 11. Exemple din teste
 
@@ -213,7 +229,8 @@ Testele sunt în `tests/test_logistic.py`, `tests/test_logistic_features.py`, `t
 - Cu o singură caracteristică, softmax poate face egalul cel mai probabil între două extreme.
 - O clasă fără exemple de antrenare este refuzată cu o eroare.
 - Caracteristici calculate de mână: pentru A acasă contra C, diferențele sunt 0 (puncte), −1 (golaveraj), −0,5 (formă) și +2 (șuturi pe poartă); pentru o echipă nouă, valorile ei sunt mediile ligii, de exemplu 1,75 puncte pe meci acasă.
-- Fiecare săptămână este antrenată doar pe meciurile dinaintea zilei de luni; schimbarea rezultatului unui meci nu modifică nicio caracteristică sau predicție din ziua lui sau dinainte.
+- Caracteristicile în plus: distanța Elo este valoarea absolută a diferenței Elo; golurile așteptate sunt exact $\lambda_h - \lambda_a$ ale modelului Poisson, iar înainte ca acesta să poată prezice (fără goluri ale gazdelor în ligă), golurile gazdelor minus ale oaspeților pe meci; numele necunoscute sau golurile așteptate fără setări Poisson sunt refuzate; predicțiile Poisson date gata calculate dau aceleași caracteristici; un set de caracteristici din calibrare are pierderea modelului rulat cu acel set.
+- Fiecare săptămână este antrenată doar pe meciurile dinaintea zilei de luni; schimbarea rezultatului unui meci nu modifică nicio caracteristică sau predicție din ziua lui sau dinainte, nici cu caracteristicile în plus.
 
 ## 12. Rolul în PitchSense
 
@@ -221,7 +238,7 @@ Testele sunt în `tests/test_logistic.py`, `tests/test_logistic_features.py`, `t
 - Arată cum se pot combina mai mulți indicatori într-un singur model și cât contează fiecare.
 - Ponderile, istoricul pierderii și numărul de iterații pot fi afișate în interfață pentru a explica modelul.
 
-Exemplu pentru un meci din sezonul 2025/26 (Real Madrid – Barcelona, 26 octombrie 2025), cu modelul antrenat pe cele 7.308 meciuri anterioare săptămânii: caracteristici (Elo +17,1; puncte +0,32; golaveraj −0,21; formă 0,0; șuturi pe poartă +2,05); probabilități 44,3% / 26,5% / 29,3%. Scorul real a fost 2–1. Exemplul ilustrează forma predicției; evaluarea modelului se face în fazele 8–10.
+Exemplu pentru un meci din sezonul 2025/26 (Real Madrid – Barcelona, 26 octombrie 2025), cu modelul antrenat pe cele 7.308 meciuri anterioare săptămânii, cu setările din Faza 23: caracteristici (Elo +5,0; puncte +0,32; golaveraj −0,21; formă 0,0; șuturi pe poartă +2,05; distanța Elo 5,0; golurile așteptate +0,29); probabilități 43,2% / 28,4% / 28,4%. Scorul real a fost 2–1. Exemplul ilustrează forma predicției; evaluarea modelului se face în fazele 8–10.
 
 ## 13. Surse
 

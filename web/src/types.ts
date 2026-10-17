@@ -216,6 +216,7 @@ export interface ReviewedMatch {
   chance: number;
   hit: boolean;
   surprise: boolean;
+  confidence: number; // the model's largest probability
 }
 
 export interface Review {
@@ -228,6 +229,7 @@ export interface Review {
   hits: number;
   surprises: number;
   by_result: { result: Outcome; label: string; hits: number; matches: number }[];
+  sure: { threshold: number; hits: number; matches: number }[]; // when the model was sure
   rows: ReviewedMatch[];
 }
 
@@ -291,6 +293,21 @@ export interface ModelEvaluation {
   goals_error: number | null;
   calibration: CalibrationBin[] | null;
   confusion: number[][];
+  confident: ConfidentAccuracy[]; // when the model is sure
+}
+
+export interface ConfidentAccuracy {
+  threshold: number;
+  matches: number;
+  share: number;
+  accuracy: number | null;
+}
+
+export interface BookmakerComparison {
+  matches: number;
+  missing: number;
+  models: ModelEvaluation[]; // the models, then the bookmakers
+  differences: Difference[]; // Brier score, each model minus the bookmakers
 }
 
 export interface Subset {
@@ -327,6 +344,7 @@ export interface Evaluation {
   by_matchup_type: Subset[];
   agreements: Agreement[];
   all_agree: number | null;
+  bookmakers: BookmakerComparison | null;
 }
 
 export interface LeagueResult {

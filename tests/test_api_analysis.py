@@ -4,7 +4,9 @@ services' own numbers."""
 
 import pytest
 
+from app.evaluation.bookmakers import BOOKMAKERS
 from app.evaluation.comparison import COMPARED_MODELS, REFERENCE_MODEL
+from app.evaluation.metrics import CONFIDENCE_THRESHOLDS
 from app.services.explanations import EXPLANATIONS, GROUPS_EXPLANATION, SOURCES
 
 
@@ -41,6 +43,13 @@ def test_a_league_without_a_log_offers_its_backtest(api_client):
         confusion = evaluation["confusion"]
         assert sum(map(sum, confusion)) == built["matches"]
         assert sum(b["count"] for b in evaluation["calibration"]) == 3 * built["matches"]
+        confident = evaluation["confident"]
+        assert [c["threshold"] for c in confident] == list(CONFIDENCE_THRESHOLDS)
+        counts = [c["matches"] for c in confident]
+        assert counts == sorted(counts, reverse=True) and counts[0] <= built["matches"]
+        for c in confident:
+            assert c["share"] == pytest.approx(c["matches"] / built["matches"])
+            assert (c["accuracy"] is None) == (c["matches"] == 0)
     assert models["Poisson"]["goals_error"] is not None
     assert models["Elo"]["goals_error"] is None
     for difference in built["differences"]:
@@ -51,6 +60,11 @@ def test_a_league_without_a_log_offers_its_backtest(api_client):
     assert {s["key"] for s in built["by_outcome"]} <= {"H", "D", "A"}
     assert built["by_season"][0]["label"] == "2007/08"
     assert 0 <= built["all_agree"] <= 1
+    market = built["bookmakers"]
+    assert market["matches"] + market["missing"] == built["matches"]
+    assert market["models"][-1]["model"] == BOOKMAKERS
+    assert {d["second"] for d in market["differences"]} == {BOOKMAKERS}
+    assert {d["first"] for d in market["differences"]} >= set(COMPARED_MODELS)
     assert api_client.get("/api/evaluation/SP1").json() == built  # read from the log since
 
 

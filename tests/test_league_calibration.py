@@ -3,7 +3,6 @@ import pytest
 from app.data.build_database import build_database
 from app.evaluation import elo_calibration, logistic_calibration, poisson_calibration
 from app.evaluation.league_calibration import calibrate_league, main
-from app.prediction.settings import EloSettings
 
 
 @pytest.fixture
@@ -18,13 +17,14 @@ def test_each_model_gets_its_own_best_value(two_seasons):
     assert result.competition == "SP1"
     assert result.elo == elo
     assert result.poisson == poisson_calibration.calibrate(two_seasons)[0]
+    poisson = result.poisson.settings(league_window=380)
     assert (
         result.logistic
         == logistic_calibration.calibrate(
-            two_seasons, elo=EloSettings(elo.k_factor, elo.home_advantage), min_training_matches=3
+            two_seasons, elo=elo.settings, poisson=poisson, min_training_matches=3
         )[0]
     )
-    assert set(result.edges) <= {"K", "H", "N", "m", "L2"}
+    assert set(result.edges) <= {"K", "H", "N", "m", "L2", "h", "rho"}
 
 
 def test_one_league_at_a_time(two_seasons, next_season_matches):
@@ -40,5 +40,5 @@ def test_main_prints_the_values_for_the_settings(raw_data_dir, tmp_path, capsys,
 
     assert main(database_path, min_training_matches=3) == 0
     output = capsys.readouterr().out
-    assert '"SP1": (' in output
+    assert "\"SP1\": league_settings('SP1', " in output
     assert main(tmp_path / "missing.db") == 1

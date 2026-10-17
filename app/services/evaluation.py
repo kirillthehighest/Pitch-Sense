@@ -10,6 +10,7 @@ from pathlib import Path
 from app.data.paths import DATABASE_PATH
 from app.data.repository import MatchRepository
 from app.evaluation.backtesting import COMPETITION, log_path, read_log, run_backtest, write_log
+from app.evaluation.bookmakers import BookmakerComparison, compare_with_bookmakers
 from app.evaluation.comparison import (
     Agreement,
     PairedDifference,
@@ -40,6 +41,7 @@ class EvaluationResults:
     by_matchup_type: tuple[SubsetComparison, ...]
     agreements: tuple[Agreement, ...]
     all_agree: float
+    bookmakers: BookmakerComparison | None = None  # None without odds in the database
 
 
 class EvaluationService:
@@ -96,6 +98,10 @@ class EvaluationService:
                     "Run the backtest again to rebuild it."
                 ) from error
             seasons = sorted({row.season for row in rows})
+            odds = []
+            if self._database_path.is_file():
+                with MatchRepository.open(self._database_path) as repository:
+                    odds = repository.market_odds(self.competition)
             self._results = EvaluationResults(
                 matches=evaluations[0].matches,
                 first_season=seasons[0],
@@ -107,5 +113,6 @@ class EvaluationService:
                 by_matchup_type=tuple(by_matchup_type(rows)),
                 agreements=tuple(agreements(rows)),
                 all_agree=all_agree(rows),
+                bookmakers=compare_with_bookmakers(self.competition, rows, odds),
             )
         return self._results

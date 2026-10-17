@@ -6,7 +6,15 @@ import pytest
 
 from app.data.build_database import build_database
 from app.data.models import Match, Outcome
-from app.evaluation.logistic_calibration import calibrate, constant_frequency_log_loss, main
+from app.evaluation.logistic_calibration import (
+    FEATURE_SETS,
+    calibrate,
+    constant_frequency_log_loss,
+    main,
+)
+from app.prediction.logistic_features import ELO_GAP
+from app.prediction.logistic_predictions import OUTCOME_ORDER, run_logistic_regression
+from app.prediction.settings import EloSettings, LogisticSettings
 
 SEASONS = {"warm_up_seasons": ("2006-07",), "calibration_seasons": ("2007-08",)}
 
@@ -46,9 +54,34 @@ def test_results_are_sorted_best_first(season_matches, next_season_matches):
     )
 
     losses = [result.log_loss for result in results]
-    assert len(results) == 3
+    assert len(results) == 3 * len(FEATURE_SETS)
     assert losses == sorted(losses)
+    assert {result.extra_features for result in results} == set(FEATURE_SETS)
     assert all(result.matches == 12 for result in results)
+
+
+def test_a_feature_set_scores_as_the_model_with_those_features(season_matches, next_season_matches):
+    matches = [*season_matches, *next_season_matches]
+    elo = EloSettings(20, 60)
+
+    (result,) = calibrate(
+        matches,
+        l2_values=(0.1,),
+        feature_sets=((ELO_GAP,),),
+        min_training_matches=2,
+        elo=elo,
+        **SEASONS,
+    )
+
+    settings = LogisticSettings(0.1, elo, 19, 380, (ELO_GAP,))
+    predictions = run_logistic_regression(matches, settings, min_training_matches=2)
+    losses = [
+        -math.log(p.probabilities[OUTCOME_ORDER.index(p.match.result)])
+        for p in predictions
+        if p.match.season == "2007-08"
+    ]
+    assert result.extra_features == (ELO_GAP,)
+    assert result.log_loss == pytest.approx(math.fsum(losses) / len(losses))
 
 
 def test_seasons_outside_warm_up_and_calibration_are_never_read(

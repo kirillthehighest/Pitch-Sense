@@ -5,6 +5,7 @@ only what is displayed is translated, here, in one place.
 """
 
 from app.evaluation.backtesting import ALWAYS_HOME_WIN, PAST_FREQUENCIES
+from app.evaluation.bookmakers import BOOKMAKERS
 from app.evaluation.comparison import MATCHUP_TYPES, Measure
 from app.prediction.outputs import ModelName
 from app.services.formatting import season_text
@@ -15,6 +16,7 @@ MODEL_LABELS = {
     str(ModelName.LOGISTIC_REGRESSION): "Regresie logistică",
     PAST_FREQUENCIES: "Frecvențele trecute",
     ALWAYS_HOME_WIN: "Mereu victoria gazdelor",
+    BOOKMAKERS: "Casele de pariuri",
 }
 OUTCOME_LABELS = {"H": "Victorie gazde", "D": "Egal", "A": "Victorie oaspeți"}
 RESULT_LETTERS = {"W": "V", "D": "E", "L": "Î"}  # victorie, egal, înfrângere

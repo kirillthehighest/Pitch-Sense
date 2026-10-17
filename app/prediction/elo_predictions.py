@@ -44,7 +44,7 @@ def run_elo(matches: Iterable[Match], settings: EloSettings | None = None) -> El
     When a season starts, the league's teams are set; the clubs taking part in a season are known
     before it begins. Every match of a day is predicted from the ratings before that day, and
     only then are the day's results applied, so no prediction uses a result from its own day.
-    Without ``settings`` the competition's calibrated K and H are used.
+    Without ``settings`` the competition's calibrated K, H and goal-margin choice are used.
     """
     ordered = sort_chronologically(matches)
     if not ordered:
@@ -57,7 +57,11 @@ def run_elo(matches: Iterable[Match], settings: EloSettings | None = None) -> El
     for match in ordered:
         teams_by_season.setdefault(match.season, set()).update((match.home_team, match.away_team))
 
-    elo = EloRatings(k_factor=settings.k_factor, home_advantage=settings.home_advantage)
+    elo = EloRatings(
+        k_factor=settings.k_factor,
+        home_advantage=settings.home_advantage,
+        goal_margin=settings.goal_margin,
+    )
     predictions: list[EloPrediction] = []
     current_season = None
     for match_date, day in groupby(ordered, key=lambda match: match.match_date):

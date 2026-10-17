@@ -14,6 +14,8 @@ and the actual outcome y_i (index 0 = home win, 1 = draw, 2 = away win, one-hot 
                            how often the outcome happened
     calibration error      sum_b (N_b / N) |mean predicted_b - observed_b| over the bins (ECE)
     mean absolute error    (1/n) sum |expected - actual|, for expected goals
+    confident accuracy     accuracy over the matches whose largest probability max_c p_ic is at
+                           least a threshold t (Phase 23), with how many matches that is
 
 Averages come with their standard error: the standard deviation of the per-match values divided
 by sqrt(n).
@@ -28,6 +30,8 @@ import numpy as np
 OUTCOME_CODES = ("H", "D", "A")
 PROBABILITY_TOLERANCE = 1e-6
 DEFAULT_CALIBRATION_BINS = 10
+# The thresholds of "confident" forecasts the evaluation reports (Phase 23)
+CONFIDENCE_THRESHOLDS = (0.5, 0.6, 0.65, 0.7)
 
 
 @dataclass(frozen=True, slots=True)
@@ -48,6 +52,17 @@ class CalibrationBin:
     count: int
     mean_predicted: float | None
     observed_frequency: float | None
+
+
+@dataclass(frozen=True, slots=True)
+class ConfidentAccuracy:
+    """How often the most likely outcome happened among the forecasts at least ``threshold``
+    sure of it: ``matches`` such forecasts, ``share`` of all; ``accuracy`` None without any."""
+
+    threshold: float
+    matches: int
+    share: float
+    accuracy: Estimate | None
 
 
 def outcome_indices(codes: Sequence[str]) -> np.ndarray:
@@ -92,6 +107,23 @@ def brier_score(probabilities: np.ndarray, actual: Sequence[int]) -> Estimate:
 def log_loss(probabilities: np.ndarray, actual: Sequence[int]) -> Estimate:
     """The mean of -ln(probability given to the outcome that happened)."""
     return estimate(log_loss_per_match(probabilities, actual))
+
+
+def confident_accuracy(
+    probabilities: np.ndarray, actual: Sequence[int], threshold: float
+) -> ConfidentAccuracy:
+    """Accuracy over the matches whose largest probability is at least ``threshold``."""
+    if not 0 < threshold <= 1:
+        raise ValueError(f"threshold must be in (0, 1], got {threshold}")
+    probabilities, actual = _checked(probabilities, actual)
+    sure = probabilities.max(axis=1) >= threshold
+    count = int(sure.sum())
+    return ConfidentAccuracy(
+        threshold=threshold,
+        matches=count,
+        share=count / len(actual),
+        accuracy=estimate(correct_per_match(probabilities[sure], actual[sure])) if count else None,
+    )
 
 
 def confusion_matrix(probabilities: np.ndarray, actual: Sequence[int]) -> np.ndarray:
