@@ -1135,6 +1135,13 @@ Rulări din 2026-10-16:
 - Grilele au acum mult mai multe alegeri pe aceleași trei sezoane de calibrare, deci alegerea poate urma zgomotul (cazul ponderii golurilor la Elo).
 - Pregătirea predicțiilor unei ligi durează puțin mai mult (aproximativ o secundă), pentru că regresia logistică are până la șapte caracteristici.
 
+### 19.5. Versiunea 0.5.0
+
+La acceptarea etapei (2026-10-17), echipa a cerut versiunea 0.5.0, publicată pe GitHub (`v0.5.0`). Pachetele conțin baza de date cu cotele caselor de pariuri, jurnalele cu setările din Faza 23 și sezonul în desfășurare de la data construirii.
+
+- **macOS:** `.dmg` de 87 MB. Autoverificarea serverului trece din `dist/` și din imaginea `.dmg` montată doar pentru citire; aplicația deschisă din `dist/` arată ecranele, iar la închidere nu rămâne niciun proces. Un folder de utilizator al versiunii 0.4.0 a primit jurnalele noi (`VERSION` 0.5.0).
+- **Windows** (GitHub Actions): trec toate cele 740 de teste Python și cele 18 ale interfeței web; programul de instalare are 68 MB; serverul din pachet descarcă sezonul în desfășurare, iar autoverificarea trece atât în pachet, cât și după instalarea în *Program Files*.
+
 ## 20. Setul de date și perioadele
 
 Sursa datelor este Football-Data.co.uk: cinci ligi (Premier League, La Liga, Serie A, Bundesliga, Ligue 1), fiecare cu 20 de sezoane încheiate, 2006/07–2025/26 (36.197 de meciuri). Perioadele sunt aceleași pentru toate ligile. Sezonul în desfășurare (2026/27) este descărcat separat și nu face parte din evaluare (secțiunea 15).
