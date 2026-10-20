@@ -77,6 +77,18 @@ class ScoreDistribution:
     truncated_mass: float
     rho: float = 0.0  # the Dixon-Coles rho applied (Eq. 6), after the limits
 
+    def __reduce__(self) -> tuple:
+        """Pickle only what builds the table: it is rebuilt exactly by ``score_distribution``
+        (a league's tables would otherwise fill about 30 MB, sent between processes and saved
+        on disk)."""
+        max_goals = self.probabilities.shape[0] - 1
+        return score_distribution, (
+            self.home_expected_goals,
+            self.away_expected_goals,
+            max_goals,
+            self.rho,
+        )
+
     def outcome_probabilities(self) -> tuple[float, float, float]:
         """Eq. 3: (P(H), P(D), P(A)), always in this order; they sum to 1."""
         home_win = np.tril(self.probabilities, k=-1).sum()  # below the diagonal: i > j

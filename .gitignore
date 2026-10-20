@@ -17,6 +17,7 @@ data/*.db
 data/*.sqlite
 data/results/
 data/live/
+data/cache/
 
 # Operating systems
 .DS_Store

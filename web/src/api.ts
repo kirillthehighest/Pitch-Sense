@@ -49,6 +49,30 @@ export function backend(): Promise<string> {
   return base;
 }
 
+/**
+ * Ask until the server answers: while it starts it may not take questions yet. Asks again every
+ * `retryMs`; once `failuresShown` attempts in a row have failed, tells `onSilent` why (after each
+ * further failure). Gives up, with `undefined`, when `cancelled` says so.
+ */
+export async function askUntilAnswered<T>(
+  ask: () => Promise<T>,
+  onSilent: (message: string) => void,
+  cancelled: () => boolean,
+  retryMs = 1000,
+  failuresShown = 3,
+): Promise<T | undefined> {
+  for (let failures = 1; ; failures += 1) {
+    try {
+      return await ask();
+    } catch (reason) {
+      if (cancelled()) return undefined;
+      if (failures >= failuresShown) onSilent(reason instanceof Error ? reason.message : String(reason));
+    }
+    await new Promise((resolve) => setTimeout(resolve, retryMs));
+    if (cancelled()) return undefined;
+  }
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${await backend()}${path}`, init);
   if (!response.ok) {

@@ -4,6 +4,7 @@ services' own, in the shapes the interface reads."""
 import io
 import json
 import os
+import socket
 import threading
 import time
 from datetime import UTC, date, datetime, timedelta
@@ -11,7 +12,7 @@ from datetime import UTC, date, datetime, timedelta
 import pytest
 
 from app.api import __main__ as server_main
-from app.api.__main__ import exit_with_window, option, port_of, write_utf8
+from app.api.__main__ import HOST, exit_with_window, open_listener, option, port_of, write_utf8
 from app.api.self_test import run_self_test
 from app.data.live import UpdateSummary
 from app.prediction.outputs import ModelName
@@ -283,6 +284,23 @@ def test_the_command_line_options():
         option(["--preferences"], "--preferences")
     with pytest.raises(SystemExit, match="needs a number"):
         port_of(["--port", "eight"])
+
+
+def test_the_port_takes_connections_as_soon_as_it_is_announced():
+    # The window asks at once. A socket only bound does not take the connection: Windows refuses
+    # it on the spot (the package's "Failed to fetch"), macOS leaves it unanswered. One listening
+    # keeps it until uvicorn takes it.
+    bound = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    bound.bind((HOST, 0))
+    listener = open_listener(0)
+    try:
+        with pytest.raises(OSError):  # ConnectionRefusedError, or TimeoutError on macOS
+            socket.create_connection((HOST, bound.getsockname()[1]), timeout=0.5)
+        with socket.create_connection((HOST, listener.getsockname()[1]), timeout=2):
+            pass
+    finally:
+        bound.close()
+        listener.close()
 
 
 def test_the_server_ends_when_its_window_closes():

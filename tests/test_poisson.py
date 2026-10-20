@@ -1,4 +1,5 @@
 import math
+import pickle
 
 import numpy as np
 import pytest
@@ -259,3 +260,23 @@ def test_recency_weights_halve_every_half_life():
 def test_invalid_recency_weights_arguments(count, half_life):
     with pytest.raises(ValueError):
         recency_weights(count, half_life)
+
+
+# --- pickling: the table is rebuilt from its parameters ---
+
+
+@pytest.mark.parametrize(
+    ("home", "away", "rho"),
+    [(1.4, 1.1, 0.0), (2.6, 0.7, -0.08), (5.0, 1.0, -0.2), (0.0, 0.3, -0.1)],
+)
+def test_a_pickled_score_table_comes_back_identical(home, away, rho):
+    distribution = score_distribution(home, away, rho=rho)
+
+    data = pickle.dumps(distribution)
+    back = pickle.loads(data)
+
+    assert np.array_equal(back.probabilities, distribution.probabilities)
+    assert (back.home_expected_goals, back.away_expected_goals) == (home, away)
+    assert (back.rho, back.truncated_mass) == (distribution.rho, distribution.truncated_mass)
+    assert not back.probabilities.flags.writeable
+    assert len(data) < 300  # the parameters only, not the 441 probabilities

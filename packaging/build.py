@@ -1,16 +1,21 @@
 """Build the PitchSense package for this operating system: ``python packaging/build.py``.
 
-1. Rebuild the database and the prediction log of every league from ``data/raw``, and download
-   the season in progress (``data/live``); they ship inside the package, which copies the season
-   in progress to the user's folder, where the application can update it.
+1. Rebuild the database and the prediction log of every league from ``data/raw``, download the
+   season in progress (``data/live``) and compute every league's predictions for these data
+   (``data/cache``, ``app/services/prediction_cache.py``); they ship inside the package, which
+   copies the season in progress to the user's folder, where the application can update it, and
+   starts with the shipped predictions instead of computing them.
 2. Run PyInstaller with ``packaging/server.spec``: the local server, ``dist/pitchsense-server``.
 3. Build the window (Tauri, ``web/src-tauri``) with the web interface and the server as a
    resource, the version of ``app/__init__.py`` and, on macOS, the app and its ``.dmg``; on
    Windows an installer (NSIS). Both land in ``dist/``.
 
 Neither PyInstaller nor Tauri cross-compiles: build the macOS package on macOS and the Windows
-package on Windows. The packages are not signed, so each system warns the first time they are
-opened. The window needs Node (``web/package.json``) and Rust (``web/src-tauri/Cargo.toml``).
+package on Windows. The packages have no developer certificate, so each system warns the first
+time they are opened. On macOS the app is signed ad hoc as a whole and its signature checked:
+Tauri signs only the main program, and macOS calls such an app, once downloaded, "damaged" and
+offers no way to open it. The window needs Node (``web/package.json``) and Rust
+(``web/src-tauri/Cargo.toml``).
 """
 
 import argparse
@@ -67,6 +72,14 @@ def build_data() -> None:
     run(python, "-m", "app.data.build_database")
     run(python, "-m", "app.evaluation.backtesting")
     run(python, "-m", "app.data.update")
+    shutil.rmtree(ROOT / "data" / "cache", ignore_errors=True)  # only these data's predictions
+    run(python, "-m", "app.services.prediction_cache")
+
+
+def sign_ad_hoc(application: Path) -> None:
+    """Seal the whole app with an ad-hoc signature and check it (macOS)."""
+    run("codesign", "--force", "--deep", "--sign", "-", str(application))
+    run("codesign", "--verify", "--deep", "--strict", "--verbose=2", str(application))
 
 
 def tauri_config() -> Path:
@@ -92,6 +105,7 @@ def build_web() -> Path:
     if sys.platform == "darwin":
         shutil.rmtree(DIST / f"{NAME}.app", ignore_errors=True)
         shutil.copytree(BUNDLES / "macos" / f"{NAME}.app", DIST / f"{NAME}.app", symlinks=True)
+        sign_ad_hoc(DIST / f"{NAME}.app")
         return disk_image(DIST / f"{NAME}.app", package_name("macOS", ".dmg"))
     if sys.platform == "win32":
         installer = next((BUNDLES / "nsis").glob("*.exe"))

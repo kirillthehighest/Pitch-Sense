@@ -23,6 +23,8 @@ analysis = Analysis(
         ),
         # The season in progress, downloaded by the build (python -m app.data.update).
         (str(ROOT / "data" / "live"), "data/live"),
+        # Every league's predictions for these data (python -m app.services.prediction_cache).
+        (str(ROOT / "data" / "cache"), "data/cache"),
         # The images the server sends: crests, league images and stadium photos.
         (str(ROOT / "app" / "assets"), "app/assets"),
     ],

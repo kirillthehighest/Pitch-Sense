@@ -3,7 +3,7 @@
 // are prepared by the server, and the screens follow as each league becomes ready.
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
-import { api } from "./api";
+import { api, askUntilAnswered } from "./api";
 import { FavouriteDialog } from "./components/FavouriteDialog";
 import { OtherMatch } from "./components/OtherMatch";
 import { ScreenHead } from "./components/ScreenHead";
@@ -19,6 +19,8 @@ import { applyTheme } from "./theme";
 import type { Favourite, Forecast, League, MatchKey, Preferences } from "./types";
 
 const COMPACT_WIDTH = 1200;
+const RETRY_MS = 1000; // the first questions, asked again while the server starts
+const FAILURES_SHOWN = 3; // unanswered for about three seconds: say so, and keep asking
 
 export default function App() {
   const [leagues, setLeagues] = useState<League[]>([]);
@@ -39,15 +41,29 @@ export default function App() {
   const scroller = useRef<HTMLElement>(null);
   const screenScroll = useRef(0); // where the screen was when a match opened over it
 
+  // The leagues and the user's choices, asked again until the server answers: a server that is
+  // still starting is not an error, one silent for a few seconds is shown (and the message goes
+  // when it answers)
   useEffect(() => {
-    Promise.all([api.leagues(), api.preferences()])
-      .then(([found, chosen]) => {
-        setLeagues(found);
-        setPreferences(chosen);
-        const first = found.find((item) => item.code === chosen.competition)?.code ?? found[0]?.code;
-        if (first) setLeague(first);
-      })
-      .catch((reason: Error) => setError(reason.message));
+    let live = true;
+    askUntilAnswered(
+      () => Promise.all([api.leagues(), api.preferences()]),
+      (message) => setError(message),
+      () => !live,
+      RETRY_MS,
+      FAILURES_SHOWN,
+    ).then((answer) => {
+      if (!live || !answer) return;
+      const [found, chosen] = answer;
+      setError(null);
+      setLeagues(found);
+      setPreferences(chosen);
+      const first = found.find((item) => item.code === chosen.competition)?.code ?? found[0]?.code;
+      if (first) setLeague(first);
+    });
+    return () => {
+      live = false;
+    };
   }, []);
 
   // Which leagues are ready, until all are: the screens re-read when it changes (and after an

@@ -4,7 +4,9 @@ progress and exit: ``python -m app.api --update`` (0 on success; the packages ar
 
 The server listens on this computer only (127.0.0.1). With port 0 (the default) the system picks
 a free port; the first line written is ``PITCHSENSE_PORT=<port>``, which the desktop shell reads
-to find the server. The predictions of every league are then computed in the worker process.
+to find the server. The port is announced only once it accepts connections: the interface asks
+at once, and before the fix the Windows package refused its first questions. The predictions
+of every league are then read from the cache or computed in the worker process.
 With ``--with-window`` (the desktop shell's option) the server ends when its standard input
 closes, which happens when the window's process ends in any way, even killed.
 """
@@ -49,6 +51,18 @@ def port_of(arguments: list[str]) -> int:
         return 0 if value is None else int(value)
     except ValueError:
         raise SystemExit("--port needs a number") from None
+
+
+def open_listener(port: int, host: str = HOST) -> socket.socket:
+    """A socket bound to ``port`` (0: the system picks) and already listening, so connections
+    made as soon as its port is known wait in its queue until uvicorn takes them; a socket only
+    bound refuses them."""
+    listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    if os.name != "nt":  # a port just freed can be bound again; on Windows this would share it
+        listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    listener.bind((host, port))
+    listener.listen(socket.SOMAXCONN)
+    return listener
 
 
 def end_server() -> None:
@@ -113,10 +127,7 @@ def main(arguments: list[str]) -> int:
             return run_self_test(backend)
         finally:
             stop_processes()
-    listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    if os.name != "nt":  # a port just freed can be bound again; on Windows this would share it
-        listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    listener.bind((HOST, port_of(arguments)))
+    listener = open_listener(port_of(arguments))
     print(f"PITCHSENSE_PORT={listener.getsockname()[1]}", flush=True)
     if "--with-window" in arguments:
         exit_with_window(sys.stdin.buffer)

@@ -48,6 +48,11 @@ RESULTS_DIR = user_data_dir() / "results" if PACKAGED else BUNDLED_RESULTS_DIR
 # ships a snapshot read-only and keeps the downloaded files in the user's folder.
 BUNDLED_LIVE_DIR = DATA_DIR / "live"
 LIVE_DIR = user_data_dir() / "live" if PACKAGED else BUNDLED_LIVE_DIR
+# Every league's computed predictions (app/services/prediction_cache.py), so a start does not
+# compute them again. A package ships those of its own data, read-only, and keeps the ones it
+# computes after an update in the user's folder.
+BUNDLED_CACHE_DIR = DATA_DIR / "cache"
+CACHE_DIR = user_data_dir() / "cache" if PACKAGED else BUNDLED_CACHE_DIR
 # What the user chose in the application (league, "your team"); user state, kept per user.
 PREFERENCES_PATH = user_data_dir() / "preferences.json"
 # The images the server sends (crests, league images, stadium photos), shipped with the code (and
