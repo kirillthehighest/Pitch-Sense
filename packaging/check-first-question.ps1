@@ -2,19 +2,19 @@
 # reads the port it announces and asks it at once, as the window's interface does. The 0.5.0
 # server announced its port before it listened, and Windows refused that first question (the
 # window's "Failed to fetch"). Run after the silent install (.github/workflows/package.yml).
-param([string]$Server = "$env:ProgramFiles\PitchSense\server\pitchsense-server.exe")
+param([string]$ServerPath = "$env:ProgramFiles\PitchSense\server\pitchsense-server.exe")
 
-$start = [System.Diagnostics.ProcessStartInfo]::new($Server, "--with-window")
+$start = [System.Diagnostics.ProcessStartInfo]::new($ServerPath, "--with-window")
 $start.UseShellExecute = $false
 $start.RedirectStandardInput = $true
 $start.RedirectStandardOutput = $true
 $start.RedirectStandardError = $true
-$server = [System.Diagnostics.Process]::Start($start)
+$process = [System.Diagnostics.Process]::Start($start)
 try {
-    $first = $server.StandardOutput.ReadLine()
+    $first = $process.StandardOutput.ReadLine()
     if ($first -notmatch "^PITCHSENSE_PORT=(\d+)$") {
         Write-Output "The server's first line is not its port: $first"
-        Write-Output $server.StandardError.ReadToEnd()
+        Write-Output $process.StandardError.ReadToEnd()
         exit 1
     }
     $port = $Matches[1]
@@ -28,10 +28,10 @@ try {
         if ($ready -eq $leagues.Count) { break }
         Start-Sleep -Milliseconds 250
     } while ((Get-Date) -lt $deadline)
-    $elapsed = [Math]::Round(((Get-Date) - $server.StartTime).TotalSeconds, 1)
+    $elapsed = [Math]::Round(((Get-Date) - $process.StartTime).TotalSeconds, 1)
     Write-Output "Leagues with their predictions ready: $ready of $($leagues.Count), $elapsed s after start"
     if ($ready -ne $leagues.Count) { exit 1 }
 } finally {
-    $server.StandardInput.Close()  # the server ends with its window
-    if (-not $server.WaitForExit(15000)) { $server.Kill($true) }
+    $process.StandardInput.Close()  # the server ends with its window
+    if (-not $process.WaitForExit(15000)) { $process.Kill($true) }
 }

@@ -28,10 +28,10 @@ function Read-PageText([string]$Address) {
 }
 
 function Show-State {
-    $window = Get-Process -Name pitchsense -ErrorAction SilentlyContinue
-    $server = Get-Process -Name pitchsense-server -ErrorAction SilentlyContinue
-    Write-Output "window running: $([bool]$window); server processes: $(@($server).Count)"
-    foreach ($process in @($server)) {
+    $windows = Get-Process -Name pitchsense -ErrorAction SilentlyContinue
+    $servers = Get-Process -Name pitchsense-server -ErrorAction SilentlyContinue
+    Write-Output "window running: $([bool]$windows); server processes: $(@($servers).Count)"
+    foreach ($process in @($servers)) {
         $ports = Get-NetTCPConnection -State Listen -OwningProcess $process.Id -ErrorAction SilentlyContinue
         foreach ($port in @($ports)) {
             try {
