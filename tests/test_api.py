@@ -286,6 +286,22 @@ def test_the_command_line_options():
         port_of(["--port", "eight"])
 
 
+@pytest.mark.parametrize(
+    "origin", ["tauri://localhost", "http://tauri.localhost", "http://localhost:1420"]
+)
+def test_the_window_s_origin_may_read_the_answers(api_client, origin):
+    # macOS's window, Windows' window and the development server
+    answer = api_client.get("/api/status", headers={"Origin": origin})
+
+    assert answer.headers["access-control-allow-origin"] == origin
+
+
+def test_another_origin_may_not_read_the_answers(api_client):
+    answer = api_client.get("/api/status", headers={"Origin": "https://example.com"})
+
+    assert "access-control-allow-origin" not in answer.headers
+
+
 def test_the_port_takes_connections_as_soon_as_it_is_announced():
     # The window asks at once. A socket only bound does not take the connection: Windows refuses
     # it on the spot (the package's "Failed to fetch"), macOS leaves it unanswered. One listening
