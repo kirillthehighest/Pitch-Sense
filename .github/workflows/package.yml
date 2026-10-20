@@ -73,6 +73,10 @@ jobs:
           & "$env:ProgramFiles\PitchSense\server\pitchsense-server.exe" --self-test
           exit $LASTEXITCODE
 
+      - name: Ask the installed server as soon as it announces its port
+        shell: pwsh
+        run: ./packaging/check-first-question.ps1
+
       - name: Open the installed app and read its window
         shell: pwsh
         run: ./packaging/check-window.ps1
