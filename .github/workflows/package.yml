@@ -73,6 +73,10 @@ jobs:
           & "$env:ProgramFiles\PitchSense\server\pitchsense-server.exe" --self-test
           exit $LASTEXITCODE
 
+      - name: Open the installed app and read its window
+        shell: pwsh
+        run: ./packaging/check-window.ps1
+
       - uses: actions/upload-artifact@v7
         with:
           name: PitchSense-Windows
