@@ -1180,7 +1180,14 @@ Rulări din 2026-10-28:
 - Pe datele reale: toate cele 100 de sezoane trec verificările, iar jurnalele predicțiilor sunt identice cu cele de dinainte. Orele anunțate de Football-Data pentru meciurile Serie A din 27–29 octombrie, mutate în ora Italiei, sunt aceleași cu cele din calendar. Pentru etapa La Liga din weekend, nici calendarul, nici Football-Data nu publicaseră încă orele (miercuri), deci ele vor apărea la prima actualizare automată de după publicarea lor.
 - În interfață, la 1440 × 900 și 1024 × 700: „Meciul zilei” scrie „Dum. 1 nov., ora nu e anunțată încă”, meciurile Serie A au orele locale, iar după **Actualizează datele** ecranele au rămas pline și s-au reîmprospătat.
 
-### 20.4. Limitări
+### 20.4. Versiunea 0.6.0
+
+La acceptarea etapei (2026-10-28), echipa a cerut versiunea 0.6.0, publicată pe GitHub (`v0.6.0`):
+
+- macOS: `.dmg` de 92 MB; semnătura aplicației trece `codesign --verify --deep --strict`; autoverificarea serverului trece din `dist/` și din imaginea `.dmg`; aplicația deschisă are toate cele cinci ligi gata la 3,4 s după deschidere. Jurnalele predicțiilor construite pentru pachet sunt identice cu cele din 0.5.1.
+- Windows (GitHub Actions): trec toate cele 783 de teste Python și cele 22 ale interfeței web; programul de instalare are 72 MB; serverul instalat răspunde imediat după ce își anunță portul, cu toate ligile gata la 4,7 s după pornire; fereastra instalată își pornește serverul, care are toate ligile gata la 10,3 s după deschiderea ferestrei.
+
+### 20.5. Limitări
 
 - Orele meciurilor mai îndepărtate rămân necunoscute până când liga le anunță și una dintre surse le publică.
 - Aplicația pornește acum singură o descărcare din internet, fără niciun clic; nu există încă o opțiune care să oprească actualizarea automată din interfață.
