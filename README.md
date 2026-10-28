@@ -5,16 +5,16 @@ Aplicație desktop pentru analiza datelor istorice din fotbal și estimarea rezu
 Proiect de an la disciplina *Analiza și Proiectarea Algoritmilor* (APA), Universitatea Tehnică a Moldovei, Departamentul Ingineria Software și Automatică.
 Echipa (grupa TI-251): Goroșevschi Chiril, Cuzmici Nicolae, Păstru Alina.
 
-**Stadiu:** toate etapele, 0–23, sunt încheiate: etapa 23 (predicții mai bune: precizia când modelul e sigur, comparația cu casele de pariuri și îmbunătățirile celor trei modele de predicție) pe 2026-10-17, etapele 21 (designul refăcut) și 22 (interfața web: React și TypeScript într-o fereastră Tauri, peste un server Python local; fereastra PySide6 a fost scoasă) pe 2026-10-16. Versiunea curentă este 0.5.1 (2026-10-21), care corectează pornirea lentă și problemele de deschidere ale versiunii 0.5.0 (2026-10-17) pe Windows și macOS; 0.4.0 (2026-10-16) a fost prima cu interfața web. Etapele 18 (sezonul în desfășurare), 19 (interfață centrată pe meciuri) și 20 (pachete și versiunea 0.3.0) au fost adăugate de echipă și încheiate pe 2026-10-15. Fazele 0–12 (planificare și arhitectură, prelucrarea datelor istorice, statisticile echipelor, ratingul Elo, modelul Poisson, regresia logistică, K-Means, motorul de predicție, backtesting cronologic, metricile de evaluare, compararea algoritmilor, interfața grafică, vizualizarea) au fost încheiate pe 2026-10-04, fazele 13 (testare de integrare și finisare), 14 (pachete de instalare pentru macOS și Windows), 15 (cinci ligi) și 16 (identitate vizuală și interfață nouă, în limba română) pe 2026-10-05, iar faza 17 (pachete și versiunea 0.2.0) pe 2026-10-06. Aplicația se pornește din pachetele de instalare sau, din codul sursă, cu `npm run tauri dev` (secțiunea *Pornirea aplicației*).
+**Stadiu:** toate etapele, 0–24, sunt încheiate: etapa 24 (actualizarea automată a datelor și orele meciurilor) pe 2026-10-28, etapa 23 (predicții mai bune: precizia când modelul e sigur, comparația cu casele de pariuri și îmbunătățirile celor trei modele de predicție) pe 2026-10-17, etapele 21 (designul refăcut) și 22 (interfața web: React și TypeScript într-o fereastră Tauri, peste un server Python local; fereastra PySide6 a fost scoasă) pe 2026-10-16. Versiunea curentă este 0.6.0 (2026-10-28), cu actualizarea automată și orele locale ale meciurilor; 0.5.1 (2026-10-21) a corectat pornirea lentă și problemele de deschidere ale versiunii 0.5.0 (2026-10-17) pe Windows și macOS; 0.4.0 (2026-10-16) a fost prima cu interfața web. Etapele 18 (sezonul în desfășurare), 19 (interfață centrată pe meciuri) și 20 (pachete și versiunea 0.3.0) au fost adăugate de echipă și încheiate pe 2026-10-15. Fazele 0–12 (planificare și arhitectură, prelucrarea datelor istorice, statisticile echipelor, ratingul Elo, modelul Poisson, regresia logistică, K-Means, motorul de predicție, backtesting cronologic, metricile de evaluare, compararea algoritmilor, interfața grafică, vizualizarea) au fost încheiate pe 2026-10-04, fazele 13 (testare de integrare și finisare), 14 (pachete de instalare pentru macOS și Windows), 15 (cinci ligi) și 16 (identitate vizuală și interfață nouă, în limba română) pe 2026-10-05, iar faza 17 (pachete și versiunea 0.2.0) pe 2026-10-06. Aplicația se pornește din pachetele de instalare sau, din codul sursă, cu `npm run tauri dev` (secțiunea *Pornirea aplicației*).
 
 ## Aplicația gata de instalat
 
-Pachetele se descarcă de pe pagina [Releases](https://github.com/kirillthehighest/Pitch-Sense/releases/latest) a depozitului (versiunea curentă: 0.5.1, cu predicțiile din etapa 23). Depozitul este privat, deci pagina se deschide doar pentru cei care au acces la el. Pachetele nu cer Python și conțin deja datele: baza de date cu cele cinci ligi, jurnalele predicțiilor fiecărei ligi, imaginile și sezonul în desfășurare de la data construirii (butonul **Actualizează datele** îl aduce la zi).
+Pachetele se descarcă de pe pagina [Releases](https://github.com/kirillthehighest/Pitch-Sense/releases/latest) a depozitului (versiunea curentă: 0.6.0, cu actualizarea automată a datelor). Depozitul este privat, deci pagina se deschide doar pentru cei care au acces la el. Pachetele nu cer Python și conțin deja datele: baza de date cu cele cinci ligi, jurnalele predicțiilor fiecărei ligi, imaginile și sezonul în desfășurare de la data construirii (butonul **Actualizează datele** îl aduce la zi).
 
 | Sistem | Fișier | Cerințe |
 |---|---|---|
-| macOS | `PitchSense-0.5.1-macOS-arm64.dmg` | Mac cu procesor Apple Silicon, macOS 14 sau mai nou |
-| Windows | `PitchSense-0.5.1-Windows-amd64-setup.exe` | Windows 10 sau 11, pe 64 de biți |
+| macOS | `PitchSense-0.6.0-macOS-arm64.dmg` | Mac cu procesor Apple Silicon, macOS 14 sau mai nou |
+| Windows | `PitchSense-0.6.0-Windows-amd64-setup.exe` | Windows 10 sau 11, pe 64 de biți |
 
 **macOS:** deschideți fișierul `.dmg` și trageți `PitchSense` în `Applications`. Pachetul nu are un certificat Apple de dezvoltator, așa că macOS blochează prima deschidere a unei copii descărcate din internet („Apple nu poate verifica…”): deschideți *System Settings → Privacy & Security* și alegeți *Open Anyway* în dreptul mesajului despre PitchSense. Versiunea 0.5.0 era semnată incomplet, iar macOS o declara „deteriorată” fără să permită deschiderea; de la 0.5.1, aplicația este semnată în întregime (semnătură ad-hoc). Pentru 0.5.0 deja copiată în `Applications`, comanda `xattr -dr com.apple.quarantine /Applications/PitchSense.app` din Terminal o deschide.
 
@@ -80,13 +80,13 @@ Meciurile din cinci ligi, sezoanele 2006/07–2025/26 (36.197 de meciuri), prelu
 
 ### Sezonul în desfășurare
 
-Pentru meciurile care urmează, aplicația descarcă sezonul în desfășurare (acum 2026/27): rezultatele de până acum de la Football-Data.co.uk și calendarul întregului sezon de la [openfootball/football.json](https://github.com/openfootball/football.json) (domeniu public, CC0). Descărcarea are loc doar la cerere, cu butonul **Actualizează datele** din aplicație sau cu comanda:
+Pentru meciurile care urmează, aplicația descarcă sezonul în desfășurare (acum 2026/27): rezultatele de până acum de la Football-Data.co.uk și calendarul întregului sezon de la [openfootball/football.json](https://github.com/openfootball/football.json) (domeniu public, CC0). Din etapa 24, aplicația descarcă singură datele când cele pe care le are sunt mai vechi de trei ore (se uită la pornire și apoi la fiecare 10 minute). Tot de la Football-Data vine și lista meciurilor din zilele următoare (`fixtures.csv`), care dă ziua și ora reale ale meciurilor anunțate; calendarul openfootball nu are ora celor mai multe meciuri, iar la La Liga pune toată etapa în aceeași zi. Datele se pot aduce oricând și cu butonul **Actualizează datele** din aplicație sau cu comanda:
 
 ```bash
 python -m app.data.update
 ```
 
-Fișierele sunt verificate înainte să le înlocuiască pe cele vechi și sunt păstrate în `data/live/` (nu sunt incluse în git). Fără ele, aplicația arată doar sezoanele încheiate. Detalii: [`docs/architecture.md`](docs/architecture.md), secțiunea 15.
+Fișierele sunt verificate înainte să le înlocuiască pe cele vechi și sunt păstrate în `data/live/` (nu sunt incluse în git). Fără ele, aplicația arată doar sezoanele încheiate. Toate orele sunt ora locală a stadionului; Football-Data le scrie în ora Marii Britanii, iar aplicația le mută cu o oră pentru La Liga, Serie A, Bundesliga și Ligue 1. Detalii: [`docs/architecture.md`](docs/architecture.md), secțiunile 15 și 20.
 
 ## Baza de date
 
@@ -124,7 +124,7 @@ Ecranele:
 
 Liga se alege din bara din stânga; aplicația ia culoarea ei și imaginea ei, iar schimbarea se face cu un val care pornește din colțul din stânga sus. Fereastra se potrivește oricărei lățimi de la 1024 px în sus. După pornire, serverul citește predicțiile fiecărei ligi păstrate de o pornire anterioară (sau livrate în pachet) și calculează doar pe cele care lipsesc, întâi pe cea aleasă (aproximativ 8 secunde pe ligă). „Echipa ta” păstrează echipa pe care o urmăriți: este evidențiată în liste și clasamente, are cardul ei pe ecranul Meciuri și meciul ei devine „Meciul zilei” când joacă în liga aleasă.
 
-Butonul **Actualizează datele** descarcă rezultatele și calendarul sezonului în desfășurare (câteva secunde, cu internet); restul aplicației funcționează fără internet. Panoul din stânga arată când au fost actualizate datele ultima dată.
+Aplicația aduce singură rezultatele și calendarul sezonului în desfășurare când datele ei sunt mai vechi de trei ore, iar butonul **Actualizează datele** le aduce imediat (câteva secunde, cu internet); fără internet, aplicația funcționează cu ultimele date descărcate. Cât timp se pregătesc predicțiile noi, ecranele le arată pe cele de până atunci, apoi se reîmprospătează singure. Panoul din stânga arată când au fost actualizate datele ultima dată. Orele meciurilor sunt ora locală a stadionului; un meci a cărui oră nu a fost anunțată încă scrie asta.
 
 Dacă jurnalul predicțiilor unei ligi lipsește sau nu poate fi citit, butonul **Rulează backtestul** îl construiește din nou (aproximativ 8–10 secunde pe ligă).
 
@@ -138,9 +138,9 @@ Din etapa 22, pachetul conține interfața web: fereastra Tauri, cu serverul Pyt
 python packaging/build.py
 ```
 
-Comanda reconstruiește baza de date și jurnalele predicțiilor celor cinci ligi, descarcă sezonul în desfășurare (cu internet), toate intrând în pachet, construiește serverul cu PyInstaller (`packaging/server.spec`) și fereastra cu Tauri, și produce `dist/PitchSense.app` și `dist/PitchSense-0.5.1-macOS-arm64.dmg`. Versiunea este scrisă într-un singur loc, `app/__init__.py`.
+Comanda reconstruiește baza de date și jurnalele predicțiilor celor cinci ligi, descarcă sezonul în desfășurare (cu internet), toate intrând în pachet, construiește serverul cu PyInstaller (`packaging/server.spec`) și fereastra cu Tauri, și produce `dist/PitchSense.app` și `dist/PitchSense-0.6.0-macOS-arm64.dmg`. Versiunea este scrisă într-un singur loc, `app/__init__.py`.
 
-**Windows:** pachetul se construiește pe GitHub, cu fluxul „Windows package” (`.github/workflows/package.yml`): pe pagina *Actions* a depozitului, *Windows package → Run workflow*. Fluxul rulează testele Python și pe cele ale interfeței web pe Windows, construiește programul de instalare (`PitchSense-0.5.1-Windows-amd64-setup.exe`, care instalează aplicația în *Program Files*), îl verifică și îl păstrează 30 de zile ca *artifact* (`PitchSense-Windows`). Pe un calculator cu Windows, cu Node și Rust, se poate folosi și `python packaging/build.py`.
+**Windows:** pachetul se construiește pe GitHub, cu fluxul „Windows package” (`.github/workflows/package.yml`): pe pagina *Actions* a depozitului, *Windows package → Run workflow*. Fluxul rulează testele Python și pe cele ale interfeței web pe Windows, construiește programul de instalare (`PitchSense-0.6.0-Windows-amd64-setup.exe`, care instalează aplicația în *Program Files*), îl verifică și îl păstrează 30 de zile ca *artifact* (`PitchSense-Windows`). Pe un calculator cu Windows, cu Node și Rust, se poate folosi și `python packaging/build.py`.
 
 Serverul unui pachet se poate verifica automat, fără fereastră: `--self-test` îl pornește pe un port liber, îi pune fiecare tip de întrebare și se termină cu codul 0 dacă totul a funcționat; `--update` descarcă sezonul în desfășurare și iese.
 

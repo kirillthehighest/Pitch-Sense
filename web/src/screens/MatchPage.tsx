@@ -10,7 +10,7 @@ import { FormSquares } from "../components/FormSquares";
 import { ProbabilityBar } from "../components/ProbabilityBar";
 import { ScoreGrid } from "../components/ScoreGrid";
 import { StadiumPhoto } from "../components/StadiumPhoto";
-import { capitalised, dateText, integer, longDateText, number, parseDay, percent, seasonText } from "../format";
+import { capitalised, dateText, integer, longDateText, number, parseDay, percent, seasonText, withKickoff } from "../format";
 import { MODEL_COLOURS, themeFor, themeStyle } from "../theme";
 import type { League, MatchKey, MatchPage as Page, Prediction, TeamState } from "../types";
 import { MODELS } from "../types";
@@ -75,8 +75,7 @@ function MatchHead({
 }: { page: Page; league: League; favourite: string | null; onTeam: (team: string) => void }) {
   const { forecast } = page;
   const played = forecast.result !== null;
-  let when = capitalised(longDateText(parseDay(forecast.date)));
-  if (forecast.kickoff) when += `, ${forecast.kickoff}`;
+  const when = withKickoff(capitalised(longDateText(parseDay(forecast.date))), forecast.kickoff, played || forecast.postponed);
   const sides: [TeamState, "home" | "away"][] = [
     [page.home, "home"],
     [page.away, "away"],

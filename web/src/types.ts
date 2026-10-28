@@ -19,6 +19,8 @@ export interface Status {
   prepared: Record<string, boolean>;
   preparing: string | null;
   failures: Record<string, string>;
+  version: number; // grows when a league's data is replaced after an update
+  updating: boolean; // an update, the user's or the automatic one, is downloading
 }
 
 export interface Prediction {

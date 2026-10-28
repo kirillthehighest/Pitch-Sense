@@ -20,6 +20,8 @@ import type { Favourite, Forecast, League, MatchKey, Preferences } from "./types
 
 const COMPACT_WIDTH = 1200;
 const RETRY_MS = 1000; // the first questions, asked again while the server starts
+const BUSY_POLL_MS = 1500; // the server's state while it prepares or updates
+const IDLE_POLL_MS = 30000; // and otherwise: the season in progress is updated on its own
 const FAILURES_SHOWN = 3; // unanswered for about three seconds: say so, and keep asking
 
 export default function App() {
@@ -35,7 +37,9 @@ export default function App() {
   const [seasons, setSeasons] = useState<Record<string, string>>({}); // the season shown, by league
   const [team, setTeam] = useState<{ code: string; team: string; season: string } | null>(null);
   const [favouriteDialog, setFavouriteDialog] = useState(false);
-  const [updating, setUpdating] = useState(false);
+  const [updating, setUpdating] = useState(false); // the user's update
+  const [serverUpdating, setServerUpdating] = useState(false); // any update, the automatic one too
+  const seenVersion = useRef<number | null>(null); // the server's data the screens show
   const [notice, setNotice] = useState<{ text: string; problem: boolean } | null>(null);
   const [generation, setGeneration] = useState(0); // a new one after each update of the data
   const scroller = useRef<HTMLElement>(null);
@@ -66,24 +70,36 @@ export default function App() {
     };
   }, []);
 
-  // Which leagues are ready, until all are: the screens re-read when it changes (and after an
-  // update, when every league is prepared again)
+  // The server's state, asked all along: which leagues are ready (the screens re-read when it
+  // changes), whether an update runs, and the version of its data. When an update (the user's or
+  // the automatic one) replaces a league's data, the screens read everything again.
   useEffect(() => {
     let live = true;
+    let timer: ReturnType<typeof setTimeout> | undefined;
     const poll = async () => {
       try {
         const status = await api.status();
         if (!live) return;
         const key = Object.entries(status.prepared).filter(([, done]) => done).map(([code]) => code).join(",");
         setReady(`${generation}|${key}`);
-        if (Object.values(status.prepared).some((done) => !done)) setTimeout(poll, 1500);
+        setServerUpdating(status.updating);
+        if (seenVersion.current !== null && status.version !== seenVersion.current) {
+          seenVersion.current = status.version;
+          setNotice((current) => current ?? { text: "Predicțiile au fost actualizate cu datele noi.", problem: false });
+          setGeneration((value) => value + 1); // the screens re-read; this effect starts again
+          return;
+        }
+        seenVersion.current = status.version;
+        const busy = status.updating || status.preparing !== null || Object.values(status.prepared).some((done) => !done);
+        timer = setTimeout(poll, busy ? BUSY_POLL_MS : IDLE_POLL_MS);
       } catch {
-        if (live) setTimeout(poll, 1500);
+        if (live) timer = setTimeout(poll, BUSY_POLL_MS);
       }
     };
     poll();
     return () => {
       live = false;
+      clearTimeout(timer);
     };
   }, [generation]);
 
@@ -203,7 +219,7 @@ export default function App() {
         preferences={preferences}
         onFavourite={() => setFavouriteDialog(true)}
         onUpdate={update}
-        updating={updating}
+        updating={updating || serverUpdating}
         updatedAt={current?.updated_at ?? null}
       />
       <main className="screen" ref={scroller}>

@@ -88,6 +88,8 @@ def create_app(backend: Backend) -> FastAPI:
             prepared={code: backend.is_prepared(code) for code in backend.competitions},
             preparing=backend.preparing(),
             failures={c: f for c in backend.competitions if (f := backend.failure(c))},
+            version=backend.version,
+            updating=backend.updating,
         )
 
     @app.get("/api/days", response_model=schemas.Days)
@@ -416,13 +418,12 @@ def create_app(backend: Backend) -> FastAPI:
 
     @app.post("/api/update", response_model=schemas.Update)
     def update() -> schemas.Update:
-        """Download the season in progress (the network, on the user's request only), then read
-        every league again and prepare its predictions again."""
+        """Download the season in progress at the user's request, then read every league again
+        and prepare its new predictions (the previous ones answer until they are ready)."""
         try:
-            summary = backend.update_data()
+            summary = backend.update()
         except Exception as error:  # the previous data stays; the interface explains in Romanian
             raise HTTPException(502, str(error)) from None
-        backend.reload()
         return schemas.Update(summary=summary_text(summary))
 
     @app.get("/api/preferences", response_model=schemas.Preferences)

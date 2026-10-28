@@ -1,6 +1,6 @@
 [package]
 name = "pitchsense"
-version = "0.5.1"
+version = "0.6.0"
 description = "The desktop window of PitchSense: the web interface over the Python server (Phase 22)."
 authors = ["Goroșevschi Chiril", "Cuzmici Nicolae", "Păstru Alina"]
 edition = "2024"

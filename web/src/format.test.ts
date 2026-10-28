@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   abbreviation, dateText, dayName, integer, longDateText, number, parseDay, percent, quantity,
-  seasonText, shortDateText, signed,
+  seasonText, shortDateText, signed, withKickoff,
 } from "./format";
 
 describe("Romanian writing, as app/services/formatting.py", () => {
@@ -52,5 +52,13 @@ describe("the title of the featured match", () => {
     expect(featuredTitle("2026-10-16", "2026-10-16")).toBe("Meciul zilei");
     expect(featuredTitle("2026-10-17", "2026-10-16")).toBe("Următorul meci");
     expect(featuredTitle("2026-05-24", "2026-07-01")).toBe("Ultimul meci");
+  });
+});
+
+describe("a day and its kickoff", () => {
+  it("adds the kickoff, or says it is not announced yet", () => {
+    expect(withKickoff("Sâm. 1 nov.", "21:00", false)).toBe("Sâm. 1 nov., 21:00");
+    expect(withKickoff("Sâm. 1 nov.", null, false)).toBe("Sâm. 1 nov., ora nu e anunțată încă");
+    expect(withKickoff("Sâm. 1 nov.", null, true)).toBe("Sâm. 1 nov."); // played, or postponed
   });
 });

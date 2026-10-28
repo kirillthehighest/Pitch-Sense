@@ -1,4 +1,5 @@
-"""Start the local server: ``python -m app.api [--port N] [--preferences FILE] [--with-window]``,
+"""Start the local server: ``python -m app.api [--port N] [--preferences FILE] [--with-window]
+[--no-automatic-update]``,
 check it: ``python -m app.api --self-test`` (``app/api/self_test.py``), or download the season in
 progress and exit: ``python -m app.api --update`` (0 on success; the packages are checked with it).
 
@@ -6,7 +7,9 @@ The server listens on this computer only (127.0.0.1). With port 0 (the default) 
 a free port; the first line written is ``PITCHSENSE_PORT=<port>``, which the desktop shell reads
 to find the server. The port is announced only once it accepts connections: the interface asks
 at once, and before the fix the Windows package refused its first questions. The predictions
-of every league are then read from the cache or computed in the worker process.
+of every league are then read from the cache or computed in the worker process, and the season
+in progress is updated whenever it is older than three hours (``--no-automatic-update`` turns
+this off, for development).
 With ``--with-window`` (the desktop shell's option) the server ends when its standard input
 closes, which happens when the window's process ends in any way, even killed.
 """
@@ -132,6 +135,8 @@ def main(arguments: list[str]) -> int:
     if "--with-window" in arguments:
         exit_with_window(sys.stdin.buffer)
     backend.prepare_all()
+    if "--no-automatic-update" not in arguments:
+        backend.start_automatic_updates()
     server = uvicorn.Server(uvicorn.Config(create_app(backend), log_level="warning"))
     try:
         server.run(sockets=[listener])

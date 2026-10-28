@@ -9,6 +9,7 @@ from app.data.preprocessing import (
     STATISTICS_COLUMNS,
     DataValidationError,
     in_progress_season_problems,
+    local_kickoff,
     matches_from_frame,
     parse_match_date,
     parse_season_label,
@@ -88,15 +89,40 @@ def test_valid_rows_become_matches(raw_season_rows):
     )
 
 
-def test_kickoff_time_is_read_when_the_column_exists(raw_season_rows):
+def test_kickoff_time_is_read_in_the_league_s_own_time(raw_season_rows):
+    # Football-Data writes UK time: La Liga's 20:00 is 21:00 in Spain
     for row in raw_season_rows:
         row["Time"] = "20:00"
     raw_season_rows[1]["Time"] = ""
 
     matches = parse(raw_season_rows)
 
-    assert matches[0].kickoff_time == time(20, 0)
+    assert matches[0].kickoff_time == time(21, 0)
     assert matches[1].kickoff_time is None
+
+
+def test_premier_league_kickoffs_stay_as_written(raw_season_rows):
+    for row in raw_season_rows:
+        row["Div"], row["Time"] = "E0", "15:00"
+
+    assert parse(raw_season_rows)[0].kickoff_time == time(15, 0)
+
+
+@pytest.mark.parametrize(
+    ("uk_time", "hours", "local"),
+    [
+        (time(20, 0), 1, time(21, 0)),
+        (time(12, 30), 0, time(12, 30)),
+        (time(22, 59), 1, time(23, 59)),
+    ],
+)
+def test_a_uk_kickoff_in_local_time(uk_time, hours, local):
+    assert local_kickoff(uk_time, hours) == local
+
+
+def test_a_kickoff_after_local_midnight_is_refused():
+    with pytest.raises(DataValidationError, match="after midnight"):
+        local_kickoff(time(23, 30), 1)
 
 
 def test_statistics_are_optional(raw_season_rows):

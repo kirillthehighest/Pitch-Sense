@@ -1,12 +1,18 @@
 """The season in progress (Phase 18): its results so far and the matches still to be played.
 
-Two public sources are downloaded only when the user asks (the "Actualizează datele" button, or
-``python -m app.data.update``) and stored unchanged in ``LIVE_DIR``:
+Public sources are downloaded by the server every few hours and when the user asks (the
+"Actualizează datele" button, or ``python -m app.data.update``), and stored unchanged in
+``LIVE_DIR``:
 
 - Football-Data.co.uk, the source of the past seasons, gives the results of the season so far
   (``<code>.csv``, in the format of ``data/raw``);
 - openfootball (public domain, CC0) gives the calendar of the whole season (``<code>.json``). It is
-  used only for the matches not played yet, because its scores arrive later than Football-Data's.
+  used only for the matches not played yet, because its scores arrive later than Football-Data's;
+- Football-Data's ``fixtures.csv`` (Phase 24) gives the day and kickoff of the matches of the next
+  few days, every league in one file. The calendar lacks most kickoffs, and gives La Liga's
+  matches only the nominal day of their round, so a calendar match takes the day and kickoff
+  announced for it. The file is optional: an update goes on without it (it is empty between
+  rounds), and its kickoffs, in UK time, are turned into the league's own time.
 
 The two sources name the teams differently ("Club Atlético de Madrid", "Ath Madrid"). The names
 are matched from the data itself: a match played in both, on the same day with the same score,
@@ -14,7 +20,9 @@ ties the two names together. A calendar team that cannot be matched with certain
 and its matches are left out rather than guessed.
 """
 
+import csv
 import hashlib
+import io
 import json
 import re
 import shutil
@@ -36,6 +44,8 @@ from app.data.preprocessing import (
     DataValidationError,
     in_progress_season_problems,
     matches_from_frame,
+    parse_kickoff_time,
+    parse_match_date,
     parse_season_label,
     season_date_window,
     season_of,
@@ -46,6 +56,12 @@ RESULTS_URL = "https://www.football-data.co.uk/mmz4281/{years}/{code}.csv"
 CALENDAR_URL = (
     "https://raw.githubusercontent.com/openfootball/football.json/master/{season}/{calendar}.json"
 )
+FIXTURES_URL = "https://www.football-data.co.uk/fixtures.csv"
+FIXTURES_FILE = "fixtures.csv"
+ANNOUNCED_COLUMNS = ("Div", "Date", "Time", "HomeTeam", "AwayTeam")
+# How far a match announced by Football-Data may lie from its calendar day and still be the same
+# match: La Liga's rounds run from Friday to Monday around the calendar's nominal Sunday.
+MATCHDAY_DAYS = 4
 MANIFEST = "update.json"
 MAX_DOWNLOAD_BYTES = 5_000_000  # a season file is about 0.2 MB
 # Certificate bundles kept by the operating system (macOS first). Python from python.org has none
@@ -72,6 +88,18 @@ class CalendarMatch:
     home_team: str
     away_team: str
     score: tuple[int, int] | None  # full time
+
+
+@dataclass(frozen=True, slots=True)
+class AnnouncedMatch:
+    """A match of the next few days as Football-Data announces it: its day and kickoff in the
+    league's own time, and its teams in Football-Data's names."""
+
+    competition: str
+    match_date: date
+    kickoff_time: time | None
+    home_team: str
+    away_team: str
 
 
 @dataclass(frozen=True, eq=False)
@@ -190,6 +218,42 @@ def _calendar_entry(row: object) -> CalendarMatch:
     return CalendarMatch(date.fromisoformat(row["date"]), kickoff, home_team, away_team, score)
 
 
+def parse_announced(
+    data: bytes, source: str, competitions: Mapping[str, Competition] = COMPETITIONS
+) -> list[AnnouncedMatch]:
+    """Read Football-Data's ``fixtures.csv``: the matches of the known leagues, their kickoffs
+    moved from UK time to each league's time (the day too, past midnight). An empty file (between
+    rounds) has no match; a file without the columns, or a malformed row, is refused."""
+    text = data.decode("utf-8-sig")
+    if not text.strip():
+        return []
+    reader = csv.DictReader(io.StringIO(text))
+    missing = [column for column in ANNOUNCED_COLUMNS if column not in (reader.fieldnames or [])]
+    if missing:
+        raise DataValidationError(f"{source}: missing required columns {', '.join(missing)}")
+    announced, problems = [], []
+    for line, row in enumerate(reader, start=2):
+        league = competitions.get((row["Div"] or "").strip())
+        if league is None:
+            continue  # the file lists about twenty leagues
+        try:
+            day = parse_match_date((row["Date"] or "").strip())
+            kickoff = parse_kickoff_time((row["Time"] or "").strip())
+            if kickoff is not None:
+                local = datetime.combine(day, kickoff) + timedelta(hours=league.hours_after_uk)
+                day, kickoff = local.date(), local.time()
+            home_team, away_team = (row["HomeTeam"] or "").strip(), (row["AwayTeam"] or "").strip()
+            if not home_team or not away_team:
+                raise ValueError("both team names are needed")
+        except ValueError as error:  # DataValidationError is a ValueError too
+            problems.append(f"line {line}: {error}")
+            continue
+        announced.append(AnnouncedMatch(league.code, day, kickoff, home_team, away_team))
+    if problems:
+        raise DataValidationError(_report(source, problems))
+    return announced
+
+
 def match_team_names(
     calendar: Sequence[CalendarMatch], matches: Sequence[Match]
 ) -> tuple[dict[str, str], tuple[str, ...]]:
@@ -238,20 +302,31 @@ def build_live_league(
     matches: Sequence[Match],
     calendar: Sequence[CalendarMatch],
     updated_at: datetime,
+    announced: Sequence[AnnouncedMatch] = (),
 ) -> LiveLeague:
     """Join the results and the calendar of one league: the fixtures are the calendar matches
-    that neither source reports as played, in Football-Data's team names."""
+    that neither source reports as played, in Football-Data's team names. A fixture that
+    Football-Data announces within ``MATCHDAY_DAYS`` of its calendar day takes the announced day
+    and kickoff (the calendar's kickoff stays when the announcement has none)."""
     names, unmatched = match_team_names(calendar, matches)
     played = {(match.home_team, match.away_team) for match in matches}
+    announcements = {
+        (match.home_team, match.away_team): match
+        for match in announced
+        if match.competition == code
+    }
     fixtures = []
     for entry in calendar:
         home_team, away_team = names.get(entry.home_team), names.get(entry.away_team)
         if entry.score is not None or home_team is None or away_team is None:
             continue  # played (the results will come from Football-Data), or a name not matched
-        if (home_team, away_team) not in played:
-            fixtures.append(
-                Fixture(code, season, entry.match_date, home_team, away_team, entry.kickoff_time)
-            )
+        if (home_team, away_team) in played:
+            continue
+        day, kickoff = entry.match_date, entry.kickoff_time
+        announcement = announcements.get((home_team, away_team))
+        if announcement is not None and abs((announcement.match_date - day).days) <= MATCHDAY_DAYS:
+            day, kickoff = announcement.match_date, announcement.kickoff_time or kickoff
+        fixtures.append(Fixture(code, season, day, home_team, away_team, kickoff))
     fixtures.sort(key=lambda f: (f.match_date, f.kickoff_time or time.min, f.home_team))
     return LiveLeague(
         competition=code,
@@ -300,7 +375,12 @@ def load_live_league(
     if problems:
         raise DataValidationError(_report(source, problems))
     calendar = parse_calendar((folder / f"{code}.json").read_bytes(), season, f"{source} calendar")
-    return build_live_league(code, season, matches, calendar, _updated_at(manifest))
+    announced = []
+    if (folder / FIXTURES_FILE).is_file():
+        announced = parse_announced(
+            (folder / FIXTURES_FILE).read_bytes(), FIXTURES_FILE, competitions
+        )
+    return build_live_league(code, season, matches, calendar, _updated_at(manifest), announced)
 
 
 def update_live_data(
@@ -330,6 +410,13 @@ def update_live_data(
                 data = fetch(url)
                 (staging / name).write_bytes(data)
                 sources[name] = {"url": url, "sha256": hashlib.sha256(data).hexdigest()}
+        announced = _fetch_announced(fetch, competitions)
+        if announced is not None:
+            (staging / FIXTURES_FILE).write_bytes(announced)
+            sources[FIXTURES_FILE] = {
+                "url": FIXTURES_URL,
+                "sha256": hashlib.sha256(announced).hexdigest(),
+            }
         updated_at = datetime.now(UTC).replace(microsecond=0)
         manifest = {
             "season": season,
@@ -344,6 +431,17 @@ def update_live_data(
     finally:
         shutil.rmtree(staging, ignore_errors=True)
     return UpdateSummary(season, updated_at, leagues)
+
+
+def _fetch_announced(fetch: Fetch, competitions: Mapping[str, Competition]) -> bytes | None:
+    """Football-Data's announced matches, checked, or None when they cannot be had: the calendar
+    alone still gives every fixture, so the update goes on without them."""
+    try:
+        data = fetch(FIXTURES_URL)
+        parse_announced(data, FIXTURES_URL, competitions)
+    except OSError, DataValidationError, UnicodeDecodeError:
+        return None
+    return data
 
 
 def copy_bundled_live(source: Path = BUNDLED_LIVE_DIR, target: Path = LIVE_DIR) -> bool:
