@@ -677,7 +677,7 @@ Rezultatele vin doar de la Football-Data. Calendarul primește scorurile mai tâ
 
 ### 15.2. Actualizarea
 
-- Butonul **Actualizează datele** din bara de sus sau comanda `python -m app.data.update`. Este singurul acces la internet al aplicației și are loc doar la cererea utilizatorului; fără el, aplicația funcționează cu ultimele date descărcate.
+- Butonul **Actualizează datele** sau comanda `python -m app.data.update`; din Faza 24 și serverul, singur, când datele sunt mai vechi de trei ore (secțiunea 20). Este singurul acces la internet al aplicației; fără el, aplicația funcționează cu ultimele date descărcate.
 - Sezonul este dedus din data zilei: sezoanele încep la 1 iulie (`season_of` în `preprocessing.py`).
 - Fișierele sunt descărcate într-un folder temporar și verificate:
   - rezultatele, cu aceleași reguli ca fișierele brute (coloane, date, scoruri, duplicate);
@@ -1041,7 +1041,7 @@ serverul local (FastAPI: app/api) ───────────────�
 | `/api/team/{ligă}` | sezonul unui club: bilanț acasă, în deplasare și total, formă, șuturi, istoricul Elo, profilul K-Means, grupurile sezonului |
 | `/api/review/{ligă}` | predicțiile unui model pentru meciurile jucate ale unui sezon, față de rezultate |
 | `/api/about`, `/api/season-check/{ligă}`, `/api/evaluation/{ligă}`, `/api/leagues-comparison` | Analiză; ultimele două pot rula și backtestul (POST) |
-| `/api/update` (POST) | descarcă sezonul în desfășurare, la cererea utilizatorului, apoi recitește ligile |
+| `/api/update` (POST) | descarcă sezonul în desfășurare, la cererea utilizatorului, apoi recitește ligile (din Faza 24, datele vechi răspund până când cele noi au predicțiile gata) |
 | `/api/preferences` | liga și echipa utilizatorului |
 | `/api/images/…` | stemele, imaginile ligilor și fotografiile stadioanelor |
 
@@ -1155,7 +1155,37 @@ După instalarea versiunii 0.5.0, echipa a semnalat trei probleme (2026-10-21).
 - macOS: `.dmg` de 92 MB; autoverificarea serverului trece din `dist/` și din imaginea `.dmg`; semnătura aplicației trece `codesign --verify --deep --strict`. Aplicația deschisă are toate cele cinci ligi gata la 3,9 s după deschidere. O copie marcată ca descărcată din Safari este blocată la prima deschidere, cu *Open Anyway* în *Privacy & Security*, nu declarată deteriorată.
 - Windows (GitHub Actions): trec toate cele 761 de teste Python și cele 21 ale interfeței web; programul de instalare are 72 MB. Fluxul are doi pași noi. `packaging/check-first-question.ps1` pornește serverul instalat ca fereastra și îl întreabă imediat după ce își anunță portul: a răspuns, cu toate ligile gata la 6 s după pornire. `packaging/check-window.ps1` deschide aplicația instalată: serverul ei are toate ligile gata la 12,9 s după deschiderea ferestrei și permite originea ferestrei (`http://tauri.localhost`). Textul ferestrei nu a putut fi citit pe mașina de test, pentru că portul de depanare WebView2 rămâne închis acolo, deci ecranele de pe Windows nu au fost verificate direct.
 
-## 20. Setul de date și perioadele
+## 20. Actualizarea automată și orele meciurilor (Faza 24)
+
+Echipa a cerut (2026-10-28) ca datele să se actualizeze singure și a semnalat că la La Liga nu se vedea ora meciurilor.
+
+### 20.1. Orele meciurilor
+
+- **Cauza.** Ora meciurilor viitoare venea doar din calendarul openfootball. La La Liga, calendarul pune toate cele 10 meciuri ale unei etape în duminica ei, fără oră, pentru că liga anunță zilele și orele cu una-două săptămâni înainte: pe 2026-10-28, doar 21 din cele 311 meciuri programate aveau oră. Celelalte ligi au în calendar zilele și orele reale pentru câteva săptămâni (Premier League pentru tot sezonul).
+- **Football-Data `fixtures.csv`.** Football-Data publică, cu câteva zile înainte, meciurile din zilele următoare ale tuturor ligilor, cu ziua și ora (pe 2026-10-28, o miercuri, fișierul avea meciurile Serie A din 27–29 octombrie, nu și pe cele ale La Liga din weekend). `app/data/live.py` îl descarcă la fiecare actualizare (`FIXTURES_URL`) și îl citește (`parse_announced`): doar ligile cunoscute; un fișier gol (între etape) nu are niciun meci; un fișier fără coloanele lui sau cu un rând greșit este refuzat. Un meci din calendar anunțat de Football-Data la cel mult patru zile de ziua lui din calendar (`MATCHDAY_DAYS`: etapele La Liga țin de vineri până luni în jurul duminicii din calendar) primește ziua și ora anunțate; ora din calendar rămâne când anunțul nu are una. Fișierul este opțional: dacă nu poate fi descărcat sau citit, actualizarea continuă fără el.
+- **Ora locală.** Football-Data scrie orele în ora Marii Britanii, iar openfootball în ora locală. Pe meciurile jucate în ambele surse în 2026/27 (datele descărcate pe 2026-10-20), diferența a fost exact o oră la La Liga (69 de meciuri), Serie A (50), Bundesliga (38) și Ligue 1 (49) și zero la Premier League (54). Marea Britanie și Uniunea Europeană schimbă ora în aceleași zile, deci diferența este constantă tot anul. `Competition.hours_after_uk` (1 pentru cele patru ligi, 0 pentru Premier League) mută orele Football-Data în ora ligii, atât la citirea fișierelor de rezultate (`local_kickoff` în `preprocessing.py`; un meci care ar trece de miezul nopții este refuzat, pentru că i s-ar schimba și ziua), cât și la meciurile anunțate (unde ziua se poate schimba). Înainte, meciurile jucate erau afișate cu o oră mai devreme decât cele programate. După reconstruirea bazei de date, cea mai frecventă oră a La Liga este 21:00 (era 20:00), iar jurnalele predicțiilor sunt identice octet cu octet: aceeași oră adăugată tuturor meciurilor unei ligi nu schimbă ordinea lor.
+- **Interfața.** Un meci programat fără oră anunțată scrie „ora nu e anunțată încă” în cardul „Meciul zilei” și pe pagina meciului (`withKickoff` în `web/src/format.ts`); în liste rămâne „–”.
+
+### 20.2. Actualizarea automată
+
+- **Când.** `Backend.start_automatic_updates` (`app/api/backend.py`) se uită la vârsta datelor la pornirea serverului și apoi la fiecare 10 minute (`AUTO_UPDATE_CHECK_SECONDS`). Când datele sunt mai vechi de trei ore (`AUTO_UPDATE_AFTER`) sau nu au fost descărcate niciodată, le descarcă. Football-Data adaugă rezultate de câteva ori pe zi cel mult, deci o actualizare mai deasă nu ar aduce nimic. O actualizare eșuată (fără internet, o sursă căzută) nu oprește serverul și nu schimbă datele; este încercată din nou după o oră (`AUTO_UPDATE_RETRY`), iar motivul este păstrat în `automatic_problem`. Una singură rulează odată: actualizarea automată nu pornește cât rulează cea a utilizatorului, iar cea a utilizatorului o așteaptă pe cea automată. `python -m app.api --no-automatic-update` o oprește, pentru dezvoltare.
+- **Fără ecrane goale.** Până acum, după o actualizare, ligile erau uitate și ecranele arătau „Se pregătesc predicțiile…” până la noile predicții (40 de secunde pe un Mac, aproape două minute pe Windows). Acum `reload` citește ligile din nou alături de cele servite, le pregătește predicțiile (din memoria de pe disc, când fișierele nu s-au schimbat, altfel în procesul de lucru) și pune fiecare ligă în locul celei vechi abia când e gata; o ligă care nu poate fi pregătită este raportată, iar cea veche continuă.
+- **Interfața.** `/api/status` spune și `version` (crește la fiecare ligă înlocuită) și `updating` (o actualizare descarcă acum). Interfața întreabă starea tot timpul: la 1,5 s cât se pregătește sau se actualizează ceva, altfel la 30 s. Când `version` se schimbă, ecranele citesc totul din nou și apare mesajul „Predicțiile au fost actualizate cu datele noi.”; cât rulează o actualizare, inclusiv cea automată, butonul arată „Se actualizează…”.
+
+### 20.3. Verificare
+
+Rulări din 2026-10-28:
+
+- Toate cele 783 de teste Python și cele 22 ale interfeței web trec. Teste noi: citirea fișierului `fixtures.csv` (marcajul de la început, ligile necunoscute, mutarea orei și a zilei, fișierul gol, coloanele lipsă, rândurile greșite), ziua și ora preluate de un meci din calendar (și nu de unul aflat la mai mult de patru zile), actualizarea cu și fără fișierul anunțurilor, orele locale la citirea rezultatelor, actualizarea automată (datele nedescărcate, datele recente lăsate în pace, eșecul păstrat și reîncercat după o oră, nicio actualizare automată cât rulează cea a utilizatorului) și predicțiile vechi servite până când cele noi sunt gata.
+- Pe datele reale: toate cele 100 de sezoane trec verificările, iar jurnalele predicțiilor sunt identice cu cele de dinainte. Orele anunțate de Football-Data pentru meciurile Serie A din 27–29 octombrie, mutate în ora Italiei, sunt aceleași cu cele din calendar. Pentru etapa La Liga din weekend, nici calendarul, nici Football-Data nu publicaseră încă orele (miercuri), deci ele vor apărea la prima actualizare automată de după publicarea lor.
+- În interfață, la 1440 × 900 și 1024 × 700: „Meciul zilei” scrie „Dum. 1 nov., ora nu e anunțată încă”, meciurile Serie A au orele locale, iar după **Actualizează datele** ecranele au rămas pline și s-au reîmprospătat.
+
+### 20.4. Limitări
+
+- Orele meciurilor mai îndepărtate rămân necunoscute până când liga le anunță și una dintre surse le publică.
+- Aplicația pornește acum singură o descărcare din internet, fără niciun clic; nu există încă o opțiune care să oprească actualizarea automată din interfață.
+
+## 21. Setul de date și perioadele
 
 Sursa datelor este Football-Data.co.uk: cinci ligi (Premier League, La Liga, Serie A, Bundesliga, Ligue 1), fiecare cu 20 de sezoane încheiate, 2006/07–2025/26 (36.197 de meciuri). Perioadele sunt aceleași pentru toate ligile. Sezonul în desfășurare (2026/27) este descărcat separat și nu face parte din evaluare (secțiunea 15).
 
@@ -1165,7 +1195,7 @@ Sursa datelor este Football-Data.co.uk: cinci ligi (Premier League, La Liga, Ser
 | 2007/08–2009/10 | Calibrare: se aleg hiperparametrii; rezultatele nu sunt raportate. |
 | 2010/11–2025/26 | Evaluarea raportată: 16 sezoane; 6.080 de meciuri în fiecare ligă cu 20 de echipe, 4.896 în Bundesliga, 5.757 în Ligue 1; 28.893 în total. |
 
-## 21. Tehnologii
+## 22. Tehnologii
 
 | Componentă | Versiune | Rol |
 |---|---|---|
@@ -1189,7 +1219,7 @@ Sursa datelor este Football-Data.co.uk: cinci ligi (Premier League, La Liga, Ser
 | Vitest, Testing Library, jsdom | 5.0.5, 16.3.3, 30.1.3 | testele interfeței web |
 | Rust / Tauri | 1.99 / 2.12.4 | fereastra de desktop a interfeței web |
 
-## 22. Decizii tehnice
+## 23. Decizii tehnice
 
 | Decizie | Motiv |
 |---|---|
@@ -1253,8 +1283,8 @@ Sursa datelor este Football-Data.co.uk: cinci ligi (Premier League, La Liga, Ser
 | Versiunea este scrisă doar în `app/__init__.py` | Pachetele, `pyproject.toml` și fereastra arată mereu aceeași versiune. |
 | Iconițele pachetelor (`.icns`, `.ico`) sunt scrise de noi, cu imagini PNG desenate din siglă | Iconița urmează mereu sigla și nu este nevoie de o bibliotecă de imagini nouă. |
 | Un fișier `VERSION` în folderul jurnalelor; o actualizare înlocuiește jurnalele vechi | Jurnalele calculate de modele mai vechi nu mai pot ajunge în aplicația nouă; în aceeași versiune, jurnalele reconstruite rămân. |
-| Sezonul în desfășurare este descărcat doar când utilizatorul apasă „Actualizează datele” | Aplicația rămâne utilizabilă fără internet; datele unei predicții se știu mereu (ora ultimei actualizări este afișată). |
-| Rezultatele de la Football-Data, calendarul de la openfootball (CC0) | Rezultatele vin din aceeași sursă ca istoricul; fișierul cu meciurile viitoare de la Football-Data acoperă doar câteva zile și este gol în pauzele competiționale, pe când calendarul openfootball are tot sezonul și poate fi folosit liber. |
+| Sezonul în desfășurare este descărcat la cererea utilizatorului și, din Faza 24, singur, când datele sunt mai vechi de trei ore | Cererea echipei: datele să fie la zi fără un clic. Aplicația rămâne utilizabilă fără internet (o actualizare eșuată este încercată din nou după o oră), iar ora ultimei actualizări este afișată. |
+| Rezultatele de la Football-Data, calendarul de la openfootball (CC0) | Rezultatele vin din aceeași sursă ca istoricul; fișierul cu meciurile viitoare de la Football-Data acoperă doar câteva zile și este gol în pauzele competiționale, pe când calendarul openfootball are tot sezonul și poate fi folosit liber. Din Faza 24, fișierul Football-Data completează doar ziua și ora meciurilor pe care le anunță (secțiunea 20). |
 | Numele echipelor din calendar sunt potrivite din meciurile jucate în ambele surse, nu dintr-un tabel scris de mână | Funcționează pentru orice ligă și sezon, fără întreținere; o echipă nesigură este raportată, nu ghicită. |
 | Toate meciurile programate sunt prezise din ziua de după ultimul meci jucat | Scorurile inventate ale înlocuitorilor nu pot influența nicio predicție, iar predicția folosește tot ce se știe în acel moment. |
 | Fișierele noi înlocuiesc folderul vechi doar după ce au trecut toate verificările | O descărcare eșuată sau un fișier deteriorat nu poate lăsa aplicația fără date. |

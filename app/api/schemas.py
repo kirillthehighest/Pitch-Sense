@@ -37,6 +37,8 @@ class Status(Schema):
     prepared: dict[str, bool]
     preparing: str | None
     failures: dict[str, str]
+    version: int  # grows when a league's data is replaced after an update (Phase 24)
+    updating: bool  # an update, the user's or the automatic one, is downloading
 
 
 class Prediction(Schema):

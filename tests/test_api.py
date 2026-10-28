@@ -28,7 +28,13 @@ def test_the_leagues_come_with_their_seasons_and_state(api_client):
     assert leagues[1]["seasons"] == ["2006-07", "2007-08"]
     assert all(league["prepared"] for league in leagues)
     status = api_client.get("/api/status").json()
-    assert status == {"prepared": {"E0": True, "SP1": True}, "preparing": None, "failures": {}}
+    assert status == {
+        "prepared": {"E0": True, "SP1": True},
+        "preparing": None,
+        "failures": {},
+        "version": 0,
+        "updating": False,
+    }
 
 
 def test_the_days_and_the_next_day_with_matches(api_client):
@@ -274,6 +280,32 @@ def test_an_update_reads_every_league_again(api_client, api_backend):
     api_backend.prepare_all(wait=True)
     assert api_backend.league("SP1") is not opened
     assert api_backend.is_prepared("SP1") and api_backend.is_prepared("E0")
+
+
+def test_an_update_serves_the_previous_predictions_until_the_new_ones_are_ready(
+    api_client, api_backend
+):
+    opened = api_backend.league("SP1")
+    started, release = threading.Event(), threading.Event()
+
+    def slow(job):
+        started.set()
+        release.wait(10)
+        return compute_here(job)
+
+    api_backend.compute = slow
+    api_backend.update_data = lambda: UpdateSummary("2008-09", datetime(2008, 9, 8, tzinfo=UTC), ())
+
+    assert api_client.post("/api/update").status_code == 200
+    assert started.wait(10)  # the new predictions are being computed...
+    status = api_client.get("/api/status").json()
+    assert api_backend.league("SP1") is opened  # ...while the previous ones answer
+    assert all(status["prepared"].values()) and status["version"] == 0
+
+    release.set()
+    api_backend.prepare_all(wait=True)
+    assert api_backend.league("SP1") is not opened
+    assert api_client.get("/api/status").json()["version"] == 2  # both leagues replaced
 
 
 def test_the_command_line_options():

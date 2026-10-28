@@ -4,20 +4,24 @@ import hashlib
 import json
 import urllib.error
 import urllib.request
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timedelta
 
 import pytest
 
 from app.data import update as update_command
 from app.data.live import (
+    FIXTURES_FILE,
+    FIXTURES_URL,
     MANIFEST,
     MAX_DOWNLOAD_BYTES,
+    AnnouncedMatch,
     CalendarMatch,
     build_live_league,
     copy_bundled_live,
     fetch,
     load_live_league,
     match_team_names,
+    parse_announced,
     parse_calendar,
     read_manifest,
     season_years,
@@ -256,6 +260,145 @@ def test_fixtures_are_the_calendar_matches_nobody_has_played():
     assert league.matches[0].match_date == date(2008, 9, 1)
 
 
+# --- the matches Football-Data announces for the next days (Phase 24) ---
+
+ANNOUNCED_HEADER = "Div,Date,Time,HomeTeam,AwayTeam,Referee,AvgH\n"
+
+
+def test_announced_matches_are_read_in_each_league_s_time():
+    data = (
+        "\ufeff"  # Football-Data's files start with a byte-order mark
+        + ANNOUNCED_HEADER
+        + "SP1,30/10/2026,20:00,Ath Madrid,Sevilla,,2.1\n"  # 21:00 in Madrid
+        + "E0,31/10/2026,15:00,Arsenal,Chelsea,,1.9\n"  # Premier League: UK time already
+        + "SC0,31/10/2026,12:30,Celtic,Rangers,,2.0\n"  # a league PitchSense does not know
+        + "I1,01/11/2026,23:30,Roma,Lazio,,2.5\n"  # past midnight in Rome: the next day
+        + "F1,02/11/2026,,Lyon,Nice,,2.2\n"  # no kickoff yet
+    ).encode("utf-8")
+
+    announced = parse_announced(data, "fixtures.csv")
+
+    assert announced == [
+        AnnouncedMatch("SP1", date(2026, 10, 30), time(21, 0), "Ath Madrid", "Sevilla"),
+        AnnouncedMatch("E0", date(2026, 10, 31), time(15, 0), "Arsenal", "Chelsea"),
+        AnnouncedMatch("I1", date(2026, 11, 2), time(0, 30), "Roma", "Lazio"),
+        AnnouncedMatch("F1", date(2026, 11, 2), None, "Lyon", "Nice"),
+    ]
+
+
+def test_an_empty_announcement_has_no_match():
+    assert parse_announced(b"", "fixtures.csv") == []
+    assert parse_announced(ANNOUNCED_HEADER.encode(), "fixtures.csv") == []
+
+
+@pytest.mark.parametrize(
+    ("data", "message"),
+    [
+        (b"Div,Date,HomeTeam\nSP1,30/10/2026,Sevilla\n", "missing required columns"),
+        (ANNOUNCED_HEADER.encode() + b"SP1,31/02/2026,20:00,Ath Madrid,Sevilla,,2\n", "line 2"),
+        (ANNOUNCED_HEADER.encode() + b"SP1,30/10/2026,8pm,Ath Madrid,Sevilla,,2\n", "line 2"),
+        (ANNOUNCED_HEADER.encode() + b"SP1,30/10/2026,20:00,,Sevilla,,2\n", "team names"),
+    ],
+)
+def test_a_damaged_announcement_is_refused(data, message):
+    with pytest.raises(DataValidationError, match=message):
+        parse_announced(data, "fixtures.csv")
+
+
+def test_a_fixture_takes_the_day_and_kickoff_announced_for_it():
+    calendar = [
+        entry(1, "A1", "B1", (1, 0)),
+        entry(2, "B1", "A1", (0, 2)),
+        entry(14, "A1", "C1"),  # La Liga's calendar: the nominal Sunday of the round
+        entry(21, "C1", "B1"),
+        CalendarMatch(date(2008, 9, 28), time(16, 15), "B1", "C1", None),
+    ]
+    matches = [played(1, "A", "B", 1, 0), played(2, "B", "A", 0, 2)]
+    calendar += [entry(3, "C1", "A1", (2, 2)), entry(4, "C1", "B1", (0, 1))]
+    calendar = [c for c in calendar if c.match_date.day != 21]  # C1 hosted B1 on the 4th
+    matches += [played(3, "C", "A", 2, 2), played(4, "C", "B", 0, 1)]
+    announced = [
+        AnnouncedMatch("SP1", date(2008, 9, 12), time(21, 0), "A", "C"),  # Friday before
+        AnnouncedMatch("SP1", date(2008, 9, 28), None, "B", "C"),  # no kickoff announced yet
+        AnnouncedMatch("E0", date(2008, 9, 13), time(15, 0), "A", "C"),  # another league
+    ]
+
+    league = build_live_league("SP1", LIVE_SEASON, matches, calendar, UPDATED, announced)
+
+    assert [(f.match_date, f.kickoff_time, f.home_team, f.away_team) for f in league.fixtures] == [
+        (date(2008, 9, 12), time(21, 0), "A", "C"),
+        (date(2008, 9, 28), time(16, 15), "B", "C"),  # the calendar's kickoff stays
+    ]
+
+
+def test_an_announcement_far_from_the_calendar_day_is_another_match():
+    calendar = [
+        entry(1, "A1", "B1", (1, 0)),
+        entry(2, "B1", "A1", (0, 2)),
+        entry(3, "C1", "A1", (2, 2)),
+        entry(4, "C1", "B1", (0, 1)),
+        entry(14, "A1", "C1"),
+    ]
+    matches = [
+        played(1, "A", "B", 1, 0),
+        played(2, "B", "A", 0, 2),
+        played(3, "C", "A", 2, 2),
+        played(4, "C", "B", 0, 1),
+    ]
+    far = date(2008, 9, 14) + timedelta(days=5)
+
+    league = build_live_league(
+        "SP1",
+        LIVE_SEASON,
+        matches,
+        calendar,
+        UPDATED,
+        [AnnouncedMatch("SP1", far, time(21, 0), "A", "C")],
+    )
+
+    assert [(f.match_date, f.kickoff_time) for f in league.fixtures] == [(date(2008, 9, 14), None)]
+
+
+def test_an_update_keeps_the_announced_matches_and_reads_them(
+    tmp_path, live_files, fake_fetch, four_team_league
+):
+    # Delta v Alpha, on 10 September in the calendar, announced for the 11th at 19:45 (the test
+    # league's clocks are UK time)
+    announced = (ANNOUNCED_HEADER + "SP1,11/09/2008,19:45,Delta,Alpha,,2.4\n").encode()
+
+    def fetch(url):
+        return announced if url == FIXTURES_URL else fake_fetch(url)
+
+    target = tmp_path / "live"
+    update_live_data(target, ("SP1",), today=LIVE_TODAY, fetch=fetch, competitions=four_team_league)
+
+    manifest = read_manifest(target)
+    assert (target / FIXTURES_FILE).read_bytes() == announced
+    assert manifest["sources"][FIXTURES_FILE]["url"] == FIXTURES_URL
+    league = load_live_league("SP1", target, four_team_league)
+    fixture = next(f for f in league.fixtures if (f.home_team, f.away_team) == ("Delta", "Alpha"))
+    assert (fixture.match_date, fixture.kickoff_time) == (date(2008, 9, 11), time(19, 45))
+
+
+@pytest.mark.parametrize("problem", ["network", "damaged"])
+def test_an_update_goes_on_without_the_announced_matches(
+    tmp_path, fake_fetch, four_team_league, problem
+):
+    def fetch(url):
+        if url == FIXTURES_URL:
+            if problem == "network":
+                raise urllib.error.URLError("network down")
+            return b"<html>maintenance</html>"
+        return fake_fetch(url)
+
+    target = tmp_path / "live"
+    update_live_data(target, ("SP1",), today=LIVE_TODAY, fetch=fetch, competitions=four_team_league)
+
+    assert not (target / FIXTURES_FILE).exists()
+    assert FIXTURES_FILE not in read_manifest(target)["sources"]
+    assert load_live_league("SP1", target, four_team_league).fixtures
+
+
 # --- downloading and reading ---
 
 
@@ -352,11 +495,13 @@ def test_a_failed_download_keeps_the_previous_data(live_dir, live_files, four_te
     ]
 
 
-def test_a_damaged_download_keeps_the_previous_data(live_dir, live_files, four_team_league):
+def test_a_damaged_download_keeps_the_previous_data(
+    live_dir, live_files, fake_fetch, four_team_league
+):
     before = {path.name: path.read_bytes() for path in live_dir.iterdir()}
 
     def fetch(url):
-        return b"<html>maintenance</html>" if url.endswith(".json") else live_files[url]
+        return b"<html>maintenance</html>" if url.endswith(".json") else fake_fetch(url)
 
     with pytest.raises(DataValidationError, match="not a calendar"):
         update_live_data(

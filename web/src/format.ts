@@ -17,6 +17,13 @@ export function signed(value: number, digits = 4): string {
   return value < 0 || Object.is(value, -0) ? text.replace("-", "−") : `+${text}`;
 }
 
+/** "Sâm. 1 nov., 21:00": a day and its kickoff; a match still to be played whose kickoff is not
+ * announced yet says so (La Liga announces it about two weeks ahead). */
+export function withKickoff(day: string, kickoff: string | null, played: boolean): string {
+  if (kickoff) return `${day}, ${kickoff}`;
+  return played ? day : `${day}, ora nu e anunțată încă`;
+}
+
 export function percent(value: number, digits = 1): string {
   return `${number(100 * value, digits)}%`;
 }

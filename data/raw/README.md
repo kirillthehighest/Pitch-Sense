@@ -2,7 +2,7 @@
 
 Acestea sunt fișierele originale, nemodificate. Nu se editează manual; corecțiile se fac în etapa de prelucrare a datelor (`app/data/`).
 
-Aici stau doar sezoanele încheiate. Sezonul în desfășurare este descărcat separat, la cerere, în `data/live/` (`python -m app.data.update`; `docs/architecture.md`, secțiunea 15).
+Aici stau doar sezoanele încheiate. Sezonul în desfășurare este descărcat separat în `data/live/`: de aplicație, singură, la câteva ore, sau la cerere (`python -m app.data.update`; `docs/architecture.md`, secțiunile 15 și 20). Coloana `Time` dă ora în ora Marii Britanii (verificat pe 2026-10-28: pentru La Liga, Serie A, Bundesliga și Ligue 1 este cu exact o oră înaintea orei din calendarul openfootball, care este ora locală); aplicația o mută în ora locală a ligii.
 
 | | |
 |---|---|

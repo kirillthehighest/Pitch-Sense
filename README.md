@@ -80,13 +80,13 @@ Meciurile din cinci ligi, sezoanele 2006/07–2025/26 (36.197 de meciuri), prelu
 
 ### Sezonul în desfășurare
 
-Pentru meciurile care urmează, aplicația descarcă sezonul în desfășurare (acum 2026/27): rezultatele de până acum de la Football-Data.co.uk și calendarul întregului sezon de la [openfootball/football.json](https://github.com/openfootball/football.json) (domeniu public, CC0). Descărcarea are loc doar la cerere, cu butonul **Actualizează datele** din aplicație sau cu comanda:
+Pentru meciurile care urmează, aplicația descarcă sezonul în desfășurare (acum 2026/27): rezultatele de până acum de la Football-Data.co.uk și calendarul întregului sezon de la [openfootball/football.json](https://github.com/openfootball/football.json) (domeniu public, CC0). Din etapa 24, aplicația descarcă singură datele când cele pe care le are sunt mai vechi de trei ore (se uită la pornire și apoi la fiecare 10 minute). Tot de la Football-Data vine și lista meciurilor din zilele următoare (`fixtures.csv`), care dă ziua și ora reale ale meciurilor anunțate; calendarul openfootball nu are ora celor mai multe meciuri, iar la La Liga pune toată etapa în aceeași zi. Datele se pot aduce oricând și cu butonul **Actualizează datele** din aplicație sau cu comanda:
 
 ```bash
 python -m app.data.update
 ```
 
-Fișierele sunt verificate înainte să le înlocuiască pe cele vechi și sunt păstrate în `data/live/` (nu sunt incluse în git). Fără ele, aplicația arată doar sezoanele încheiate. Detalii: [`docs/architecture.md`](docs/architecture.md), secțiunea 15.
+Fișierele sunt verificate înainte să le înlocuiască pe cele vechi și sunt păstrate în `data/live/` (nu sunt incluse în git). Fără ele, aplicația arată doar sezoanele încheiate. Toate orele sunt ora locală a stadionului; Football-Data le scrie în ora Marii Britanii, iar aplicația le mută cu o oră pentru La Liga, Serie A, Bundesliga și Ligue 1. Detalii: [`docs/architecture.md`](docs/architecture.md), secțiunile 15 și 20.
 
 ## Baza de date
 
@@ -124,7 +124,7 @@ Ecranele:
 
 Liga se alege din bara din stânga; aplicația ia culoarea ei și imaginea ei, iar schimbarea se face cu un val care pornește din colțul din stânga sus. Fereastra se potrivește oricărei lățimi de la 1024 px în sus. După pornire, serverul citește predicțiile fiecărei ligi păstrate de o pornire anterioară (sau livrate în pachet) și calculează doar pe cele care lipsesc, întâi pe cea aleasă (aproximativ 8 secunde pe ligă). „Echipa ta” păstrează echipa pe care o urmăriți: este evidențiată în liste și clasamente, are cardul ei pe ecranul Meciuri și meciul ei devine „Meciul zilei” când joacă în liga aleasă.
 
-Butonul **Actualizează datele** descarcă rezultatele și calendarul sezonului în desfășurare (câteva secunde, cu internet); restul aplicației funcționează fără internet. Panoul din stânga arată când au fost actualizate datele ultima dată.
+Aplicația aduce singură rezultatele și calendarul sezonului în desfășurare când datele ei sunt mai vechi de trei ore, iar butonul **Actualizează datele** le aduce imediat (câteva secunde, cu internet); fără internet, aplicația funcționează cu ultimele date descărcate. Cât timp se pregătesc predicțiile noi, ecranele le arată pe cele de până atunci, apoi se reîmprospătează singure. Panoul din stânga arată când au fost actualizate datele ultima dată. Orele meciurilor sunt ora locală a stadionului; un meci a cărui oră nu a fost anunțată încă scrie asta.
 
 Dacă jurnalul predicțiilor unei ligi lipsește sau nu poate fi citit, butonul **Rulează backtestul** îl construiește din nou (aproximativ 8–10 secunde pe ligă).
 

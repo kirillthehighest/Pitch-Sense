@@ -3,10 +3,11 @@
 import re
 from collections import Counter
 from collections.abc import Iterable, Mapping
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timedelta
 
 import pandas as pd
 
+from app.data.competitions import COMPETITIONS
 from app.data.models import Match, MatchStatistics, Outcome
 
 REQUIRED_COLUMNS = ("Div", "Date", "HomeTeam", "AwayTeam", "FTHG", "FTAG", "FTR")
@@ -196,6 +197,16 @@ def sort_chronologically(matches: Iterable[Match]) -> list[Match]:
     )
 
 
+def local_kickoff(uk_time: time, hours_after_uk: int) -> time:
+    """A kickoff Football-Data writes in UK time, in the league's own time (Phase 24). Before,
+    the screens showed played matches an hour early in four of the five leagues. A kickoff that
+    would move to the next day is refused: its date would be wrong too."""
+    moved = datetime.combine(date.min, uk_time) + timedelta(hours=hours_after_uk)
+    if moved.date() != date.min:
+        raise DataValidationError(f"kickoff {uk_time:%H:%M} UK time is after midnight locally")
+    return moved.time()
+
+
 def _match_from_row(
     row: Mapping[str, str], season: str, has_time: bool, has_statistics: bool
 ) -> Match:
@@ -213,9 +224,17 @@ def _match_from_row(
         home_goals=_parse_count(row["FTHG"], "FTHG"),
         away_goals=_parse_count(row["FTAG"], "FTAG"),
         result=result,
-        kickoff_time=parse_kickoff_time(row[TIME_COLUMN].strip()) if has_time else None,
+        kickoff_time=_local_kickoff_of(row) if has_time else None,
         statistics=_statistics_from_row(row) if has_statistics else None,
     )
+
+
+def _local_kickoff_of(row: Mapping[str, str]) -> time | None:
+    uk_time = parse_kickoff_time(row[TIME_COLUMN].strip())
+    known = COMPETITIONS.get(row["Div"].strip())
+    if uk_time is None or known is None:  # a league PitchSense does not know keeps the file's time
+        return uk_time
+    return local_kickoff(uk_time, known.hours_after_uk)
 
 
 def _statistics_from_row(row: Mapping[str, str]) -> MatchStatistics | None:

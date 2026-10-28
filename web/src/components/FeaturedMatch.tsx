@@ -4,7 +4,7 @@
 // the day and kickoff, the chosen model's three probabilities and a button to the match's page.
 // The card takes the colours of the match's league, whichever league is on screen: its image and
 // its deep colour are that league's, so another accent on them would clash.
-import { capitalised, parseDay, percent, shortDateText } from "../format";
+import { capitalised, parseDay, percent, shortDateText, withKickoff } from "../format";
 import { themeFor, themeStyle } from "../theme";
 import type { Forecast, League, Outcome } from "../types";
 import { MODEL_LABELS } from "../types";
@@ -32,8 +32,7 @@ interface Props {
 export function FeaturedMatch({ forecast, day, league, model, favourite, onOpen }: Props) {
   const prediction = forecast.predictions.find((p) => p.model === model);
   const played = forecast.result !== null;
-  let when = capitalised(shortDateText(parseDay(forecast.date)));
-  if (forecast.kickoff) when += `, ${forecast.kickoff}`;
+  const when = withKickoff(capitalised(shortDateText(parseDay(forecast.date))), forecast.kickoff, played || forecast.postponed);
   const teams: [string, number | null][] = [
     [forecast.home_team, forecast.home_goals],
     [forecast.away_team, forecast.away_goals],
