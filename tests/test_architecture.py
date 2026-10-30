@@ -1,4 +1,4 @@
-"""Enforce the layer rules from AGENTS.md by inspecting the imports of every module in app/."""
+"""Enforce the layer rules by inspecting the imports of every module in app/."""
 
 import ast
 import sys

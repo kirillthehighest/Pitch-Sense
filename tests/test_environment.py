@@ -1,4 +1,4 @@
-"""Check that the active environment matches AGENTS.md decisions and pyproject.toml pins."""
+"""Check that the active environment matches the project's decisions and pyproject.toml pins."""
 
 import sys
 import tomllib

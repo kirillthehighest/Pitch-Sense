@@ -479,7 +479,7 @@ Rulare din 2026-10-04:
 - Calibrările (Elo, Poisson, regresia logistică) și alegerea lui $k$ dau exact valorile înregistrate.
 - Toate valorile obținute din date și citate în `README.md` și în `docs/` au fost recalculate. Trei pasaje erau inexacte și au fost corectate: câștigul mediu al echipelor promovate din `docs/algorithms/elo.md` (10,6 puncte de rating și 24 de echipe în scădere, nu 9,8 și 23: calculul vechi se oprea înaintea ultimului meci al fiecărei echipe), precizarea egalității de puncte din 2006/07 în același document și trei afirmații din `docs/comparison.md` (legătura dintre egaluri și sezoanele grele, perechile de grupuri cele mai grele și numărul meciurilor cu echipe promovate dintre cele mai mari diferențe).
 - Nu au putut fi recalculate valorile care depind de cod schimbat între timp (predicțiile Elo dinaintea corecției din Faza 9, setările de probă ale modelului Poisson) și durata interogărilor din secțiunea 6.4. Celelalte durate măsurate (backtest 7,9 s, toate predicțiile 6,8 s, un meci ipotetic 6,8 s, modelul Poisson 0,63 s) corespund documentației.
-- Cerințele din `AGENTS.md`: fiecare document de algoritm are toate secțiunile cerute, există toate modulele de test cerute și teste de scurgere a informațiilor pentru fiecare model. Lipseau două teste cerute, adăugate acum: regresia logistică pe un set de date separabil și Elo cu numai egaluri.
+- Cerințele proiectului: fiecare document de algoritm are toate secțiunile cerute, există toate modulele de test cerute și teste de scurgere a informațiilor pentru fiecare model. Lipseau două teste cerute, adăugate acum: regresia logistică pe un set de date separabil și Elo cu numai egaluri.
 
 ### 11.4. Numele echipelor pe graficul grupurilor
 
@@ -1191,6 +1191,19 @@ La acceptarea etapei (2026-10-28), echipa a cerut versiunea 0.6.0, publicată pe
 
 - Orele meciurilor mai îndepărtate rămân necunoscute până când liga le anunță și una dintre surse le publică.
 - Aplicația pornește acum singură o descărcare din internet, fără niciun clic; nu există încă o opțiune care să oprească actualizarea automată din interfață.
+
+### 20.6. Corectura după 0.6.0 (versiunea 0.6.1)
+
+După instalarea versiunii 0.6.0, echipa a semnalat (2026-10-30) o bandă sub imaginea ligii pe cardul „Meciul zilei” / „Următorul meci”, când fereastra nu era pe tot ecranul, la toate cele cinci ligi.
+
+- **Cauza.** `LeagueImageCard` (`web/src/components/LeagueImage.tsx`) măsura cardul cu `contentRect` din `ResizeObserver`, adică fără spațiul interior: 202 px din cei 248 ai cardului. Imaginea umple însă tot cardul, inclusiv spațiul interior, așa că deplasarea ei pe verticală era limitată față de 202 px și partea de jos rămânea cu 46 px mai sus de marginea cardului.
+- **Corectura.** Cardul se măsoară cu `clientWidth` și `clientHeight`. Lățimea imaginii se calculează acum din lățimea întreagă a cardului. `LeagueImage.test.tsx` verifică imaginea la patru lățimi de card; înainte de corectură, trei dintre ele picau.
+
+**Verificare și publicare (2026-10-30).** Versiunea 0.6.1, publicată pe GitHub (`v0.6.1`), construită din `main`, fără raportul și prezentarea de pe ramura `phase-25`:
+
+- Interfața (macOS, datele din 2026-10-30): imaginea atinge marginea de jos a cardului la toate cele cinci ligi, la lățimile 1024, 1100, 1280, 1440 și 1800 px.
+- macOS: `.dmg` de 92 MB; semnătura aplicației trece `codesign --verify --deep --strict`; autoverificarea serverului trece din `dist/` și din imaginea `.dmg`; o copie a unui folder de utilizator real al versiunii 0.6.0 a primit jurnalele noi; aplicația deschisă are toate cele cinci ligi gata la 3,5 s după deschidere. Jurnalele predicțiilor sunt identice cu cele din 0.6.0.
+- Windows (GitHub Actions): trec toate cele 783 de teste Python și cele 26 ale interfeței web; programul de instalare are 72 MB; serverul instalat are toate ligile gata la 5,9 s după pornire, iar cel pornit de fereastra instalată la 13,7 s după deschiderea ei. Ecranele nu au putut fi citite pe mașina de construire, deci corectura nu a fost văzută direct pe Windows.
 
 ## 21. Setul de date și perioadele
 

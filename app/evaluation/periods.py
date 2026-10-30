@@ -1,4 +1,4 @@
-"""The project's data periods (AGENTS.md, Decisions Made), shared by calibration and evaluation.
+"""The project's data periods, shared by calibration and evaluation.
 
 Warm-up seasons only build ratings and history. Calibration seasons are used to choose
 hyperparameters. Results are reported only from the first evaluation season onwards, and the

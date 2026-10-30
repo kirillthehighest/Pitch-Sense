@@ -27,3 +27,10 @@ Thumbs.db
 web/node_modules/
 web/dist/
 web/src-tauri/target/
+
+# Local documents that are not part of the application
+report/
+
+# Local instructions for the coding assistant
+AGENTS.md
+CLAUDE.md
