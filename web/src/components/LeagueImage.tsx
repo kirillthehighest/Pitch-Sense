@@ -60,8 +60,9 @@ export function LeagueImageCard({ code, top, credit, brand, share = 0.58, maxWid
   useEffect(() => {
     const element = card.current;
     if (!element) return;
-    const observer = new ResizeObserver(([entry]) =>
-      setFrame({ width: entry.contentRect.width, height: entry.contentRect.height }),
+    // The padding box, which the image fills: an observer's content box leaves the card's padding out
+    const observer = new ResizeObserver(() =>
+      setFrame({ width: element.clientWidth, height: element.clientHeight }),
     );
     observer.observe(element);
     return () => observer.disconnect();
