@@ -13,7 +13,7 @@ import { ColumnsHead, MatchRow } from "../components/MatchRow";
 import { Problem } from "../components/Problem";
 import { SkeletonCard } from "../components/Skeleton";
 import { StadiumPhoto } from "../components/StadiumPhoto";
-import { number, seasonText } from "../format";
+import { number, seasonText, teamName } from "../format";
 import { themeFor } from "../theme";
 import type { Favourite, Forecast, League, TeamPage, TeamRecord } from "../types";
 import { MODELS } from "../types";
@@ -43,6 +43,8 @@ export function Team({ league, season, team, favourite, ready, onChoice, onOpenM
   const [matches, setMatches] = useState<Forecast[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [view, setView] = useState<"elo" | "groups">("elo");
+  const [earlier, setEarlier] = useState<TeamPage | null>(null); // the last finished season's groups
+  useEffect(() => setEarlier(null), [league.code, season, team]);
 
   useEffect(() => {
     let live = true;
@@ -97,7 +99,9 @@ export function Team({ league, season, team, favourite, ready, onChoice, onOpenM
         </label>
         <select id="team-name" value={page?.team ?? ""} onChange={(event) => onChoice(event.target.value, season)}>
           {teams.map((item) => (
-            <option key={item}>{item}</option>
+            <option key={item} value={item}>
+              {teamName(item)}
+            </option>
           ))}
         </select>
       </div>
@@ -117,7 +121,7 @@ export function Team({ league, season, team, favourite, ready, onChoice, onOpenM
             <StadiumPhoto team={page.team} className="beside" />
             <Crest team={page.team} size={104} ring={isFavourite} />
             <div className="team-head-text">
-              <h1>{page.team}</h1>
+              <h1>{teamName(page.team)}</h1>
               <span>
                 {league.name} {seasonText(page.season)} · locul {page.position} din {page.teams} ·{" "}
                 {page.in_progress ? "sezon în desfășurare" : "sezon încheiat"}
@@ -160,10 +164,10 @@ export function Team({ league, season, team, favourite, ready, onChoice, onOpenM
           </div>
           <section className="card charts-card">
             <div className="tabs">
-              <button className={`pill${view === "elo" ? " chosen" : ""}`} onClick={() => setView("elo")}>
+              <button className={`pill${view === "elo" ? " chosen" : ""}`} aria-pressed={view === "elo"} onClick={() => setView("elo")}>
                 Rating Elo
               </button>
-              <button className={`pill${view === "groups" ? " chosen" : ""}`} onClick={() => setView("groups")}>
+              <button className={`pill${view === "groups" ? " chosen" : ""}`} aria-pressed={view === "groups"} onClick={() => setView("groups")}>
                 Grupuri K-Means
               </button>
             </div>
@@ -177,7 +181,21 @@ export function Team({ league, season, team, favourite, ready, onChoice, onOpenM
                   warmUpUntil={page.first_evaluated_season}
                 />
               )}
+              {view === "groups" && earlier?.groups && !page.groups && (
+                <>
+                  <div className="chart-note">
+                    <span className="caption">
+                      Grupurile sezonului {seasonText(earlier.season)}, ultimul încheiat
+                    </span>
+                    <button className="link" onClick={() => setEarlier(null)}>
+                      Înapoi la {seasonText(page.season)}
+                    </button>
+                  </div>
+                  <GroupsChart groups={earlier.groups} team={earlier.team} accent={accent} />
+                </>
+              )}
               {view === "groups" &&
+                !(earlier?.groups && !page.groups) &&
                 (page.groups ? (
                   <>
                     <GroupsChart groups={page.groups} team={page.team} accent={accent} />
@@ -192,7 +210,12 @@ export function Team({ league, season, team, favourite, ready, onChoice, onOpenM
                     {page.in_progress && previousSeason(league.seasons, page.season) && (
                       <button
                         className="button"
-                        onClick={() => onChoice(page.team, previousSeason(league.seasons, page.season) as string)}
+                        onClick={() =>
+                          api
+                            .team(league.code, previousSeason(league.seasons, page.season) as string, page.team)
+                            .then(setEarlier)
+                            .catch(() => setEarlier(null))
+                        }
                       >
                         Vezi grupurile din {seasonText(previousSeason(league.seasons, page.season) as string)}
                       </button>

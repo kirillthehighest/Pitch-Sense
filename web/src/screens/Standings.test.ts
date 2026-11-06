@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { chanceText, placeOpacity, zoneOf } from "./Standings";
+import { chanceText, placeOpacity, weekBefore, zoneOf } from "./Standings";
 
 describe("the table's zones and the projection", () => {
   it("puts the first four and the last three in their zones", () => {
@@ -15,5 +15,12 @@ describe("the table's zones and the projection", () => {
     expect(placeOpacity(0)).toBeLessThan(placeOpacity(0.01));
     expect(placeOpacity(1)).toBeCloseTo(1);
     expect(placeOpacity(0.25)).toBeCloseTo(0.56);
+  });
+});
+
+describe("the day of 'Înainte de o zi'", () => {
+  it("opens a week before the last match, never before the first", () => {
+    expect(weekBefore("2026-10-31", "2026-08-15")).toBe("2026-10-24");
+    expect(weekBefore("2026-08-18", "2026-08-15")).toBe("2026-08-15");
   });
 });

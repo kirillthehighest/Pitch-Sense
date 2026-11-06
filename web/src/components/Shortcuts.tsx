@@ -5,6 +5,7 @@ import { Modal } from "./Modal";
 
 export const SHORTCUTS: [string[], string][] = [
   [["←", "→"], "Ziua precedentă sau următoare (Meciuri)"],
+  [["T"], "Azi (Meciuri)"],
   [["1", "–", "5"], "Liga: Premier League, La Liga, Serie A, Bundesliga, Ligue 1"],
   [["M"], "Următorul model (Meciuri, Predicții)"],
   [["/"], "Caută o echipă"],

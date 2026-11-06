@@ -2,6 +2,7 @@
 // highlighted everywhere, its card leads Meciuri and the match of the day prefers it.
 import { type FormEvent, useEffect, useState } from "react";
 import { api } from "../api";
+import { teamName } from "../format";
 import type { Favourite, League } from "../types";
 import { Crest } from "./Crest";
 import { Modal } from "./Modal";
@@ -60,7 +61,9 @@ export function FavouriteDialog({ leagues, league, favourite, onClose, onChoose,
           <label htmlFor="favourite-team">Echipa</label>
           <select id="favourite-team" value={team} onChange={(event) => setTeam(event.target.value)} disabled={!teams.length}>
             {teams.map((item) => (
-              <option key={item}>{item}</option>
+              <option key={item} value={item}>
+                {teamName(item)}
+              </option>
             ))}
           </select>
         </div>

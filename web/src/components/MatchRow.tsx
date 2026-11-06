@@ -5,7 +5,7 @@
 // (it did not), so the marks never borrow a league's green or red. The chip of the result that
 // happened is ringed. A match whose day is past but has no result yet says so (Phase 25).
 import type { ReactNode } from "react";
-import { isoDay, percent } from "../format";
+import { isoDay, percent, teamName } from "../format";
 import type { Forecast, Outcome, Prediction } from "../types";
 import { Crest } from "./Crest";
 import { CheckIcon, CrossIcon } from "./Icons";
@@ -55,7 +55,7 @@ function Team({ team, favourite, won, side }: { team: string; favourite: boolean
   return (
     <span className={`team ${side}${favourite ? " favourite" : ""}${won ? " won" : ""}`}>
       <Crest team={team} size={26} ring={favourite} />
-      <span className="name">{team}</span>
+      <span className="name">{teamName(team)}</span>
     </span>
   );
 }
@@ -108,7 +108,7 @@ function StackedTeam({ team, goals, favourite, won }: { team: string; goals: num
   return (
     <span className={`team${favourite ? " favourite" : ""}${won ? " won" : ""}`}>
       <Crest team={team} size={22} ring={favourite} />
-      <span className="name">{team}</span>
+      <span className="name">{teamName(team)}</span>
       {goals !== null && <b className="goals">{goals}</b>}
     </span>
   );
@@ -123,7 +123,7 @@ export function rowName(forecast: Forecast, prediction: Prediction | undefined):
   const chances = prediction
     ? OUTCOMES.map((outcome) => chipLabel(prediction, outcome, forecast.result)).join("; ")
     : "fără predicție";
-  return `${forecast.home_team}${score} ${forecast.away_team}, ${day}${state}. ${prediction?.label ?? ""}: ${chances}`;
+  return `${teamName(forecast.home_team)}${score} ${teamName(forecast.away_team)}, ${day}${state}. ${prediction?.label ?? ""}: ${chances}`;
 }
 
 export function MatchRow({ forecast, model, favourite, stacked = false, showDate = false, extra, onOpen }: Props) {

@@ -2,7 +2,7 @@
 // before that day (the hypothetical match of Phase 19). The answer opens on the match page.
 import { type FormEvent, useEffect, useState } from "react";
 import { api } from "../api";
-import { seasonText } from "../format";
+import { seasonText, teamName } from "../format";
 import type { League, MatchKey, SeasonDays } from "../types";
 import { Flag } from "./Flag";
 import { Modal } from "./Modal";
@@ -96,11 +96,19 @@ export function OtherMatch({ leagues, league, onClose, onOpen }: Props) {
           </select>
           <label htmlFor="other-home">Gazde</label>
           <select id="other-home" value={home} onChange={(event) => setHome(event.target.value)} disabled={!seasonDays}>
-            {seasonDays?.teams.map((team) => <option key={team}>{team}</option>)}
+            {seasonDays?.teams.map((team) => (
+              <option key={team} value={team}>
+                {teamName(team)}
+              </option>
+            ))}
           </select>
           <label htmlFor="other-away">Oaspeți</label>
           <select id="other-away" value={away} onChange={(event) => setAway(event.target.value)} disabled={!seasonDays}>
-            {seasonDays?.teams.map((team) => <option key={team}>{team}</option>)}
+            {seasonDays?.teams.map((team) => (
+              <option key={team} value={team}>
+                {teamName(team)}
+              </option>
+            ))}
           </select>
           <label htmlFor="other-day">Data</label>
           <input

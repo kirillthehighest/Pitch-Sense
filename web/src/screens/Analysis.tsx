@@ -390,7 +390,7 @@ function Models({ league }: { league: League }) {
             {evaluation.models.map((model) => (
               <button
                 key={model.model}
-                className={`pill${model.model === confusion.model ? " chosen" : ""}`}
+                className={`pill${model.model === confusion.model ? " chosen" : ""}`} aria-pressed={model.model === confusion.model}
                 onClick={() => setConfusionModel(model.model)}
               >
                 {model.label}
@@ -435,7 +435,7 @@ function Models({ league }: { league: League }) {
         <h2>Unde se descurcă fiecare model</h2>
         <div className="segmented wrap">
           {BREAKDOWNS.map(([name, title]) => (
-            <button key={name} className={`pill${breakdown === name ? " chosen" : ""}`} onClick={() => setBreakdown(name)}>
+            <button key={name} className={`pill${breakdown === name ? " chosen" : ""}`} aria-pressed={breakdown === name} onClick={() => setBreakdown(name)}>
               {title}
             </button>
           ))}
@@ -471,7 +471,7 @@ function Models({ league }: { league: League }) {
           rows={evaluation.agreements.map((a) => [`${a.first_label} – ${a.second_label}`, percent(a.same), number(a.distance)])}
         />
         {evaluation.all_agree !== null && (
-          <p className="caption table-note">Toate trei modelele prezic același rezultat în {percent(evaluation.all_agree)} dintre meciuri.</p>
+          <p className="caption table-note">Toate cele trei modele prezic același rezultat în {percent(evaluation.all_agree)} dintre meciuri.</p>
         )}
       </section>
         </div>

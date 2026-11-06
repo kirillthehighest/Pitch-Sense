@@ -3,7 +3,7 @@
 // league's accent and named. The groups come from six values, so a team can sit nearer another
 // group's centre on these two axes; the note under the chart says so.
 import { CartesianGrid, Scatter, ScatterChart, Tooltip, XAxis, YAxis, ZAxis } from "recharts";
-import { number } from "../../format";
+import { number, teamName } from "../../format";
 import type { GroupPoint, Groups } from "../../types";
 import { AXIS, axisLine, GRID, GROUP_COLOURS, SURFACE, TEXT, tick } from "./chartStyle";
 
@@ -55,7 +55,7 @@ function ChosenDot({ cx = 0, cy = 0, fill, accent, team, labelLeft }: ChosenProp
         fontSize={13}
         fontWeight={700}
       >
-        {team}
+        {teamName(team)}
       </text>
     </g>
   );

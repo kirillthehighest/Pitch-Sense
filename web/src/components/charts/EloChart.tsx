@@ -73,10 +73,10 @@ export function EloChart({ team, history, season, accent, warmUpUntil }: Props) 
         </div>
         {chosen && (
           <div className="segmented">
-            <button className={`pill${onlySeason ? "" : " chosen"}`} onClick={() => setOnlySeason(false)}>
+            <button className={`pill${onlySeason ? "" : " chosen"}`} aria-pressed={!(onlySeason)} onClick={() => setOnlySeason(false)}>
               Toate sezoanele
             </button>
-            <button className={`pill${onlySeason ? " chosen" : ""}`} onClick={() => setOnlySeason(true)}>
+            <button className={`pill${onlySeason ? " chosen" : ""}`} aria-pressed={onlySeason} onClick={() => setOnlySeason(true)}>
               Doar sezonul
             </button>
           </div>

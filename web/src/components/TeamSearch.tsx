@@ -2,6 +2,7 @@
 // you type (accents and case do not matter); the arrows choose, Enter opens the club's page.
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api";
+import { teamName } from "../format";
 import type { League } from "../types";
 import { Crest } from "./Crest";
 import { Flag } from "./Flag";
@@ -53,7 +54,10 @@ export function searchTeams(teams: Found[], query: string, limit = 8): Found[] {
   if (!wanted) return teams.slice(0, limit);
   const names = (item: Found) => plain(`${item.team} ${FULL_NAMES[item.team] ?? ""}`);
   const matching = teams.filter((item) => names(item).includes(wanted));
-  const starts = (item: Found) => (names(item).split(" ").some((word) => word.startsWith(wanted)) ? 0 : 1);
+  const starts = (item: Found) => {
+    if (plain(item.team).startsWith(wanted) || plain(teamName(item.team)).startsWith(wanted)) return 0;
+    return names(item).split(" ").some((word) => word.startsWith(wanted)) ? 1 : 2;
+  };
   return [...matching].sort((a, b) => starts(a) - starts(b) || a.team.localeCompare(b.team)).slice(0, limit);
 }
 
@@ -134,10 +138,7 @@ export function TeamSearch({ leagues, onClose, onOpen }: Props) {
               }}
             >
               <Crest team={item.team} size={28} />
-              <span className="search-team">
-                {item.team}
-                {FULL_NAMES[item.team] && <small>{FULL_NAMES[item.team].split(" ").slice(0, 3).join(" ")}</small>}
-              </span>
+              <span className="search-team">{teamName(item.team)}</span>
               <span className="search-league">
                 <Flag code={item.code} size={16} />
                 {item.league}

@@ -2,6 +2,7 @@
 // screen has its own: Predicții a slim strip lit by the league's image; Analiză the league's deep
 // colour with the three models in their identity colours, the screen's subject; Clasament the
 // stadium of the league's leader (in Standings); Echipe the club's own head (in Team).
+import { teamName } from "../format";
 import { MODEL_COLOURS, themeFor } from "../theme";
 import type { League } from "../types";
 import { MODEL_LABELS, MODELS } from "../types";
@@ -69,7 +70,7 @@ export function StadiumHead({ league, team, title, description }: Props & { team
           <p>{description}</p>
         </div>
       </div>
-      {team && <span className="credit">Stadionul liderului, {team} · Foto: Wikimedia Commons</span>}
+      {team && <span className="credit">Stadionul liderului, {teamName(team)} · Foto: Wikimedia Commons</span>}
     </section>
   );
 }

@@ -2,6 +2,7 @@
 // (Phase 25: simulate a match, find a team), and at the bottom "your team", the update of the
 // season in progress and the sources. In the narrow rail every item keeps its name as a tooltip.
 import type { ReactNode } from "react";
+import { teamName } from "../format";
 import type { League, Preferences } from "../types";
 import { Crest } from "./Crest";
 import { Flag } from "./Flag";
@@ -131,11 +132,11 @@ export function Sidebar(props: Props) {
       <button
         className="side-item"
         onClick={props.onFavourite}
-        aria-label={favourite ? `Echipa ta: ${favourite.team}` : "Alege echipa ta"}
-        title={tip(favourite ? `Echipa ta: ${favourite.team}` : "Alege echipa ta")}
+        aria-label={favourite ? `Echipa ta: ${teamName(favourite.team)}` : "Alege echipa ta"}
+        title={tip(favourite ? `Echipa ta: ${teamName(favourite.team)}` : "Alege echipa ta")}
       >
         {favourite ? <Crest team={favourite.team} size={22} ring /> : <TeamIcon />}
-        <span className="side-text">{favourite ? favourite.team : "Alege echipa ta"}</span>
+        <span className="side-text">{favourite ? teamName(favourite.team) : "Alege echipa ta"}</span>
       </button>
       <button
         className="side-item"

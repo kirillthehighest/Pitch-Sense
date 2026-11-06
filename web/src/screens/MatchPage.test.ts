@@ -27,12 +27,22 @@ function match(predictions: Prediction[]): Forecast {
 describe("the models' consensus in the match head", () => {
   it("names the club all models favour", () => {
     const all = [prediction("Elo", "H"), prediction("Poisson", "H"), prediction("Logistic regression", "H")];
-    expect(consensusText(match(all))).toBe("Toate trei modelele mizează pe Napoli");
+    expect(consensusText(match(all))).toBe("Toate cele trei modele mizează pe Napoli");
   });
 
   it("counts a majority, a draw included", () => {
     const two = [prediction("Elo", "D"), prediction("Poisson", "D"), prediction("Logistic regression", "A")];
     expect(consensusText(match(two))).toBe("2 din 3 modele mizează pe egal");
+  });
+
+  it("says when the favourite leads by a hair", () => {
+    const close = [{ ...prediction("Elo", "A"), home: 0.36, draw: 0.27, away: 0.37 }];
+    expect(consensusText(match(close))).toBe("Singurul model mizează pe Lazio, la limită");
+  });
+
+  it("writes the clubs' full names", () => {
+    const forecast = { ...match([prediction("Elo", "H")]), home_team: "Ath Madrid" };
+    expect(consensusText(forecast)).toBe("Singurul model mizează pe Atlético Madrid");
   });
 
   it("says when the models disagree or none could predict", () => {

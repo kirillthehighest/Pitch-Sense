@@ -57,7 +57,7 @@ describe("a match of a list", () => {
   it("names the whole row with the score and the chances", () => {
     const played = match({ result: "H", home_goals: 2, away_goals: 0 });
     expect(rowName(played, prediction)).toBe(
-      "Villarreal 2–0 Espanol, 30.10. Elo: Gazde 50%, cel mai probabil, nimerit, rezultatul meciului; Egal 30%; Oaspeți 20%",
+      "Villarreal 2–0 Espanyol, 30.10. Elo: Gazde 50%, cel mai probabil, nimerit, rezultatul meciului; Egal 30%; Oaspeți 20%",
     );
   });
 });

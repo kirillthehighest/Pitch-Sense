@@ -102,3 +102,51 @@ export function abbreviation(team: string): string {
   if (words.length === 1) return words[0].slice(0, 3).toUpperCase();
   return (words[0][0] + words[1].slice(0, 2)).toUpperCase();
 }
+
+/** The clubs' names as people write them, for Football-Data's short names (the data, the crests
+ * and the server keep the short ones; only the screen shows these). */
+export const DISPLAY_NAMES: Record<string, string> = {
+  "Ajaccio GFCO": "GFC Ajaccio",
+  Alaves: "Alavés",
+  Almeria: "Almería",
+  "Ath Bilbao": "Athletic Bilbao",
+  "Ath Madrid": "Atlético Madrid",
+  "Bayern Munich": "Bayern München",
+  Betis: "Real Betis",
+  Cadiz: "Cádiz",
+  Celta: "Celta Vigo",
+  Cordoba: "Córdoba",
+  Dortmund: "Borussia Dortmund",
+  "Ein Frankfurt": "Eintracht Frankfurt",
+  Espanol: "Espanyol",
+  "FC Koln": "FC Köln",
+  "Fortuna Dusseldorf": "Fortuna Düsseldorf",
+  Gimnastic: "Gimnàstic",
+  "Greuther Furth": "Greuther Fürth",
+  Hercules: "Hércules",
+  Hertha: "Hertha BSC",
+  "La Coruna": "Deportivo La Coruña",
+  Leganes: "Leganés",
+  Leverkusen: "Bayer Leverkusen",
+  "M'gladbach": "Mönchengladbach",
+  Malaga: "Málaga",
+  "Man City": "Manchester City",
+  "Man United": "Manchester United",
+  Nimes: "Nîmes",
+  "Nott'm Forest": "Nottingham Forest",
+  Nurnberg: "Nürnberg",
+  "Paris SG": "Paris Saint-Germain",
+  Santander: "Racing Santander",
+  Sociedad: "Real Sociedad",
+  "Sp Gijon": "Sporting Gijón",
+  Spal: "SPAL",
+  "St Etienne": "Saint-Étienne",
+  Vallecano: "Rayo Vallecano",
+  Verona: "Hellas Verona",
+  Wolves: "Wolverhampton",
+};
+
+/** A club's name for the screen: "Ath Madrid" → "Atlético Madrid"; other names unchanged. */
+export function teamName(team: string): string {
+  return DISPLAY_NAMES[team] ?? team;
+}

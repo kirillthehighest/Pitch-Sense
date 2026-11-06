@@ -38,6 +38,7 @@ export function DayStrip({ day, today, matchDays, onDay }: Props) {
           <button
             key={iso}
             className={`day-chip${iso === day ? " chosen" : ""}${matchDays.has(iso) ? "" : " empty"}`}
+            aria-current={iso === day ? "date" : undefined}
             onClick={() => onDay(iso)}
           >
             <span>{first}</span>
@@ -48,6 +49,11 @@ export function DayStrip({ day, today, matchDays, onDay }: Props) {
       <button className="round" onClick={() => onDay(shift(DAYS))} aria-label="O săptămână înainte">
         <ChevronIcon direction="right" />
       </button>
+      {!strip.includes(today) && (
+        <button className="pill today" onClick={() => onDay(today)} aria-keyshortcuts="T" title="Tasta T">
+          Azi
+        </button>
+      )}
     </div>
   );
 }

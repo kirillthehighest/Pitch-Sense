@@ -10,13 +10,13 @@ import { Crest } from "../components/Crest";
 import { Flag } from "../components/Flag";
 import { FormSquares } from "../components/FormSquares";
 import { CheckIcon, CrossIcon } from "../components/Icons";
-import { HitMark } from "../components/MatchRow";
+import { HitMark, isPending } from "../components/MatchRow";
 import { Problem } from "../components/Problem";
 import { ProbabilityBar } from "../components/ProbabilityBar";
 import { SkeletonCard } from "../components/Skeleton";
 import { ScoreGrid } from "../components/ScoreGrid";
 import { StadiumPhoto } from "../components/StadiumPhoto";
-import { capitalised, dateText, integer, longDateText, number, parseDay, percent, seasonText, withKickoff } from "../format";
+import { capitalised, dateText, integer, longDateText, number, parseDay, percent, seasonText, teamName, withKickoff } from "../format";
 import { MODEL_COLOURS, themeFor, themeStyle } from "../theme";
 import type { Forecast, League, MatchKey, MatchPage as Page, Outcome, Prediction, TeamState } from "../types";
 import { MODELS } from "../types";
@@ -91,7 +91,12 @@ function MatchHead({
 }: { page: Page; league: League; favourite: string | null; onTeam: (team: string) => void }) {
   const { forecast } = page;
   const played = forecast.result !== null;
-  const when = withKickoff(capitalised(longDateText(parseDay(forecast.date))), forecast.kickoff, played || forecast.postponed);
+  const pending = isPending(forecast);
+  const when = withKickoff(
+    capitalised(longDateText(parseDay(forecast.date))),
+    forecast.kickoff,
+    played || forecast.postponed || pending || forecast.hypothetical,
+  );
   const sides: [TeamState, "home" | "away"][] = [
     [page.home, "home"],
     [page.away, "away"],
@@ -111,7 +116,7 @@ function MatchHead({
         {sides.map(([state, side]) => (
           <button key={side} className={`head-team ${side}`} onClick={() => onTeam(state.team)}>
             <Crest team={state.team} size={84} ring={state.team === favourite} />
-            <strong>{state.team}</strong>
+            <strong>{teamName(state.team)}</strong>
             <span>
               Locul {state.position} din {page.teams}
             </span>
@@ -119,8 +124,8 @@ function MatchHead({
         ))}
         <div className="head-score">
           <strong>{played ? `${forecast.home_goals} – ${forecast.away_goals}` : "VS"}</strong>
-          <span className={`state ${played ? "final" : forecast.hypothetical ? "hypothetical" : "upcoming"}`}>
-            {page.status}
+          <span className={`state ${played ? "final" : forecast.hypothetical ? "hypothetical" : pending ? "pending" : "upcoming"}`}>
+            {pending ? "Fără rezultat" : page.status}
           </span>
         </div>
       </div>
@@ -132,8 +137,9 @@ function MatchHead({
 
 const SIDES: Record<Outcome, string> = { H: "home", D: "draw", A: "away" };
 
-/** Whom the models favour: "Toate trei modelele mizează pe Napoli", "2 din 3 modele mizează pe
- * egal", "Modelele nu cad de acord". */
+/** Whom the models favour: "Toate cele trei modele mizează pe Napoli", "2 din 3 modele mizează pe
+ * egal", "Modelele nu cad de acord"; "la limită" when their favourite leads the next result by
+ * less than five points on average. */
 export function consensusText(forecast: Forecast): string {
   const predictions = forecast.predictions;
   if (predictions.length === 0) return "Niciun model nu are destule meciuri anterioare";
@@ -142,10 +148,16 @@ export function consensusText(forecast: Forecast): string {
   const [outcome, count] = [...counts.entries()].sort((a, b) => b[1] - a[1])[0];
   const total = predictions.length;
   if (count === 1 && total > 1) return "Modelele nu cad de acord";
-  const choice = outcome === "D" ? "egal" : outcome === "H" ? forecast.home_team : forecast.away_team;
+  const choice = outcome === "D" ? "egal" : teamName(outcome === "H" ? forecast.home_team : forecast.away_team);
   let who = `${count} din ${total} modele`;
-  if (count === total) who = total === 1 ? "Singurul model" : total === 3 ? "Toate trei modelele" : "Toate modelele";
-  return `${who} mizează pe ${choice}`;
+  if (count === total) who = total === 1 ? "Singurul model" : total === 3 ? "Toate cele trei modele" : "Toate modelele";
+  const backing = predictions.filter((prediction) => prediction.most_likely === outcome);
+  const lead =
+    backing.reduce((sum, prediction) => {
+      const chances = [prediction.home, prediction.draw, prediction.away].sort((a, b) => b - a);
+      return sum + chances[0] - chances[1];
+    }, 0) / backing.length;
+  return `${who} mizează pe ${choice}${lead < 0.05 ? ", la limită" : ""}`;
 }
 
 /** The three models' bars, one under the other, under the score of the head. */
@@ -199,7 +211,7 @@ function ModelsCard({ page }: { page: Page }) {
       <div className="bar-legend">
         <span>
           <i className="key home" />
-          {forecast.home_team} câștigă
+          {teamName(forecast.home_team)} câștigă
         </span>
         <span>
           <i className="key draw" />
@@ -207,7 +219,7 @@ function ModelsCard({ page }: { page: Page }) {
         </span>
         <span>
           <i className="key away" />
-          {forecast.away_team} câștigă
+          {teamName(forecast.away_team)} câștigă
         </span>
       </div>
       {predictions.length === 0 && (
@@ -262,7 +274,7 @@ function TeamsCard({ page, favourite, onTeam }: { page: Page; favourite: string 
         {[home, away].map((state, index) => (
           <button key={state.team} className={`compare-team ${index ? "away" : "home"}`} onClick={() => onTeam(state.team)}>
             <Crest team={state.team} size={30} ring={state.team === favourite} />
-            <span>{state.team}</span>
+            <span>{teamName(state.team)}</span>
           </button>
         ))}
       </div>
@@ -309,11 +321,11 @@ function PoissonCard({ page }: { page: Page }) {
           <div className="expected-goals">
             <div>
               <strong>{number(homeGoals, 2)}</strong>
-              <span>{forecast.home_team}</span>
+              <span>{teamName(forecast.home_team)}</span>
             </div>
             <div>
               <strong>{number(awayGoals, 2)}</strong>
-              <span>{forecast.away_team}</span>
+              <span>{teamName(forecast.away_team)}</span>
             </div>
           </div>
           <p className="caption">Goluri așteptate: câte ar marca în medie fiecare echipă în acest meci.</p>
@@ -337,8 +349,8 @@ function PoissonCard({ page }: { page: Page }) {
         </div>
         <ScoreGrid
           grid={poisson.grid}
-          home={forecast.home_team}
-          away={forecast.away_team}
+          home={teamName(forecast.home_team)}
+          away={teamName(forecast.away_team)}
           accent={themeFor(forecast.competition).accent}
           actual={forecast.result !== null ? [forecast.home_goals as number, forecast.away_goals as number] : null}
         />

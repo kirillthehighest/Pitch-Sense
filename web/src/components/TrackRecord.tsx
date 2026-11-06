@@ -54,7 +54,7 @@ export function TrackRecord({ league, ready, onOpen }: Props) {
                     {model.label}
                     {model.matches > 0 && share === best && <span className="track-lead">în frunte</span>}
                   </span>
-                  <strong>{model.matches ? percent(share, 0) : "–"}</strong>
+                  <strong>{model.matches ? percent(share) : "–"}</strong>
                   <span className="track-bar" aria-hidden="true">
                     <span style={{ width: `${100 * share}%`, background: MODEL_COLOURS[model.model] }} />
                   </span>

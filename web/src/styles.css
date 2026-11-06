@@ -212,7 +212,7 @@ select, input[type="date"] {
 .status small { font-size: 12px; font-weight: 600; color: var(--muted); }
 .status.pending { font-size: 11px; font-weight: 700; color: var(--muted); }
 .match-row.stacked .status.pending { font-size: 13px; }
-.match-row.stacked .status.pending small { font-size: 10px; }
+.match-row.stacked .status.pending small { font-size: 11px; }
 .match-row.pending .teams, .match-row.pending .stack { opacity: 0.72; }
 .teams { display: grid; grid-template-columns: minmax(0, 1fr) 58px minmax(0, 1fr); align-items: center; gap: 12px; min-width: 0; }
 .team { display: flex; align-items: center; gap: 10px; min-width: 0; font-weight: 600; }
@@ -317,9 +317,7 @@ select, input[type="date"] {
 .h1-league { font-weight: 500; color: rgba(255, 255, 255, 0.62); margin-left: 4px; }
 .lab-head {
   border-radius: var(--radius-card); border: 1px solid var(--edge); position: relative; overflow: hidden;
-  background:
-    radial-gradient(120% 140% at 100% 0%, color-mix(in srgb, var(--brand) 85%, transparent), transparent 60%),
-    linear-gradient(90deg, color-mix(in srgb, var(--brand) 55%, var(--surface)), var(--surface));
+  background: linear-gradient(90deg, color-mix(in srgb, var(--brand) 70%, var(--surface)), color-mix(in srgb, var(--brand) 25%, var(--surface)));
 }
 .head-models { margin: 0 0 0 auto; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
 .head-models li {
@@ -391,9 +389,11 @@ button.standings-row:hover { background: var(--surface-high); }
 .analysis-stack { display: flex; flex-direction: column; gap: 16px; }
 .analysis-stack > .caption { margin: 0; line-height: 1.5; }
 .explanations { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: stretch; }
-.explanation p { margin: 0; line-height: 1.65; color: #d9d9df; max-width: 68ch; }
+.explanation p { margin: 0; line-height: 1.65; color: #d9d9df; max-width: 34em; }
 .explanation p + p { margin-top: 10px; }
-.table-note { margin: 12px 0 0; line-height: 1.5; max-width: 90ch; }
+.table-note { margin: 12px 0 0; line-height: 1.5; }
+/* Notes under tables and charts keep a readable line (about 75 characters) */
+.card p.caption, .finding p { max-width: 36em; }
 .card .data-table + .data-table { margin-top: 18px; }
 .sure-cell { display: inline-flex; flex-direction: column; align-items: flex-end; line-height: 1.25; }
 .sure-cell small { color: var(--muted); font-size: 12px; }
@@ -707,6 +707,8 @@ button.track-model:hover { background: var(--surface-high); }
 .projection-row.head::before { display: none; }
 .projection-row.head span:nth-child(2), .projection-row .team { text-align: left; }
 .projection-row .position { text-align: center; color: var(--muted); font-weight: 700; }
+.projection-row .position.zone-top { color: var(--night); }
+.projection-row .position.zone-bottom { color: #ff9aac; }
 button.projection-row:hover { background: var(--surface-high); }
 .projection-row.favourite { background: color-mix(in srgb, var(--accent) 12%, transparent); }
 .projection-row strong { font-weight: 800; font-size: 15px; }
@@ -721,7 +723,7 @@ button.projection-row:hover { background: var(--surface-high); }
   background: linear-gradient(90deg, color-mix(in srgb, var(--brand) 40%, var(--surface)), var(--surface) 70%);
 }
 .finding h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.3; text-wrap: balance; }
-.finding p { margin: 8px 0 0; color: #d9d9df; line-height: 1.6; max-width: 80ch; }
+.finding p { margin: 8px 0 0; color: #d9d9df; line-height: 1.6; }
 .diagram { margin: -4px 0 14px; padding: 14px 16px; border-radius: 14px; background: var(--night); }
 .diagram svg { display: block; width: 100%; height: auto; max-height: 150px; }
 .more-details > summary {
@@ -819,3 +821,14 @@ dialog.modal[open] { animation: rise 180ms cubic-bezier(0.2, 0.8, 0.2, 1); }
   .projection-row { grid-template-columns: 30px minmax(140px, 1.2fr) 46px 58px 76px 62px 88px minmax(120px, 1.2fr); }
   .head-models { display: none; }
 }
+
+/* Phase 25: the skip link, the focusable content, the chart's own note, "Azi" */
+.skip-link {
+  position: fixed; left: 12px; top: -48px; z-index: 30; height: 36px; padding: 0 14px; border-radius: 10px;
+  display: inline-flex; align-items: center; background: var(--text); color: var(--night); font-weight: 700; text-decoration: none;
+}
+.skip-link:focus { top: 12px; }
+main.screen:focus { outline: none; }
+.chart-note { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+.pill.today { flex: none; height: 38px; }
+.state.pending { background: rgba(255, 255, 255, 0.14); color: #fff; }

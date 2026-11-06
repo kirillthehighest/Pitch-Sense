@@ -11,7 +11,7 @@ import { FormSquares } from "../components/FormSquares";
 import { Problem } from "../components/Problem";
 import { StadiumHead } from "../components/ScreenHead";
 import { SkeletonTable } from "../components/Skeleton";
-import { dateText, integer, number, parseDay, percent, seasonText, signed } from "../format";
+import { dateText, integer, isoDay, number, parseDay, percent, seasonText, signed, teamName } from "../format";
 import type { League, Projection, SeasonDays, Standings as Table } from "../types";
 import { MODEL_LABELS, MODELS } from "../types";
 
@@ -30,6 +30,14 @@ const TOP_PLACES = 4; // as the server's projection: the Champions League places
 const BOTTOM_PLACES = 3; // and relegation (with the play-off place of Bundesliga and Ligue 1)
 
 type Mode = "season" | "before" | "projection";
+
+/** A week before ``lastDay``, never before the season's first day. */
+export function weekBefore(lastDay: string, firstDay: string): string {
+  const day = parseDay(lastDay);
+  day.setDate(day.getDate() - 7);
+  const text = isoDay(day);
+  return text < firstDay ? firstDay : text;
+}
 
 export function difference(value: number): string {
   return value === 0 ? "0" : signed(value, 0);
@@ -67,7 +75,9 @@ export function Standings({ title, description, league, season, favourite, onSea
     api.season(league.code, season).then((found) => {
       if (!live) return;
       setDays(found);
-      setDay(found.suggested_day);
+      // in the season in progress the server offers the day after the last match: a week earlier
+      // shows a table that differs from the one so far
+      setDay(season === league.current_season ? weekBefore(found.suggested_day, found.first_day) : found.suggested_day);
     });
     return () => {
       live = false;
@@ -150,16 +160,16 @@ export function Standings({ title, description, league, season, favourite, onSea
               <h2>
                 {league.name} {seasonText(current.season)} · {when}
               </h2>
-              <div className="standings" role="table" aria-label={`Clasamentul ${league.name}`}>
-                <div className="standings-row head" role="row">
-                  <span role="columnheader">#</span>
-                  <span role="columnheader">Echipă</span>
+              <div className="standings">
+                <div className="standings-row head" aria-hidden="true">
+                  <span>#</span>
+                  <span>Echipă</span>
                   {COLUMNS.map((column) => (
-                    <span key={column} role="columnheader">
+                    <span key={column}>
                       {column}
                     </span>
                   ))}
-                  <span className="form-head" role="columnheader">
+                  <span className="form-head">
                     Ultimele 5
                   </span>
                 </div>
@@ -169,26 +179,27 @@ export function Standings({ title, description, league, season, favourite, onSea
                   return (
                     <button
                       key={row.team}
-                      role="row"
+                     
                       className={`standings-row${row.team === favourite ? " favourite" : ""}`}
+                      aria-label={`Locul ${row.position}: ${teamName(row.team)}, ${record.points} puncte din ${record.played} meciuri, golaveraj ${difference(record.goal_difference)}`}
                       onClick={() => onTeam(league.code, row.team, current.season)}
                     >
-                      <span role="cell" className={`position${zone ? ` zone-${zone}` : ""}`}>
+                      <span className={`position${zone ? ` zone-${zone}` : ""}`}>
                         {row.position}
                       </span>
-                      <span role="cell" className="team">
+                      <span className="team">
                         <Crest team={row.team} size={26} ring={row.team === favourite} />
-                        <span className="name">{row.team}</span>
+                        <span className="name">{teamName(row.team)}</span>
                       </span>
-                      <span role="cell">{record.played}</span>
-                      <span role="cell">{record.wins}</span>
-                      <span role="cell">{record.draws}</span>
-                      <span role="cell">{record.losses}</span>
-                      <span role="cell">{record.goals_for}</span>
-                      <span role="cell">{record.goals_against}</span>
-                      <span role="cell">{difference(record.goal_difference)}</span>
-                      <strong role="cell">{record.points}</strong>
-                      <span role="cell" className="form-cell">
+                      <span>{record.played}</span>
+                      <span>{record.wins}</span>
+                      <span>{record.draws}</span>
+                      <span>{record.losses}</span>
+                      <span>{record.goals_for}</span>
+                      <span>{record.goals_against}</span>
+                      <span>{difference(record.goal_difference)}</span>
+                      <strong>{record.points}</strong>
+                      <span className="form-cell">
                         <FormSquares results={row.form} />
                       </span>
                     </button>
@@ -268,43 +279,44 @@ function ProjectedTable({ league, favourite, onTeam }: { league: League; favouri
           ))}
         </select>
       </div>
-      <div className="projection" role="table" aria-label="Proiecția clasamentului final">
-        <div className="projection-row head" role="row">
-          <span role="columnheader">#</span>
-          <span role="columnheader">Echipă</span>
-          <span role="columnheader">Acum</span>
-          <span role="columnheader" title="Punctele așteptate la finalul sezonului">
+      <div className="projection">
+        <div className="projection-row head" aria-hidden="true">
+          <span>#</span>
+          <span>Echipă</span>
+          <span>Acum</span>
+          <span title="Punctele așteptate la finalul sezonului">
             Pct. finale
           </span>
-          <span role="columnheader">Campioană</span>
-          <span role="columnheader">Top {projection.top_places}</span>
-          <span role="columnheader">Retrogradare</span>
-          <span role="columnheader" className="places-head">
+          <span>Campioană</span>
+          <span>Top {projection.top_places}</span>
+          <span>Retrogradare</span>
+          <span className="places-head">
             Locul final: 1 → {teams}
           </span>
         </div>
         {projection.teams.map((team, index) => (
           <button
             key={team.team}
-            role="row"
+           
             className={`projection-row${team.team === favourite ? " favourite" : ""}`}
+            aria-label={`${teamName(team.team)}: ${team.points} puncte acum, ${number(team.expected_points, 0)} așteptate la final; campioană ${chanceText(team.places[0])}, top ${projection.top_places} ${chanceText(team.top)}, retrogradare ${chanceText(team.bottom)}; ${placesLabel(team.places)}`}
             onClick={() => onTeam(team.team)}
           >
-            <span role="cell" className={`position${zoneOf(index + 1, teams) ? ` zone-${zoneOf(index + 1, teams)}` : ""}`}>
+            <span className={`position${zoneOf(index + 1, teams) ? ` zone-${zoneOf(index + 1, teams)}` : ""}`}>
               {index + 1}
             </span>
-            <span role="cell" className="team">
+            <span className="team">
               <Crest team={team.team} size={26} ring={team.team === favourite} />
-              <span className="name">{team.team}</span>
+              <span className="name">{teamName(team.team)}</span>
             </span>
-            <span role="cell" className="caption" title={`${team.played} meciuri jucate, ${team.remaining} rămase`}>
+            <span className="caption" title={`${team.played} meciuri jucate, ${team.remaining} rămase`}>
               {team.points}
             </span>
-            <strong role="cell">{number(team.expected_points, 0)}</strong>
-            <span role="cell">{chanceText(team.places[0])}</span>
-            <span role="cell">{chanceText(team.top)}</span>
-            <span role="cell">{chanceText(team.bottom)}</span>
-            <span role="cell" className="places" aria-label={placesLabel(team.places)}>
+            <strong>{number(team.expected_points, 0)}</strong>
+            <span>{chanceText(team.places[0])}</span>
+            <span>{chanceText(team.top)}</span>
+            <span>{chanceText(team.bottom)}</span>
+            <span className="places" aria-hidden="true">
               {team.places.map((chance, place) => (
                 <i
                   key={place}

@@ -202,10 +202,25 @@ export default function App() {
     if (scroller.current) scroller.current.scrollTop = match ? 0 : screenScroll.current;
   }, [match]);
 
-  const chooseScreen = useCallback((name: ScreenName) => {
-    setMatch(null);
-    setScreen(name);
+  // A new screen opens at its top, and the keyboard's focus moves to its content (Phase 25)
+  const focusContent = useCallback(() => {
+    requestAnimationFrame(() => scroller.current?.focus({ preventScroll: true }));
   }, []);
+
+  const chooseScreen = useCallback(
+    (name: ScreenName) => {
+      setMatch(null);
+      screenScroll.current = 0;
+      if (scroller.current) scroller.current.scrollTop = 0;
+      setScreen(name);
+      focusContent();
+    },
+    [focusContent],
+  );
+
+  useEffect(() => {
+    if (match) focusContent();
+  }, [match, focusContent]);
 
   const openTeam = useCallback(
     (code: string, chosen: string, season: string) => {
@@ -213,9 +228,12 @@ export default function App() {
       setSeasons((shown) => ({ ...shown, [code]: season }));
       setTeam({ code, team: chosen, season });
       setMatch(null);
+      screenScroll.current = 0;
+      if (scroller.current) scroller.current.scrollTop = 0;
       setScreen("team");
+      focusContent();
     },
-    [league, chooseLeague],
+    [league, chooseLeague, focusContent],
   );
 
   // The page's keys: 1–5 choose a league, / finds a team, S simulates a match, ? lists them all
@@ -249,7 +267,13 @@ export default function App() {
         onSearch={() => setSearch(true)}
         onShortcuts={() => setShortcuts(true)}
       />
-      <main className="screen" ref={scroller}>
+      <a className="skip-link" href="#continut" onClick={(event) => {
+        event.preventDefault();
+        scroller.current?.focus();
+      }}>
+        Sari la conținut
+      </a>
+      <main className="screen" ref={scroller} id="continut" tabIndex={-1} aria-label="Conținut">
         <div className="screen-inner">
           {match && current && (
             <MatchPage

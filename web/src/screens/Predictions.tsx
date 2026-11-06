@@ -198,7 +198,7 @@ export function Predictions({ league, season, favourite, ready, onSeason, onOpen
           </div>
           <div className="control-row">
             {counts.map(([name, label, count]) => (
-              <button key={name} className={`pill${kind === name ? " chosen" : ""}`} onClick={() => setKind(name)}>
+              <button key={name} className={`pill${kind === name ? " chosen" : ""}`} aria-pressed={kind === name} onClick={() => setKind(name)}>
                 {label} <span className="count">{integer(count)}</span>
               </button>
             ))}

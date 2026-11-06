@@ -13,7 +13,7 @@ import { ColumnsHead, MatchRow } from "../components/MatchRow";
 import { usePageKeys } from "../components/Shortcuts";
 import { SkeletonCard, SkeletonRows } from "../components/Skeleton";
 import { TrackRecord } from "../components/TrackRecord";
-import { capitalised, dayName, isoDay, parseDay, quantity, seasonText, shortDateText } from "../format";
+import { capitalised, dayName, isoDay, parseDay, quantity, seasonText, shortDateText, teamName } from "../format";
 import { themeStyle } from "../theme";
 import type { Day, Days, Forecast, League, Preferences, Standings } from "../types";
 import { MODEL_LABELS, MODELS } from "../types";
@@ -75,6 +75,7 @@ export function Matches({ leagues, league, preferences, ready, onOpenMatch, onSt
     if (key === "ArrowLeft") setDay(shifted(day, -1));
     else if (key === "ArrowRight") setDay(shifted(day, 1));
     else if (key === "m" || key === "M") setModel(nextModel);
+    else if ((key === "t" || key === "T") && days) setDay(days.today);
   });
 
   if (!days || !day) {
@@ -116,10 +117,10 @@ export function Matches({ leagues, league, preferences, ready, onOpenMatch, onSt
         <div className="controls">
           <h2 className="day-title">{name === dateName ? capitalised(dateName) : `${name} · ${dateName}`}</h2>
           <div className="control-row">
-            <button className={`pill${onlyLeague ? "" : " chosen"}`} onClick={() => setOnlyLeague(false)}>
+            <button className={`pill${onlyLeague ? "" : " chosen"}`} aria-pressed={!(onlyLeague)} onClick={() => setOnlyLeague(false)}>
               Toate ligile
             </button>
-            <button className={`pill${onlyLeague ? " chosen" : ""}`} onClick={() => setOnlyLeague(true)}>
+            <button className={`pill${onlyLeague ? " chosen" : ""}`} aria-pressed={onlyLeague} onClick={() => setOnlyLeague(true)}>
               Doar {league.name}
             </button>
             <span className="grow" />
@@ -242,7 +243,7 @@ function FavouriteCard({
       <div className="favourite-identity">
         <Crest team={favourite.team} size={56} ring />
         <div>
-          <strong>{favourite.team}</strong>
+          <strong>{teamName(favourite.team)}</strong>
           <div className="caption">
             {league.name} · {seasonText(league.seasons[league.seasons.length - 1])}
           </div>
@@ -275,7 +276,7 @@ function MiniTable({ league, favourite, onStandings }: { league: League; favouri
         <div key={row.team} className={`mini-row${row.team === favourite ? " favourite" : ""}`}>
           <span className="position">{row.position}</span>
           <Crest team={row.team} size={22} />
-          <span className="name">{row.team}</span>
+          <span className="name">{teamName(row.team)}</span>
           <span className="caption">{row.record.played}</span>
           <strong>{row.record.points}</strong>
         </div>
