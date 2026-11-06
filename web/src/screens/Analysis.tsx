@@ -362,7 +362,9 @@ function Models({ league }: { league: League }) {
             { label: "Eroare de calibrare", width: EVEN },
             { label: "Eroarea golurilor", width: EVEN },
           ]}
-          rows={evaluation.models.map((model) => [
+          rows={[...evaluation.models]
+            .sort((a, b) => (a.brier ?? Infinity) - (b.brier ?? Infinity))
+            .map((model) => [
             model.label,
             percent(model.accuracy),
             model.brier === lowestBrier ? <strong className="best">{number(model.brier)}</strong> : number(model.brier),
@@ -532,7 +534,7 @@ function Bookmakers({ comparison }: { comparison: BookmakerComparison }) {
           { label: "Pierdere logaritmică", width: EVEN },
           { label: `Peste ${percent(SURE, 0)}`, width: EVEN },
         ]}
-        rows={comparison.models.map((model) => [
+        rows={comparison.models.slice(-1).map((model) => [
           model.label,
           percent(model.accuracy),
           model.brier === lowestBrier ? <strong className="best">{number(model.brier)}</strong> : number(model.brier),

@@ -428,6 +428,8 @@ export default function App() {
       {search && (
         <TeamSearch
           leagues={leagues}
+          current={league}
+          favourite={favourite}
           onSimulate={(code, home) => {
             setSearch(false);
             setSimulateFrom(code && home ? { code, home } : null);

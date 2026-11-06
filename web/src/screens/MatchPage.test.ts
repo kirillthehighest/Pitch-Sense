@@ -57,7 +57,7 @@ describe("why a model sees a match as it does", () => {
     forecast: match([{ ...prediction("Poisson", "H"), likely_score: [1, 0] as [number, number] }]),
     home: { team: "Napoli", position: 2, record: { played: 10, points: 22 }, form: ["W", "D", "L", "W", "W"], rating: 1650 },
     away: { team: "Lazio", position: 8, record: { played: 10, points: 14 }, form: ["L", "L", "D", "W", "D"], rating: 1580 },
-    poisson: { expected_goals: [1.62, 0.94], top_scores: [], grid: [] },
+    poisson: { expected_goals: [1.62, 0.94], top_scores: [{ home: 1, away: 1, probability: 0.12 }], grid: [[0.08, 0.06], [0.11, 0.12]] },
     elo_home_advantage: 100,
   } as unknown as Parameters<typeof modelReason>[1];
 
@@ -69,11 +69,12 @@ describe("why a model sees a match as it does", () => {
 
   it("states Poisson's expected goals and its favourite's likeliest score", () => {
     expect(modelReason("Poisson", page)).toContain("Goluri așteptate: Napoli 1,62, Lazio 0,94.");
-    expect(modelReason("Poisson", page)).toContain("scorul cel mai probabil e 1–0");
+    expect(modelReason("Poisson", page)).toContain("Îl vede favorit pe Napoli; dintre victoriile gazdelor, cel mai probabil e 1–0");
   });
 
   it("states the differences the logistic regression weighs", () => {
     expect(modelReason("Logistic regression", page)).toContain("Napoli 2,20 puncte pe meci, Lazio 1,40");
     expect(modelReason("Logistic regression", page)).toContain("forma, 10 față de 5 puncte");
+    expect(modelReason("Logistic regression", page)).toContain("cât valorează terenul propriu");
   });
 });

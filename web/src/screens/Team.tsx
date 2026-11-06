@@ -13,7 +13,7 @@ import { ColumnsHead, MatchRow } from "../components/MatchRow";
 import { Problem } from "../components/Problem";
 import { SkeletonCard } from "../components/Skeleton";
 import { StadiumPhoto } from "../components/StadiumPhoto";
-import { number, seasonText, teamName } from "../format";
+import { integer, number, seasonText, teamName } from "../format";
 import { ACCENT } from "../theme";
 import type { Favourite, Forecast, League, TeamPage, TeamRecord } from "../types";
 import { MODELS } from "../types";
@@ -126,6 +126,47 @@ export function Team({ league, season, team, favourite, ready, onChoice, onOpenM
                 {league.name} {seasonText(page.season)} · locul {page.position} din {page.teams} ·{" "}
                 {page.in_progress ? "sezon în desfășurare" : "sezon încheiat"}
               </span>
+              <span className="team-facts">
+                {page.record.points} puncte din {page.record.played} meciuri · golaveraj{" "}
+                {page.record.goal_difference > 0 ? "+" : ""}
+                {page.record.goal_difference}
+                {latestRating(page) !== null && ` · rating Elo ${integer(Math.round(latestRating(page) as number))}`}
+              </span>
+              {page.stadium && <span className="stadium-name">Stadion: {page.stadium}</span>}
+            </div>
+            <button
+              className={`button${isFavourite ? "" : " primary"}`}
+              aria-pressed={isFavourite}
+              onClick={() => onFavourite(isFavourite ? null : { competition: league.code, team: page.team })}
+            >
+              <StarIcon filled={isFavourite} />
+              {isFavourite ? "Echipa ta" : "Alege ca echipa ta"}
+            </button>
+            {page.stadium && <span className="credit">Foto: Wikimedia Commons</span>}
+          </section>
+          <div className="team-grid">
+            <SkeletonCard height={260} />
+            <SkeletonCard height={260} />
+          </div>
+        </>
+      )}
+      {page && (
+        <>
+          <section className="team-head">
+            <StadiumPhoto team={page.team} className="beside" />
+            <Crest team={page.team} size={104} ring={isFavourite} />
+            <div className="team-head-text">
+              <h1>{teamName(page.team)}</h1>
+              <span>
+                {league.name} {seasonText(page.season)} · locul {page.position} din {page.teams} ·{" "}
+                {page.in_progress ? "sezon în desfășurare" : "sezon încheiat"}
+              </span>
+              <span className="team-facts">
+                {page.record.points} puncte din {page.record.played} meciuri · golaveraj{" "}
+                {page.record.goal_difference > 0 ? "+" : ""}
+                {page.record.goal_difference}
+                {latestRating(page) !== null && ` · rating Elo ${integer(Math.round(latestRating(page) as number))}`}
+              </span>
               {page.stadium && <span className="stadium-name">Stadion: {page.stadium}</span>}
             </div>
             <button
@@ -228,6 +269,13 @@ export function Team({ league, season, team, favourite, ready, onChoice, onOpenM
       )}
     </div>
   );
+}
+
+/** The club's latest Elo rating in the page's season, if it played. */
+export function latestRating(page: TeamPage): number | null {
+  const season = page.elo.find((item) => item.season === page.season);
+  const points = season?.points ?? [];
+  return points.length ? points[points.length - 1].rating : null;
 }
 
 /** The season before ``season`` in the league's list, if any. */

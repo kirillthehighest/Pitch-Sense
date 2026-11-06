@@ -161,7 +161,7 @@ export function Predictions({ league, season, favourite, ready, onSeason, onOpen
             <section className="card review-score">
               <h2>Bilanțul modelului</h2>
               <div className="big-number">
-                <strong>{percent(review.hits / review.matches, 0)}</strong>
+                <strong>{percent(review.hits / review.matches)}</strong>
                 <span>
                   {integer(review.hits)} nimerite din {quantity(review.matches, "meci jucat", "meciuri jucate")}
                 </span>
@@ -198,14 +198,16 @@ export function Predictions({ league, season, favourite, ready, onSeason, onOpen
               </button>
             ))}
             <span className="grow" />
+            <span className="labelled">
             <label className="caption" htmlFor="review-order">
-              Ordine
-            </label>
-            <select id="review-order" value={order} onChange={(event) => setOrder(event.target.value as Order)}>
-              <option value="recent">Cele mai recente</option>
-              <option value="surprising">Cele mai mari surprize</option>
-              <option value="confident">Cele mai sigure predicții</option>
-            </select>
+                Ordine
+              </label>
+              <select id="review-order" value={order} onChange={(event) => setOrder(event.target.value as Order)}>
+                <option value="recent">Cele mai recente</option>
+                <option value="surprising">Cele mai mari surprize</option>
+                <option value="confident">Cele mai sigure predicții</option>
+              </select>
+            </span>
           </div>
           <section className="card review-list">
             <ColumnsHead extra />

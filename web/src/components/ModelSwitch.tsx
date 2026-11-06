@@ -36,37 +36,56 @@ export function ModelSwitch({ league, model, ready, onModel }: Props) {
 
   const shown = record?.competition === league.code ? record : null;
   const of = (name: string) => shown?.models.find((item) => item.model === name);
+  // a radio group moves with the arrows, as the platform's own
+  const step = (direction: number) => {
+    const index = MODELS.indexOf(model as (typeof MODELS)[number]);
+    onModel(MODELS[(index + direction + MODELS.length) % MODELS.length]);
+  };
   return (
     <div className="model-choice">
-    <div className="model-switch" role="radiogroup" aria-label="Modelul" aria-keyshortcuts="M">
-      {MODELS.map((name) => {
-        const found = of(name);
-        const text = recordText(found);
-        return (
-          <button
-            key={name}
-            role="radio"
-            aria-checked={model === name}
-            className={model === name ? "chosen" : undefined}
-            onClick={() => onModel(name)}
-            title={
-              found && found.matches > 0
-                ? `${MODEL_LABELS[name]}: ${integer(found.hits)} din ${integer(found.matches)} meciuri nimerite în ${league.name} ${seasonText(shown?.season ?? "")}`
-                : MODEL_LABELS[name]
-            }
-          >
-            <i style={{ background: MODEL_COLOURS[name] }} />
-            <span>{MODEL_LABELS[name]}</span>
-            {text && <b>{text}</b>}
-          </button>
-        );
-      })}
-    </div>
-    {shown && shown.models.some((item) => item.matches > 0) && (
-      <span className="model-scope">
-        meciuri nimerite în {league.name} {seasonText(shown.season)}
-      </span>
-    )}
+      <div
+        className="model-switch"
+        role="radiogroup"
+        aria-label="Modelul"
+        aria-keyshortcuts="M"
+        title="Implicit: regresia logistică, cel mai mic scor Brier pe toate ligile la un loc, în 16 sezoane"
+        onKeyDown={(event) => {
+          if (event.key === "ArrowRight" || event.key === "ArrowDown") step(1);
+          else if (event.key === "ArrowLeft" || event.key === "ArrowUp") step(-1);
+          else return;
+          event.preventDefault();
+          event.stopPropagation();
+        }}
+      >
+        {MODELS.map((name) => {
+          const found = of(name);
+          const text = recordText(found);
+          return (
+            <button
+              key={name}
+              role="radio"
+              aria-checked={model === name}
+              tabIndex={model === name ? 0 : -1}
+              className={model === name ? "chosen" : undefined}
+              onClick={() => onModel(name)}
+              title={
+                found && found.matches > 0
+                  ? `${MODEL_LABELS[name]}: ${integer(found.hits)} din ${integer(found.matches)} meciuri nimerite în ${league.name} ${seasonText(shown?.season ?? "")}`
+                  : MODEL_LABELS[name]
+              }
+            >
+              <i style={{ background: MODEL_COLOURS[name] }} />
+              <span>{MODEL_LABELS[name]}</span>
+              {text && <b>{text}</b>}
+            </button>
+          );
+        })}
+      </div>
+      {shown && shown.models.some((item) => item.matches > 0) && (
+        <span className="model-scope">
+          nimerite în {league.name} {seasonText(shown.season)}
+        </span>
+      )}
     </div>
   );
 }

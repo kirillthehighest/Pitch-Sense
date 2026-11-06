@@ -12,7 +12,7 @@ import { Crest } from "../components/Crest";
 import { Flag } from "../components/Flag";
 import { FormSquares } from "../components/FormSquares";
 import { ChevronIcon } from "../components/Icons";
-import { HitMark, isPending, UNSURE } from "../components/MatchRow";
+import { HitMark, isPending, isUnsure } from "../components/MatchRow";
 import { Problem } from "../components/Problem";
 import { SkeletonCard } from "../components/Skeleton";
 import { ScoreGrid } from "../components/ScoreGrid";
@@ -100,6 +100,9 @@ function MatchHead({
   ];
   return (
     <section className="match-head">
+      <h1 className="visually-hidden">
+        {teamName(forecast.home_team)} – {teamName(forecast.away_team)}
+      </h1>
       <StadiumPhoto team={forecast.home_team} className="behind" />
       <div className="head-shade" />
       <div className="match-head-top">
@@ -177,12 +180,24 @@ export function modelReason(model: string, page: Page): string {
   }
   if (model === "Poisson" && page.poisson) {
     const [homeGoals, awayGoals] = page.poisson.expected_goals;
-    const likely = forecast.predictions.find((p) => p.model === "Poisson")?.likely_score;
-    return `Goluri așteptate: ${homeName} ${number(homeGoals, 2)}, ${awayName} ${number(awayGoals, 2)}.${likely ? ` Cu rezultatul pe care îl socotește cel mai probabil, scorul cel mai probabil e ${likely[0]}–${likely[1]}.` : ""}`;
+    const prediction = forecast.predictions.find((p) => p.model === "Poisson");
+    const likely = prediction?.likely_score;
+    const top = page.poisson.top_scores[0];
+    let scores = "";
+    if (prediction && likely) {
+      const favourite = prediction.most_likely === "D" ? "egalul" : prediction.most_likely === "H" ? homeName : awayName;
+      const chanceOf = page.poisson.grid[likely[0]]?.[likely[1]];
+      const among = prediction.most_likely === "D" ? "dintre egaluri" : `dintre victoriile ${prediction.most_likely === "H" ? "gazdelor" : "oaspeților"}`;
+      scores = ` Îl vede favorit pe ${favourite}; ${among}, cel mai probabil e ${likely[0]}–${likely[1]}${chanceOf !== undefined ? ` (${percent(chanceOf)})` : ""}.`;
+      if (top && (top.home !== likely[0] || top.away !== likely[1])) {
+        scores += ` Cel mai probabil scor în general: ${top.home}–${top.away} (${percent(top.probability)}).`;
+      }
+    }
+    return `Goluri așteptate: ${homeName} ${number(homeGoals, 2)}, ${awayName} ${number(awayGoals, 2)}.${scores}`;
   }
   const perMatch = (points: number, played: number) => (played ? number(points / played, 2) : "–");
   const form = (results: string[]) => results.reduce((sum, result) => sum + (FORM_POINTS[result] ?? 0), 0);
-  return `Cântărește diferențele dintre echipe. În acest sezon: ${homeName} ${perMatch(home.record.points, home.record.played)} puncte pe meci, ${awayName} ${perMatch(away.record.points, away.record.played)}; forma, ${form(home.form)} față de ${form(away.form)} puncte din ultimele 5 meciuri; ratingul Elo, ${integer(Math.round(home.rating))} față de ${integer(Math.round(away.rating))}.`;
+  return `Cântărește diferențele dintre echipe. În acest sezon: ${homeName} ${perMatch(home.record.points, home.record.played)} puncte pe meci, ${awayName} ${perMatch(away.record.points, away.record.played)}; forma, ${form(home.form)} față de ${form(away.form)} puncte din ultimele 5 meciuri; ratingul Elo, ${integer(Math.round(home.rating))} față de ${integer(Math.round(away.rating))}. Pe lângă ele, a învățat din meciurile trecute cât valorează terenul propriu.`;
 }
 
 /** The three models' bars, one under the other, under the score of the head: the most likely
@@ -226,7 +241,7 @@ function Consensus({ page }: { page: Page }) {
                   return (
                     <span
                       key={outcome}
-                      className={`part ${SIDES[outcome]}${prediction.most_likely === outcome ? " likely" : ""}${prediction.most_likely === outcome && value < UNSURE ? " unsure" : ""}${forecast.result === outcome ? " actual" : ""}`}
+                      className={`part ${SIDES[outcome]}${prediction.most_likely === outcome ? " likely" : ""}${prediction.most_likely === outcome && isUnsure(value) ? " unsure" : ""}${forecast.result === outcome ? " actual" : ""}`}
                       style={{ flexGrow: value }}
                     >
                       {value >= 0.1 && percent(value, 0)}
@@ -249,7 +264,6 @@ function Consensus({ page }: { page: Page }) {
         );
       })}
       <p className="consensus-note">
-        {page.verdict ? `${page.verdict} ` : ""}
         {page.knowledge} Apasă pe un model ca să vezi de ce vede meciul așa.
       </p>
     </div>
@@ -258,6 +272,13 @@ function Consensus({ page }: { page: Page }) {
 
 function ordered(predictions: Prediction[]): Prediction[] {
   return MODELS.map((model) => predictions.find((p) => p.model === model)).filter(Boolean) as Prediction[];
+}
+
+/** The day before ``day`` (ISO): the last day whose matches the page knows. */
+function dayBefore(day: string): Date {
+  const moment = parseDay(day);
+  moment.setDate(moment.getDate() - 1);
+  return moment;
 }
 
 type Better = "home" | "away" | null;
@@ -308,11 +329,15 @@ function TeamsCard({ page, favourite, onTeam }: { page: Page; favourite: string 
         </div>
       </div>
       <p className="caption">
-        Cum vin echipele înainte de {dateText(parseDay(page.before))}: din aceste valori învață modelele. În evidență, valoarea
-        mai bună a fiecărui rând.
+        Cum vin echipele după meciurile jucate până pe {dateText(dayBefore(page.before))}: din aceste valori învață modelele. În
+        evidență, valoarea mai bună a fiecărui rând.
       </p>
     </section>
   );
+}
+
+function likelyOf(forecast: Forecast): [number, number] | null {
+  return forecast.predictions.find((p) => p.model === "Poisson")?.likely_score ?? null;
 }
 
 function PoissonCard({ page }: { page: Page }) {
@@ -347,7 +372,11 @@ function PoissonCard({ page }: { page: Page }) {
       <h3>Cele mai probabile scoruri</h3>
       <div className="top-scores">
         {poisson.top_scores.map((score) => (
-          <div key={`${score.home}-${score.away}`} className="top-score">
+          <div
+            key={`${score.home}-${score.away}`}
+            className={`top-score${likelyOf(forecast)?.[0] === score.home && likelyOf(forecast)?.[1] === score.away ? " favourite" : ""}`}
+            title={likelyOf(forecast)?.[0] === score.home && likelyOf(forecast)?.[1] === score.away ? "Cel mai probabil scor al favoritei: cel din lista meciurilor" : undefined}
+          >
             <strong>
               {score.home}–{score.away}
             </strong>

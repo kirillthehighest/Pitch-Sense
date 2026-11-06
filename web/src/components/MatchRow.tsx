@@ -14,7 +14,12 @@ import { Crest } from "./Crest";
 import { CheckIcon, CrossIcon } from "./Icons";
 
 const OUTCOMES: Outcome[] = ["H", "D", "A"];
-export const UNSURE = 0.45; // a favourite below this is hatched: the model is far from sure
+export const UNSURE = 45; // a favourite shown under 45% is hatched: the model is far from sure
+
+/** Whether a chance is "unsure", judged on the rounded percent the chip shows (45% is not). */
+export function isUnsure(value: number): boolean {
+  return Math.round(value * 100) < UNSURE;
+}
 const OUTCOME_NAMES: Record<Outcome, string> = { H: "Gazde", D: "Egal", A: "Oaspeți" };
 
 export function chance(prediction: Prediction, outcome: Outcome): number {
@@ -40,7 +45,7 @@ export function statusText(forecast: Forecast, showDate = false, today?: string)
 export function chipLabel(prediction: Prediction, outcome: Outcome, result: Outcome | null): string {
   const parts = [`${OUTCOME_NAMES[outcome]} ${percent(chance(prediction, outcome), 0)}`];
   if (prediction.most_likely === outcome) {
-    parts.push(chance(prediction, outcome) < UNSURE ? "cel mai probabil, dar nesigur" : "cel mai probabil");
+    parts.push(isUnsure(chance(prediction, outcome)) ? "cel mai probabil, dar nesigur" : "cel mai probabil");
     if (prediction.hit !== null) parts.push(prediction.hit ? "nimerit" : "ratat");
   }
   if (result === outcome) parts.push("rezultatul meciului");
@@ -70,7 +75,7 @@ export function Chips({ prediction, result = null }: { prediction: Prediction | 
     <span className="chips" aria-hidden="true">
       {OUTCOMES.map((outcome) => {
         const chosen = prediction.most_likely === outcome;
-        const unsure = chosen && chance(prediction, outcome) < UNSURE;
+        const unsure = chosen && isUnsure(chance(prediction, outcome));
         return (
           <span
             key={outcome}
@@ -225,7 +230,7 @@ export function ChipLegend() {
         <HitMark hit={false} /> ratat
       </span>
       <span>
-        <i className="legend-ghost">1–0</i> scorul probabil după Poisson
+        <i className="legend-ghost">1–0</i> cel mai probabil scor al favoritei, după Poisson
       </span>
     </p>
   );

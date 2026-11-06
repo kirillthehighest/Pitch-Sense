@@ -115,10 +115,7 @@ export function Matches({ leagues, league, preferences, ready, onOpenMatch, onSt
         )}
         <DayStrip day={day} today={days.today} matchDays={matchDays} onDay={setDay} />
         <div className="controls">
-          <div className="day-line">
-            <h2 className="day-title">{name === dateName ? capitalised(dateName) : `${name} · ${dateName}`}</h2>
-            <ModelSwitch league={league} model={model} ready={ready} onModel={setModel} />
-          </div>
+          <h2 className="visually-hidden">{name === dateName ? capitalised(dateName) : `${name} · ${dateName}`}</h2>
           <div className="control-row">
             <button className={`pill${onlyLeague ? "" : " chosen"}`} aria-pressed={!(onlyLeague)} onClick={() => setOnlyLeague(false)}>
               Toate ligile
@@ -145,7 +142,12 @@ export function Matches({ leagues, league, preferences, ready, onOpenMatch, onSt
                 </option>
               ))}
             </select>
+            <ModelSwitch league={league} model={model} ready={ready} onModel={setModel} />
           </div>
+          <details className="legend-toggle">
+            <summary>Ce înseamnă semnele din listă</summary>
+            <ChipLegend />
+          </details>
         </div>
         {answer && groups.length === 0 && (
           <EmptyDay day={day} days={days.days} onlyLeague={onlyLeague ? league.name : null} onDay={setDay} />
@@ -192,7 +194,6 @@ export function Matches({ leagues, league, preferences, ready, onOpenMatch, onSt
             )}
           </section>
         ))}
-        {groups.length > 0 && <ChipLegend />}
       </div>
       <aside className="matches-side">
         <FavouriteCard preferences={preferences} leagues={leagues} model={model} ready={ready} onOpenMatch={onOpenMatch} />

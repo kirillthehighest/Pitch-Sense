@@ -63,6 +63,8 @@ export function searchTeams(teams: Found[], query: string, limit = 8): Found[] {
 
 interface Props {
   leagues: League[];
+  current?: string | null; // the league on screen: its clubs come first
+  favourite?: string | null; // "your team": first of all
   onClose: () => void;
   onOpen: (code: string, team: string, season: string) => void;
   onSimulate: (code: string | null, home: string | null) => void; // a match from scratch, or with this team at home
@@ -70,7 +72,7 @@ interface Props {
 
 /** The command field's one dialog (Phase 26): find a club and open its page, or simulate a match,
  * from scratch (the first row) or with a found club at home (⇧ Enter, or its button). */
-export function TeamSearch({ leagues, onClose, onOpen, onSimulate }: Props) {
+export function TeamSearch({ leagues, current = null, favourite = null, onClose, onOpen, onSimulate }: Props) {
   const [teams, setTeams] = useState<Found[]>([]);
   const [query, setQuery] = useState("");
   const [chosen, setChosen] = useState(0);
@@ -85,11 +87,15 @@ export function TeamSearch({ leagues, onClose, onOpen, onSimulate }: Props) {
           .then((found) => found.teams.map((team) => ({ code: league.code, league: league.name, season, team })))
           .catch(() => [] as Found[]);
       }),
-    ).then((found) => live && setTeams(found.flat()));
+    ).then((found) => {
+      if (!live) return;
+      const rank = (item: Found) => (item.team === favourite ? 0 : item.code === current ? 1 : 2);
+      setTeams(found.flat().sort((a, b) => rank(a) - rank(b)));
+    });
     return () => {
       live = false;
     };
-  }, [leagues]);
+  }, [leagues, current, favourite]);
 
   const shown = useMemo(() => searchTeams(teams, query, 7), [teams, query]);
   // typing a name points Enter at the first club found; an empty field, at the simulation

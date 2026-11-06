@@ -62,3 +62,12 @@ describe("a match of a list", () => {
     );
   });
 });
+
+describe("an unsure favourite", () => {
+  it("is judged on the percent the chip shows", async () => {
+    const { isUnsure } = await import("./MatchRow");
+    expect(isUnsure(0.444)).toBe(true); // 44%
+    expect(isUnsure(0.4496)).toBe(false); // shown as 45%
+    expect(isUnsure(0.52)).toBe(false);
+  });
+});

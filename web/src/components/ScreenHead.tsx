@@ -1,7 +1,7 @@
 // The head of a screen other than Meciuri (layout A, the team's choice). Since Phase 25 each
-// screen has its own: Predicții a slim strip lit by the league's image; Analiză the league's deep
-// colour with the three models in their identity colours, the screen's subject; Clasament the
-// stadium of the league's leader (in Standings); Echipe the club's own head (in Team).
+// screen has its own: Predicții a slim strip lit by the league's image; Analiză a plain head
+// naming the three models in their identity colours, the screen's subject; Clasament the stadium
+// of the league's leader (in Standings); Echipe the club's own head (in Team).
 import { teamName } from "../format";
 import { IMAGE_FILL, MODEL_COLOURS } from "../theme";
 import type { League } from "../types";
