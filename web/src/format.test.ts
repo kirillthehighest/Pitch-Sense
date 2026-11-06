@@ -62,3 +62,12 @@ describe("a day and its kickoff", () => {
     expect(withKickoff("Sâm. 1 nov.", null, true)).toBe("Sâm. 1 nov."); // played, or postponed
   });
 });
+
+describe("the clubs' names on screen", () => {
+  it("writes Football-Data's short names in full and leaves the others", async () => {
+    const { teamName } = await import("./format");
+    expect(teamName("Ath Madrid")).toBe("Atlético Madrid");
+    expect(teamName("Nott'm Forest")).toBe("Nottingham Forest");
+    expect(teamName("Barcelona")).toBe("Barcelona");
+  });
+});

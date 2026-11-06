@@ -1,14 +1,19 @@
 // Echipe: one club's season, as a club page of a sports channel (Phase 19's, tidied as the team
 // asked after Phase 21): the crest and the name on a head lit by the league's colour, the season in
 // numbers, the form as an aligned table (home, away, all), the shots, the matches with their
-// predictions, the club's profile (K-Means, explained in Analiză) and its charts.
+// predictions, the club's profile (K-Means, explained in Analiză) and its charts. Since Phase 25
+// the club's head is the screen's head, a season still in progress offers the K-Means groups of
+// the last finished one, and the Elo chart shades the seasons that only start the models.
 import { lazy, Suspense, useEffect, useState } from "react";
 import { api } from "../api";
 import { Crest } from "../components/Crest";
 import { FormSquares } from "../components/FormSquares";
-import { MatchRow } from "../components/MatchRow";
+import { StarIcon } from "../components/Icons";
+import { ColumnsHead, MatchRow } from "../components/MatchRow";
+import { Problem } from "../components/Problem";
+import { SkeletonCard } from "../components/Skeleton";
 import { StadiumPhoto } from "../components/StadiumPhoto";
-import { number, seasonText } from "../format";
+import { number, seasonText, teamName } from "../format";
 import { themeFor } from "../theme";
 import type { Favourite, Forecast, League, TeamPage, TeamRecord } from "../types";
 import { MODELS } from "../types";
@@ -38,6 +43,8 @@ export function Team({ league, season, team, favourite, ready, onChoice, onOpenM
   const [matches, setMatches] = useState<Forecast[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [view, setView] = useState<"elo" | "groups">("elo");
+  const [earlier, setEarlier] = useState<TeamPage | null>(null); // the last finished season's groups
+  useEffect(() => setEarlier(null), [league.code, season, team]);
 
   useEffect(() => {
     let live = true;
@@ -92,30 +99,42 @@ export function Team({ league, season, team, favourite, ready, onChoice, onOpenM
         </label>
         <select id="team-name" value={page?.team ?? ""} onChange={(event) => onChoice(event.target.value, season)}>
           {teams.map((item) => (
-            <option key={item}>{item}</option>
+            <option key={item} value={item}>
+              {teamName(item)}
+            </option>
           ))}
         </select>
       </div>
-      {error && <p className="problem">Pagina echipei nu a putut fi citită. {error}</p>}
+      {error && <Problem detail={error}>Pagina echipei nu a putut fi citită. Alege altă echipă sau alt sezon.</Problem>}
+      {!page && !error && (
+        <>
+          <SkeletonCard height={150} title={false} />
+          <div className="team-grid">
+            <SkeletonCard height={260} />
+            <SkeletonCard height={260} />
+          </div>
+        </>
+      )}
       {page && (
         <>
           <section className="team-head">
             <StadiumPhoto team={page.team} className="beside" />
             <Crest team={page.team} size={104} ring={isFavourite} />
             <div className="team-head-text">
-              <span className="eyebrow">{isFavourite ? `Echipa ta · ${league.name}` : league.name}</span>
-              <h2>{page.team}</h2>
+              <h1>{teamName(page.team)}</h1>
               <span>
-                {seasonText(page.season)} · locul {page.position} din {page.teams} ·{" "}
+                {league.name} {seasonText(page.season)} · locul {page.position} din {page.teams} ·{" "}
                 {page.in_progress ? "sezon în desfășurare" : "sezon încheiat"}
               </span>
               {page.stadium && <span className="stadium-name">Stadion: {page.stadium}</span>}
             </div>
             <button
               className={`button${isFavourite ? "" : " primary"}`}
+              aria-pressed={isFavourite}
               onClick={() => onFavourite(isFavourite ? null : { competition: league.code, team: page.team })}
             >
-              {isFavourite ? "★ Echipa ta" : "☆ Alege ca echipa ta"}
+              <StarIcon filled={isFavourite} />
+              {isFavourite ? "Echipa ta" : "Alege ca echipa ta"}
             </button>
             {page.stadium && <span className="credit">Foto: Wikimedia Commons</span>}
           </section>
@@ -137,22 +156,46 @@ export function Team({ league, season, team, favourite, ready, onChoice, onOpenM
             ))}
           </div>
           <div className="team-grid">
-            <FormCard page={page} />
+            <div className="team-column">
+              <FormCard page={page} />
+              <ProfileCard page={page} onAnalysis={onAnalysis} />
+            </div>
             <MatchesCard page={page} matches={matches} prepared={league.prepared} favourite={isFavourite ? page.team : null} onOpenMatch={onOpenMatch} />
-            <ProfileCard page={page} onAnalysis={onAnalysis} />
           </div>
           <section className="card charts-card">
             <div className="tabs">
-              <button className={`pill${view === "elo" ? " chosen" : ""}`} onClick={() => setView("elo")}>
+              <button className={`pill${view === "elo" ? " chosen" : ""}`} aria-pressed={view === "elo"} onClick={() => setView("elo")}>
                 Rating Elo
               </button>
-              <button className={`pill${view === "groups" ? " chosen" : ""}`} onClick={() => setView("groups")}>
+              <button className={`pill${view === "groups" ? " chosen" : ""}`} aria-pressed={view === "groups"} onClick={() => setView("groups")}>
                 Grupuri K-Means
               </button>
             </div>
             <Suspense fallback={<p className="caption chart-message">Se încarcă graficul…</p>}>
-              {view === "elo" && <EloChart team={page.team} history={page.elo} season={page.season} accent={accent} />}
+              {view === "elo" && (
+                <EloChart
+                  team={page.team}
+                  history={page.elo}
+                  season={page.season}
+                  accent={accent}
+                  warmUpUntil={page.first_evaluated_season}
+                />
+              )}
+              {view === "groups" && earlier?.groups && !page.groups && (
+                <>
+                  <div className="chart-note">
+                    <span className="caption">
+                      Grupurile sezonului {seasonText(earlier.season)}, ultimul încheiat
+                    </span>
+                    <button className="link" onClick={() => setEarlier(null)}>
+                      Înapoi la {seasonText(page.season)}
+                    </button>
+                  </div>
+                  <GroupsChart groups={earlier.groups} team={earlier.team} accent={accent} />
+                </>
+              )}
               {view === "groups" &&
+                !(earlier?.groups && !page.groups) &&
                 (page.groups ? (
                   <>
                     <GroupsChart groups={page.groups} team={page.team} accent={accent} />
@@ -162,7 +205,22 @@ export function Team({ league, season, team, favourite, ready, onChoice, onOpenM
                     </p>
                   </>
                 ) : (
-                  <p className="caption chart-message">{page.groups_problem}</p>
+                  <div className="chart-message">
+                    <p className="caption">{page.groups_problem}</p>
+                    {page.in_progress && previousSeason(league.seasons, page.season) && (
+                      <button
+                        className="button"
+                        onClick={() =>
+                          api
+                            .team(league.code, previousSeason(league.seasons, page.season) as string, page.team)
+                            .then(setEarlier)
+                            .catch(() => setEarlier(null))
+                        }
+                      >
+                        Vezi grupurile din {seasonText(previousSeason(league.seasons, page.season) as string)}
+                      </button>
+                    )}
+                  </div>
                 ))}
             </Suspense>
           </section>
@@ -170,6 +228,12 @@ export function Team({ league, season, team, favourite, ready, onChoice, onOpenM
       )}
     </div>
   );
+}
+
+/** The season before ``season`` in the league's list, if any. */
+export function previousSeason(seasons: string[], season: string): string | null {
+  const index = seasons.indexOf(season);
+  return index > 0 ? seasons[index - 1] : null;
 }
 
 function FormCard({ page }: { page: TeamPage }) {
@@ -269,6 +333,7 @@ function MatchesCard({
   return (
     <section className="card matches-card">
       <h2>Meciurile echipei</h2>
+      <ColumnsHead stacked />
       <div className="match-list">
         {shown.map((forecast) => (
           <MatchRow
@@ -302,7 +367,11 @@ function ProfileCard({ page, onAnalysis }: { page: TeamPage; onAnalysis: () => v
       </div>
       <div className="profile-item">
         <span className="caption">Sezonul {seasonText(page.season)}</span>
-        <strong>{page.season_group ?? "Sezonul nu este încheiat"}</strong>
+        {page.season_group ? (
+          <strong>{page.season_group}</strong>
+        ) : (
+          <span className="caption">Se stabilește după ultimul meci al sezonului.</span>
+        )}
       </div>
       <button className="link" onClick={onAnalysis}>
         Cum se formează profilurile ›

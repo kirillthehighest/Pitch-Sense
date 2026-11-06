@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Forecast, ReviewedMatch } from "../types";
-import { chosenRows } from "./Predictions";
+import { byWeek, chosenRows, weekOf, weekText } from "./Predictions";
 
 function row(day: string, chance: number, hit: boolean, home: number): ReviewedMatch {
   const forecast = {
@@ -25,5 +25,22 @@ describe("the matches of a review", () => {
     expect(chosenRows(rows, "all", "recent").map((r) => r.forecast.date)[0]).toBe("2025-08-30");
     expect(chosenRows(rows, "all", "surprising").map((r) => r.chance)).toEqual([0.1, 0.3, 0.5]);
     expect(chosenRows(rows, "all", "confident").map((r) => r.forecast.date)[0]).toBe("2025-08-23");
+  });
+});
+
+describe("the latest matches week by week", () => {
+  it("starts a week on Monday", () => {
+    expect(weekOf("2026-11-01")).toBe("2026-10-26"); // a Sunday
+    expect(weekOf("2026-10-26")).toBe("2026-10-26");
+    expect(weekText("2026-10-26")).toBe("26 oct. – 1 nov.");
+  });
+
+  it("groups consecutive matches of a week and counts their hits", () => {
+    const rows = [row("2025-08-24", 0.5, true, 0.5), row("2025-08-23", 0.3, false, 0.4), row("2025-08-16", 0.5, true, 0.6)];
+    const weeks = byWeek(rows);
+    expect(weeks.map((week) => [week.monday, week.rows.length, week.hits])).toEqual([
+      ["2025-08-18", 2, 1],
+      ["2025-08-11", 1, 1],
+    ]);
   });
 });

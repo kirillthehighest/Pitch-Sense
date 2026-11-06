@@ -14,6 +14,7 @@ from app.api.backend import Backend
 from app.data.competitions import competition
 from app.data.models import Outcome
 from app.evaluation.metrics import CONFIDENCE_THRESHOLDS
+from app.evaluation.periods import FIRST_EVALUATION_SEASON
 from app.prediction.outputs import ModelName
 from app.services.explanations import (
     GROUPS_IN_PROGRESS,
@@ -32,6 +33,7 @@ from app.services.images import (
     stadium_path,
 )
 from app.services.labels import country_label, model_label, outcome_label
+from app.services.outlook import BOTTOM_PLACES, TOP_PLACES, Fixture, project_table, track_record
 from app.services.predictions import (
     SURPRISE_CHANCE,
     MatchForecast,
@@ -366,6 +368,98 @@ def create_app(backend: Backend) -> FastAPI:
             groups=groups,
             groups_problem=problem,
             stadium=stadium_name(team),
+            first_evaluated_season=FIRST_EVALUATION_SEASON,
+        )
+
+    def model_of(model: str) -> ModelName:
+        try:
+            return ModelName(model)
+        except ValueError:
+            raise HTTPException(404, f"no model {model!r}") from None
+
+    def prepared(services, code: str) -> None:
+        if not services.predictions.is_prepared:
+            raise HTTPException(409, f"the predictions of {code} are being prepared")
+
+    @app.get("/api/track-record/{code}", response_model=schemas.TrackRecord)
+    def season_record(code: str) -> schemas.TrackRecord:
+        """How often each model has been right in the season in progress (else the latest)."""
+        services = league_of(code)
+        prepared(services, code)
+        season = services.catalog.current_season or services.catalog.seasons()[-1]
+        order = (ModelName.LOGISTIC_REGRESSION, ModelName.ELO, ModelName.POISSON)
+        found = track_record(
+            season, {model: services.predictions.review(season, model) for model in order}
+        )
+        return schemas.TrackRecord(
+            competition=code,
+            season=season,
+            in_progress=season == services.catalog.current_season,
+            last_day=found.last_day,
+            recent_from=found.recent_from,
+            models=[
+                schemas.ModelRecord(
+                    model=str(record.model),
+                    label=model_label(str(record.model)),
+                    hits=record.hits,
+                    matches=record.matches,
+                    recent_hits=record.recent_hits,
+                    recent_matches=record.recent_matches,
+                )
+                for record in found.models
+            ],
+        )
+
+    @app.get("/api/projection/{code}", response_model=schemas.Projection)
+    def projection(
+        code: str, model: str = str(ModelName.LOGISTIC_REGRESSION)
+    ) -> schemas.Projection:
+        """The season in progress played to its end many times from ``model``'s predictions."""
+        services = league_of(code)
+        chosen = model_of(model)
+        season = services.catalog.current_season
+        if season is None:
+            raise HTTPException(404, f"{code} has no season in progress")
+        prepared(services, code)
+        fixtures, unpredicted = [], 0
+        for upcoming in services.predictions.upcoming():
+            prediction = upcoming.of(chosen)
+            if prediction is None:
+                unpredicted += 1
+                continue
+            fixtures.append(
+                Fixture(
+                    upcoming.fixture.home_team,
+                    upcoming.fixture.away_team,
+                    prediction.probabilities.as_tuple(),
+                )
+            )
+        found = project_table(services.teams.standings(season), fixtures)
+        return schemas.Projection(
+            competition=code,
+            season=season,
+            model=str(chosen),
+            label=model_label(str(chosen)),
+            simulations=found.simulations,
+            fixtures=found.fixtures,
+            unpredicted=unpredicted,
+            top_places=TOP_PLACES,
+            bottom_places=BOTTOM_PLACES,
+            teams=[
+                schemas.ProjectedTeam(
+                    team=team.team,
+                    position=team.position,
+                    played=team.played,
+                    points=team.points,
+                    goal_difference=team.goal_difference,
+                    remaining=team.remaining,
+                    expected_points=team.expected_points,
+                    places=list(team.places),
+                    top=team.top,
+                    bottom=team.bottom,
+                )
+                for team in found.teams
+            ],
         )
 
     @app.get("/api/review/{code}", response_model=schemas.Review)

@@ -1,14 +1,19 @@
 // Analiză (Phase 19's, in the web interface): how the algorithms work in plain words (with the
 // K-Means profiles the team pages name), how the models did on the season in progress, the full
 // chronological evaluation of the league's models, the comparison of the five leagues, and the
-// sources. Tables have measured columns; each card ends with its content.
+// sources. Tables have measured columns; each card ends with its content. Since Phase 25 each tab
+// opens with its finding in one sentence (written from the numbers on screen), "Cum funcționează"
+// draws each algorithm, and the statistical tables wait behind "Detalii statistice".
 import { lazy, type ReactNode, Suspense, useEffect, useState } from "react";
 import { api } from "../api";
 import { ConfusionGrid, HomeAdvantage } from "../components/AnalysisGrids";
 import { type Column, DataTable } from "../components/DataTable";
+import { EloDiagram, KMeansDiagram, LogisticDiagram, PoissonDiagram, TimelineDiagram } from "../components/Diagrams";
+import { Problem } from "../components/Problem";
+import { SkeletonCard } from "../components/Skeleton";
 import { Flag } from "../components/Flag";
-import { dateText, integer, number, parseDay, percent, quantity, seasonText, signed } from "../format";
-import { themeFor } from "../theme";
+import { capitalised, dateText, integer, number, parseDay, percent, quantity, seasonText, signed } from "../format";
+import { themeFor, themeStyle } from "../theme";
 import type {
   About,
   BookmakerComparison,
@@ -52,7 +57,31 @@ const label = (model: string) => MODEL_LABELS[model] ?? model;
 const EVEN = "minmax(0, 1fr)"; // number columns that share a table's width evenly
 const SURE = 0.65; // the threshold of "when the model is sure" shown beside the bookmakers
 const chartFallback = <p className="caption chart-message">Se încarcă graficul…</p>;
-const loading = <p className="caption">Se încarcă…</p>;
+const loading = (
+  <div className="analysis-stack">
+    <SkeletonCard height={70} title={false} />
+    <SkeletonCard height={220} />
+  </div>
+);
+const MODELS_COMPARED = ["Logistic regression", "Elo", "Poisson"];
+/** A model's name inside a sentence: "regresia logistică", "modelul Elo". */
+const IN_SENTENCE: Record<string, string> = {
+  "Logistic regression": "regresia logistică",
+  Elo: "modelul Elo",
+  Poisson: "modelul Poisson",
+};
+const named = (model: string, label: string) => IN_SENTENCE[model] ?? label;
+const REFERENCE = "Past frequencies";
+
+/** The finding a tab opens with: one sentence, and the numbers behind it. */
+function Finding({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section className="finding">
+      <h2>{title}</h2>
+      <p>{children}</p>
+    </section>
+  );
+}
 
 interface Props {
   league: League;
@@ -65,9 +94,15 @@ export function Analysis({ league, leagues, ready, onLeague }: Props) {
   const [tab, setTab] = useState<Tab>("how");
   return (
     <div className="analysis-screen">
-      <div className="tabs">
+      <div className="tabs" role="tablist" aria-label="Analiză">
         {TABS.map(([name, title]) => (
-          <button key={name} className={`pill${tab === name ? " chosen" : ""}`} onClick={() => setTab(name)}>
+          <button
+            key={name}
+            role="tab"
+            aria-selected={tab === name}
+            className={`pill${tab === name ? " chosen" : ""}`}
+            onClick={() => setTab(name)}
+          >
             {title}
           </button>
         ))}
@@ -89,21 +124,57 @@ function useAbout(): About | null {
   return about;
 }
 
+const DIAGRAMS: Record<string, () => ReactNode> = {
+  "Ratingul Elo": EloDiagram,
+  "Modelul Poisson": PoissonDiagram,
+  "Regresia logistică": LogisticDiagram,
+  "K‑Means": KMeansDiagram,
+  "Cum sunt verificate": TimelineDiagram,
+};
+
 function HowItWorks() {
   const about = useAbout();
   if (!about) return loading;
+  const algorithms = about.explanations.filter((item) => item.title in DIAGRAMS && item.title !== "Cum sunt verificate");
+  const others = about.explanations.filter((item) => !algorithms.includes(item));
   return (
-    <div className="explanations">
-      {about.explanations.map((item) => (
-        <section key={item.title} className="card explanation">
-          <h2>{item.title}</h2>
-          <p>{item.text}</p>
-        </section>
-      ))}
-      <section className="card explanation">
-        <h2>Profilurile echipelor (K-Means)</h2>
-        <p>{about.groups}</p>
-      </section>
+    <div className="analysis-stack">
+      <Finding title="Trei modele prezic, unul descrie">
+        Elo, Poisson și regresia logistică dau fiecare meci șanse de victorie, egal și înfrângere; K-Means nu prezice, ci
+        grupează echipele după felul în care joacă. Toate sunt scrise de noi, după formulele lor.
+      </Finding>
+      <div className="explanations">
+        {algorithms.map((item) => {
+          const Diagram = DIAGRAMS[item.title];
+          return (
+            <section key={item.title} className="card explanation">
+              <figure className="diagram">
+                <Diagram />
+              </figure>
+              <h2>{item.title}</h2>
+              <p>{item.text}</p>
+              {item.title === "K‑Means" && <p>{about.groups}</p>}
+            </section>
+          );
+        })}
+      </div>
+      <div className="explanations">
+        {others.map((item) => {
+          const Diagram = DIAGRAMS[item.title];
+          return (
+            <section key={item.title} className="card explanation">
+              {Diagram && (
+                <figure className="diagram">
+                  <Diagram />
+                </figure>
+              )}
+              <h2>{item.title}</h2>
+              <p>{item.text}</p>
+            </section>
+          );
+        })}
+      </div>
+      <p className="caption">Schemele arată ideea fiecărui algoritm; cifrele de pe ele sunt exemple, nu rezultate.</p>
     </div>
   );
 }
@@ -126,7 +197,21 @@ function SeasonCheckTab({ league, ready }: { league: League; ready: string }) {
     { label: "Scor Brier", width: "minmax(0, 1.4fr)" },
     { label: "Pierdere logaritmică", width: "minmax(0, 1.4fr)" },
   ];
+  const ranked = check.state === "ready" ? [...check.models].sort((a, b) => a.brier.value - b.brier.value) : [];
+  const [best, runnerUp] = ranked;
+  const overlap =
+    best && runnerUp && best.brier.margin !== null && runnerUp.brier.margin !== null
+      ? best.brier.value + best.brier.margin >= runnerUp.brier.value - runnerUp.brier.margin
+      : false;
   return (
+    <div className="analysis-stack">
+      {best && (
+        <Finding title={`În ${seasonText(check.season as string)}, până acum, ${named(best.model, best.label)} are cel mai mic scor Brier`}>
+          {number(best.brier.value)} pe {quantity(check.matches, "meci", "meciuri")}, cu o acuratețe de{" "}
+          {percent(best.accuracy)}.
+          {overlap && " Marjele de 95% se suprapun încă, așa că sezonul nu decide un câștigător."}
+        </Finding>
+      )}
     <section className="card">
       <h2>Cum au prezis modelele sezonul în desfășurare</h2>
       {check.state !== "ready" ? (
@@ -153,13 +238,22 @@ function SeasonCheckTab({ league, ready }: { league: League; ready: string }) {
         </>
       )}
     </section>
+    </div>
   );
 }
 
-function Backtest({ text, busy, onRun }: { text: string; busy: boolean; onRun: () => void }) {
+function Backtest({ text, busy, onRun, detail }: { text: string; busy: boolean; onRun: () => void; detail?: string | null }) {
   return (
     <section className="card backtest">
-      <p>{busy ? "Backtestul rulează…" : text}</p>
+      <div>
+        <p>{busy ? "Backtestul rulează…" : text}</p>
+        {detail && !busy && (
+          <details>
+            <summary>Detalii tehnice</summary>
+            <code>{detail}</code>
+          </details>
+        )}
+      </div>
       <button className="button primary" disabled={busy} onClick={onRun}>
         Rulează backtestul
       </button>
@@ -202,7 +296,7 @@ function Models({ league }: { league: League }) {
       .finally(() => setBusy(false));
   };
 
-  if (error) return <p className="problem">Rezultatele nu au putut fi citite. {error}</p>;
+  if (error) return <Problem detail={error}>Rezultatele evaluării nu au putut fi citite. Încearcă din nou.</Problem>;
   if (!evaluation) return loading;
   if (!evaluation.has_log) {
     return (
@@ -218,7 +312,8 @@ function Models({ league }: { league: League }) {
       <Backtest
         busy={busy}
         onRun={run}
-        text={`Rezultatele nu pot fi citite. Rulează din nou backtestul ca să refaci jurnalul predicțiilor. Detalii: ${evaluation.problem}`}
+        text="Rezultatele nu pot fi citite. Rulează din nou backtestul ca să refaci jurnalul predicțiilor."
+        detail={evaluation.problem}
       />
     );
   }
@@ -227,8 +322,30 @@ function Models({ league }: { league: League }) {
   const lowestBrier = Math.min(...evaluation.models.map((m) => m.brier ?? Infinity));
   const confusion = evaluation.models.find((m) => m.model === confusionModel) ?? evaluation.models[0];
   const subsets: Subset[] = evaluation[breakdown];
+  const compared = evaluation.models.filter((m) => MODELS_COMPARED.includes(m.model) && m.brier !== null);
+  const ranked = [...compared].sort((a, b) => (a.brier as number) - (b.brier as number));
+  const reference = evaluation.models.find((m) => m.model === REFERENCE);
+  const [first, second] = ranked;
+  const versus = first && second
+    ? evaluation.differences.find(
+        (d) => d.measure === "Brier score" && [d.first, d.second].includes(first.model) && [d.first, d.second].includes(second.model),
+      )
+    : undefined;
   return (
     <div className="analysis-stack">
+      {first && (
+        <Finding title={`În ${league.name}, ${named(first.model, first.label)} prezice cel mai bine`}>
+          Cel mai mic scor Brier, {number(first.brier)}
+          {reference?.brier
+            ? `, cu ${percent(1 - (first.brier as number) / reference.brier, 0)} mai puțină eroare decât frecvențele trecute (${number(reference.brier)})`
+            : ""}
+          .{" "}
+          {second &&
+            (versus?.better
+              ? `Față de ${named(second.model, second.label)} (${number(second.brier)}), diferența e reală: intervalul ei de 95% nu conține 0.`
+              : `Față de ${named(second.model, second.label)} (${number(second.brier)}), diferența e prea mică pentru a fi sigură.`)}
+        </Finding>
+      )}
       <p className="caption">
         {league.name}: {quantity(evaluation.matches, "meci", "meciuri")}, sezoanele{" "}
         {seasonText(evaluation.first_season as string)}–{seasonText(evaluation.last_season as string)}; fiecare model a
@@ -273,7 +390,7 @@ function Models({ league }: { league: League }) {
             {evaluation.models.map((model) => (
               <button
                 key={model.model}
-                className={`pill${model.model === confusion.model ? " chosen" : ""}`}
+                className={`pill${model.model === confusion.model ? " chosen" : ""}`} aria-pressed={model.model === confusion.model}
                 onClick={() => setConfusionModel(model.model)}
               >
                 {model.label}
@@ -288,6 +405,12 @@ function Models({ league }: { league: League }) {
       </div>
       <WhenSure models={evaluation.models.filter((m) => m.confident.length > 0)} />
       {evaluation.bookmakers && <Bookmakers comparison={evaluation.bookmakers} />}
+      <details className="more-details">
+        <summary>
+          <span>Detalii statistice</span>
+          <span className="caption">Diferențele meci cu meci, unde se descurcă fiecare model, cât de des sunt de acord</span>
+        </summary>
+        <div className="analysis-stack">
       <section className="card">
         <h2>Diferențele meci cu meci</h2>
         <DataTable
@@ -312,7 +435,7 @@ function Models({ league }: { league: League }) {
         <h2>Unde se descurcă fiecare model</h2>
         <div className="segmented wrap">
           {BREAKDOWNS.map(([name, title]) => (
-            <button key={name} className={`pill${breakdown === name ? " chosen" : ""}`} onClick={() => setBreakdown(name)}>
+            <button key={name} className={`pill${breakdown === name ? " chosen" : ""}`} aria-pressed={breakdown === name} onClick={() => setBreakdown(name)}>
               {title}
             </button>
           ))}
@@ -348,9 +471,11 @@ function Models({ league }: { league: League }) {
           rows={evaluation.agreements.map((a) => [`${a.first_label} – ${a.second_label}`, percent(a.same), number(a.distance)])}
         />
         {evaluation.all_agree !== null && (
-          <p className="caption table-note">Toate trei modelele prezic același rezultat în {percent(evaluation.all_agree)} dintre meciuri.</p>
+          <p className="caption table-note">Toate cele trei modele prezic același rezultat în {percent(evaluation.all_agree)} dintre meciuri.</p>
         )}
       </section>
+        </div>
+      </details>
     </div>
   );
 }
@@ -461,7 +586,7 @@ function Leagues({ league, leagues, onLeague }: { league: League; leagues: Leagu
       .finally(() => setBusy(false));
   };
 
-  if (error) return <p className="problem">Comparația nu a putut fi citită. {error}</p>;
+  if (error) return <Problem detail={error}>Comparația ligilor nu a putut fi citită. Încearcă din nou.</Problem>;
   if (!comparison) return loading;
   if (comparison.missing.length > 0 || comparison.problem) {
     const names = comparison.missing.map((code) => leagues.find((item) => item.code === code)?.name ?? code).join(", ");
@@ -469,9 +594,10 @@ function Leagues({ league, leagues, onLeague }: { league: League; leagues: Leagu
       <Backtest
         busy={busy}
         onRun={run}
+        detail={comparison.problem}
         text={
           comparison.problem
-            ? `Rezultatele nu pot fi citite. Detalii: ${comparison.problem}`
+            ? "Rezultatele nu pot fi citite. Rulează din nou backtestul ligilor."
             : `Lipsesc jurnalele predicțiilor pentru: ${names}. Rulează backtestul lor (aproximativ 10 secunde pentru fiecare ligă) ca să vezi comparația.`
         }
       />
@@ -485,14 +611,36 @@ function Leagues({ league, leagues, onLeague }: { league: League; leagues: Leagu
       {name}
     </span>
   );
+  const wins = new Map<string, number>();
+  for (const result of comparison.results) wins.set(result.best, (wins.get(result.best) ?? 0) + 1);
+  const [best, leaderWins] = [...wins.entries()].sort((a, b) => b[1] - a[1])[0] ?? ["", 0];
+  const leader = best ? capitalised(named(best, label(best))) : "";
+  const homeWins = comparison.results.map((r) => r.character.home_win);
+  const strongest = comparison.results[homeWins.indexOf(Math.max(...homeWins))];
+  const weakest = comparison.results[homeWins.indexOf(Math.min(...homeWins))];
   return (
     <div className="analysis-stack">
+      {leader && (
+        <Finding
+          title={
+            leaderWins === comparison.results.length
+              ? `${leader} are cel mai mic scor Brier în toate cele ${comparison.results.length} ligi`
+              : `${leader} are cel mai mic scor Brier în ${leaderWins} din ${comparison.results.length} ligi`
+          }
+        >
+          Ligile diferă mult: gazdele câștigă {percent(strongest.character.home_win, 0)} din meciuri în {strongest.name} și{" "}
+          {percent(weakest.character.home_win, 0)} în {weakest.name}. Fiecare ligă își are propriii parametri, aleși pe
+          sezoanele ei de calibrare.
+        </Finding>
+      )}
       <div className="league-cards">
         {comparison.results.map((result) => (
           <button
             key={result.code}
             className={`card league-card${result.code === league.code ? " current" : ""}`}
+            style={themeStyle(result.code)}
             onClick={() => onLeague(result.code)}
+            aria-pressed={result.code === league.code}
           >
             <span className="league-card-head">
               <Flag code={result.code} size={24} />

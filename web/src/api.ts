@@ -11,12 +11,14 @@ import type {
   MatchKey,
   MatchPage,
   Preferences,
+  Projection,
   Review,
   SeasonCheck,
   SeasonDays,
   Standings,
   Status,
   TeamPage,
+  TrackRecord,
 } from "./types";
 
 declare global {
@@ -122,6 +124,9 @@ export const api = {
   },
   review: (code: string, season: string, model: string) =>
     request<Review>(`/api/review/${code}?${new URLSearchParams({ season, model })}`),
+  trackRecord: (code: string) => request<TrackRecord>(`/api/track-record/${code}`),
+  projection: (code: string, model: string) =>
+    request<Projection>(`/api/projection/${code}?${new URLSearchParams({ model })}`),
   about: () => request<About>("/api/about"),
   seasonCheck: (code: string) => request<SeasonCheck>(`/api/season-check/${code}`),
   evaluation: (code: string) => request<Evaluation>(`/api/evaluation/${code}`),

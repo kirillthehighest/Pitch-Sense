@@ -1,10 +1,12 @@
-// "Alt meci": any two teams of a season on a day of it, predicted only from the matches played
+// "Simulează un meci" ("Alt meci" until Phase 25): any two teams of a season on a day of it, predicted only from the matches played
 // before that day (the hypothetical match of Phase 19). The answer opens on the match page.
 import { type FormEvent, useEffect, useState } from "react";
 import { api } from "../api";
-import { seasonText } from "../format";
+import { seasonText, teamName } from "../format";
 import type { League, MatchKey, SeasonDays } from "../types";
 import { Flag } from "./Flag";
+import { Modal } from "./Modal";
+import { Problem } from "./Problem";
 
 interface Props {
   leagues: League[];
@@ -22,6 +24,7 @@ export function OtherMatch({ leagues, league, onClose, onOpen }: Props) {
   const [away, setAway] = useState("");
   const [day, setDay] = useState("");
   const [message, setMessage] = useState<string | null>(null);
+  const [detail, setDetail] = useState<string | null>(null);
 
   useEffect(() => {
     let live = true;
@@ -35,37 +38,36 @@ export function OtherMatch({ leagues, league, onClose, onOpen }: Props) {
         setAway(found.teams[1] ?? found.teams[0]);
         setDay(found.suggested_day);
       })
-      .catch((reason: Error) => live && setMessage(reason.message));
+      .catch((reason: Error) => {
+        if (!live) return;
+        setMessage("Echipele sezonului nu au putut fi citite. Încearcă alt sezon sau redeschide fereastra.");
+        setDetail(reason.message);
+      });
     return () => {
       live = false;
     };
   }, [code, season]);
 
-  useEffect(() => {
-    const close = (event: KeyboardEvent) => event.key === "Escape" && onClose();
-    document.addEventListener("keydown", close);
-    return () => document.removeEventListener("keydown", close);
-  }, [onClose]);
-
   const submit = (event: FormEvent) => {
     event.preventDefault();
     if (home === away) {
       setMessage("Alege două echipe diferite.");
+      setDetail(null);
       return;
     }
     onOpen({ code, season, day, home, away });
   };
 
   return (
-    <div className="overlay" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
-      <form className="dialog card" onSubmit={submit} role="dialog" aria-label="Alt meci">
+    <Modal label="Simulează un meci" onClose={onClose}>
+      <form className="dialog card" onSubmit={submit}>
         <div className="dialog-head">
           <Flag code={code} size={22} />
-          <h2>Alt meci</h2>
+          <h2>Simulează un meci</h2>
         </div>
         <p className="caption">
-          Oricare două echipe ale unui sezon, la data aleasă. Predicția folosește doar meciurile jucate înainte de acea
-          dată.
+          Alege oricare două echipe ale unui sezon și o zi: cele trei modele prezic meciul doar din meciurile jucate
+          înainte de acea zi, chiar dacă cele două echipe nu s-au întâlnit atunci.
         </p>
         <div className="form-grid">
           <label htmlFor="other-league">Liga</label>
@@ -94,11 +96,19 @@ export function OtherMatch({ leagues, league, onClose, onOpen }: Props) {
           </select>
           <label htmlFor="other-home">Gazde</label>
           <select id="other-home" value={home} onChange={(event) => setHome(event.target.value)} disabled={!seasonDays}>
-            {seasonDays?.teams.map((team) => <option key={team}>{team}</option>)}
+            {seasonDays?.teams.map((team) => (
+              <option key={team} value={team}>
+                {teamName(team)}
+              </option>
+            ))}
           </select>
           <label htmlFor="other-away">Oaspeți</label>
           <select id="other-away" value={away} onChange={(event) => setAway(event.target.value)} disabled={!seasonDays}>
-            {seasonDays?.teams.map((team) => <option key={team}>{team}</option>)}
+            {seasonDays?.teams.map((team) => (
+              <option key={team} value={team}>
+                {teamName(team)}
+              </option>
+            ))}
           </select>
           <label htmlFor="other-day">Data</label>
           <input
@@ -112,16 +122,16 @@ export function OtherMatch({ leagues, league, onClose, onOpen }: Props) {
             required
           />
         </div>
-        {message && <p className="problem">{message}</p>}
+        {message && <Problem detail={detail}>{message}</Problem>}
         <div className="dialog-actions">
           <button type="button" className="button" onClick={onClose}>
             Renunță
           </button>
           <button type="submit" className="button primary" disabled={!seasonDays}>
-            Calculează predicția
+            Simulează
           </button>
         </div>
       </form>
-    </div>
+    </Modal>
   );
 }

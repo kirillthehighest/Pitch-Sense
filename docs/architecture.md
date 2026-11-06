@@ -1199,13 +1199,48 @@ După instalarea versiunii 0.6.0, echipa a semnalat (2026-10-30) o bandă sub im
 - **Cauza.** `LeagueImageCard` (`web/src/components/LeagueImage.tsx`) măsura cardul cu `contentRect` din `ResizeObserver`, adică fără spațiul interior: 202 px din cei 248 ai cardului. Imaginea umple însă tot cardul, inclusiv spațiul interior, așa că deplasarea ei pe verticală era limitată față de 202 px și partea de jos rămânea cu 46 px mai sus de marginea cardului.
 - **Corectura.** Cardul se măsoară cu `clientWidth` și `clientHeight`. Lățimea imaginii se calculează acum din lățimea întreagă a cardului. `LeagueImage.test.tsx` verifică imaginea la patru lățimi de card; înainte de corectură, trei dintre ele picau.
 
-**Verificare și publicare (2026-10-30).** Versiunea 0.6.1, publicată pe GitHub (`v0.6.1`), construită din `main`, fără raportul și prezentarea de pe ramura `phase-25`:
+**Verificare și publicare (2026-10-30).** Versiunea 0.6.1, publicată pe GitHub (`v0.6.1`), construită din `main`:
 
 - Interfața (macOS, datele din 2026-10-30): imaginea atinge marginea de jos a cardului la toate cele cinci ligi, la lățimile 1024, 1100, 1280, 1440 și 1800 px.
 - macOS: `.dmg` de 92 MB; semnătura aplicației trece `codesign --verify --deep --strict`; autoverificarea serverului trece din `dist/` și din imaginea `.dmg`; o copie a unui folder de utilizator real al versiunii 0.6.0 a primit jurnalele noi; aplicația deschisă are toate cele cinci ligi gata la 3,5 s după deschidere. Jurnalele predicțiilor sunt identice cu cele din 0.6.0.
 - Windows (GitHub Actions): trec toate cele 783 de teste Python și cele 26 ale interfeței web; programul de instalare are 72 MB; serverul instalat are toate ligile gata la 5,9 s după pornire, iar cel pornit de fereastra instalată la 13,7 s după deschiderea ei. Ecranele nu au putut fi citite pe mașina de construire, deci corectura nu a fost văzută direct pe Windows.
 
-## 21. Setul de date și perioadele
+## 21. Finisarea designului (Faza 25)
+
+Echipa a cerut (2026-11-06) o analiză a designului cu `/impeccable critique` și apoi toate cele 16 îmbunătățiri propuse. Analiza a dat interfeței 24 din 40 de puncte pe cele zece criterii Nielsen; problemele principale erau culoarea ligii folosită peste tot (și în meciurile altor ligi), semnele verde/roșu care se confundau cu accentul unor ligi, lipsa focusului vizibil și a dialogurilor accesibile, meciurile trecute fără rezultat afișate ca viitoare și ecranul Analiză început cu un perete de text.
+
+### 21.1. Culori, semne și accesibilitate
+
+- **Culoarea fiecărei ligi.** Grupurile de meciuri ale unei zile, cardul „Echipa ta” și cardurile ligilor din Analiză iau culorile ligii lor (`themeStyle` din `web/src/theme.ts`); liga aleasă colorează doar meniul, antetele și ecranele ei. Ora meciurilor viitoare nu mai este colorată.
+- **Nimerit și ratat.** Semnul de pe procentul cel mai probabil este desenat (`CheckIcon`, `CrossIcon`): un disc deschis cu bifă pentru un rezultat nimerit, unul închis cu un X pentru unul ratat. Formele diferă, deci semnul nu mai depinde de verde și roșu, care sunt și accentele Premier League, Ligue 1 și Bundesliga. Pe ecranul Predicții, insigna rămâne doar la surprize.
+- **Tastatura și cititoarele de ecran.** Focusul are un inel vizibil în culoarea accentului. Dialogurile folosesc `<dialog>` cu `showModal()` (`web/src/components/Modal.tsx`), care țin focusul înăuntru și se închid cu Esc. Ecranul ales are `aria-current`, iar în bara îngustă fiecare buton își păstrează numele ca indiciu. Un rând de meci își spune echipele, scorul, ziua și cele trei șanse ale modelului, iar tabelele au roluri de coloane și celule. Selecția, bara de derulare și cursorul de text folosesc culorile aplicației.
+- **Stările.** Un meci din calendar a cărui zi a trecut fără rezultat scrie „Fără rezultat” (`isPending` în `MatchRow.tsx`). Pe Meciuri, datele sezonului mai vechi de 48 de ore sunt spuse într-o notă cu butonul „Actualizează acum”. Erorile spun ce s-a întâmplat și ce se poate face, iar mesajul tehnic al serverului rămâne sub „Detalii tehnice”. Încărcarea are schelete în forma conținutului (`Skeleton.tsx`), care nu pulsează pentru cine a cerut mai puțină mișcare. O zi fără meciuri oferă ziua precedentă și următoare cu meciuri.
+
+### 21.2. Predicția în prim-plan
+
+- **Pagina meciului.** Sub scor, cele trei modele au câte o bară în culoarea lor de identitate, cu propoziția lor comună („Toate trei modelele mizează pe Napoli”, „2 din 3 modele mizează pe egal”, „Modelele nu cad de acord”). La un meci jucat, rezultatul real este încercuit în bare și în grila Poisson, iar sub golurile așteptate se spune ce șansă avea scorul final și al câtelea cel mai probabil era.
+- **Bilanțul modelelor pe Meciuri.** `/api/track-record/{ligă}` adună recenziile sezonului (`track_record` în `app/services/outlook.py`): pentru fiecare model, câte meciuri a nimerit în sezonul în desfășurare și în ultima lui săptămână de meciuri. Fâșia de sub „Meciul zilei” le arată și deschide Predicții.
+- **Analiză.** Fiecare filă începe cu concluzia ei, scrisă din cifrele de pe ecran: cel mai mic scor Brier, cât elimină din eroarea frecvențelor trecute și dacă diferența față de al doilea model este reală (intervalul ei de 95% nu conține 0). „Cum funcționează” are câte o schemă pentru fiecare algoritm (`Diagrams.tsx`; cifrele din scheme sunt exemple, nu rezultate, și scrie asta), iar cele două carduri K‑Means au devenit unul. Diferențele meci cu meci, subseturile și acordul modelelor stau sub „Detalii statistice”.
+
+### 21.3. Funcțiile noi
+
+- **Proiecția finalului de sezon.** `/api/projection/{ligă}?model=…` joacă de 10.000 de ori meciurile rămase ale sezonului în desfășurare (`project_table` în `app/services/outlook.py`, cu un generator NumPy cu sămânță fixă). Fiecare meci se termină cu victoria gazdelor, egal sau victoria oaspeților, cu probabilitățile modelului, independent de celelalte, iar punctele se adaugă la clasamentul de azi. Pentru fiecare echipă rezultă punctele așteptate și șansa fiecărui loc final, deci și a titlului, a primelor patru locuri și a retrogradării. Sunt simulate doar rezultatele, nu și golurile, așa că la egalitate de puncte rămâne ordinea de azi. Timpul și memoria cresc cu simulările × (meciurile rămase + echipele); pe datele din 2026-10-30 (234–300 de meciuri rămase pe ligă), un răspuns al serverului durează aproximativ 0,05 s. Proiecția nu este un model nou: folosește predicțiile deja făcute pentru meciurile programate. Este cel mult cât de bună este modelul ales și presupune că echipele vor juca de acum încolo cum le vede el.
+- **Zonele clasamentului.** În sezonul în desfășurare, primele patru locuri (Liga Campionilor, cu preliminariile în Ligue 1) și ultimele trei (retrogradare; în Bundesliga și Ligue 1, a treia de la coadă joacă barajul) sunt marcate. Sezoanele trecute au avut alte reguli, așa că rămân nemarcate.
+- **Predicții pe săptămâni.** În ordinea „Cele mai recente”, meciurile sunt grupate pe săptămâni (de luni până duminică), fiecare cu câte a nimerit modelul. Football-Data nu are numărul etapei, deci săptămâna ține locul etapei. Când modelul nu a nimerit aproape niciun egal, ecranul explică de ce: egalul iese rar cel mai probabil, deși șansa lui este în fiecare predicție.
+- **Simulează un meci.** Fostul „Alt meci…” a devenit „Simulează un meci”, cu loc în bara laterală și tasta S.
+- **Scurtăturile și căutarea.** ←/→ schimbă ziua, T aduce ziua de azi, 1–5 liga, M modelul, / deschide căutarea unei echipe din cele cinci ligi (după numele scurt din date sau după cel întreg: „atletico” găsește „Ath Madrid”), S simularea, iar ? le arată pe toate. Tastele nu acționează într-un câmp de text sau cât este deschis un dialog.
+- **Antetele ecranelor.** Clasament are stadionul liderului, Echipe antetul clubului, Predicții imaginea ligii, iar Analiză culoarea adâncă a ligii, cu cele trei modele în culorile lor. Graficul Elo umbrește sezoanele care doar pornesc modelele (înainte de 2010/11, `first_evaluated_season` al paginii echipei). La un sezon în desfășurare, fila K‑Means oferă grupurile ultimului sezon încheiat.
+
+### 21.4. Verificare
+
+Rulări din 2026-11-06:
+
+- Trec toate cele 801 teste Python și cele 50 ale interfeței web. Teste noi: bilanțul unui sezon și al ultimei lui săptămâni; proiecția fără meciuri rămase, cu rezultate sigure, cu fiecare loc ocupat exact o dată, cu punctele așteptate egale cu suma punctelor așteptate ale meciurilor, cu egalitățile păstrate în ordinea de azi, aceeași cu aceeași sămânță, și refuzul datelor greșite; rutele `/api/track-record` și `/api/projection` (toate meciurile programate jucate, punctele finale între cele de azi și maximul posibil); în interfață, starea „Fără rezultat”, numele rândurilor pentru cititoarele de ecran, propoziția modelelor, săptămânile Predicțiilor, zonele și șansele proiecției, căutarea echipelor după numele întreg, tastele și datele vechi.
+- Detectorul `impeccable detect` pe `web/src`: din cele patru găsiri inițiale a rămas doar fontul Plus Jakarta Sans, ales de echipă în Faza 21.
+- O a doua analiză `/impeccable critique`, după aceste schimbări, a dat 29 din 40 de puncte (de la 24). Ce a mai găsit a fost corectat în aceeași fază: un ecran nou se deschide de sus, iar focusul tastaturii trece la conținutul lui (cu legătura „Sari la conținut”); pagina unui meci trecut fără rezultat scrie „Fără rezultat”, nu „Programat”; cluburile apar cu numele lor întregi (`teamName` în `format.ts`: „Ath Madrid” devine „Atlético Madrid”, „Nott'm Forest” devine „Nottingham Forest”; datele, stemele și serverul păstrează numele scurte); propoziția modelelor spune „la limită” când favorita conduce cu mai puțin de cinci puncte; grupurile K‑Means ale sezonului trecut se văd doar în grafic, fără să schimbe sezonul celorlalte ecrane; „Înainte de o zi” pornește, în sezonul în desfășurare, cu o săptămână înaintea ultimului meci; tasta T și butonul „Azi” întorc la ziua de azi; contrastul locurilor din proiecție, textul de 10 px și rândurile prea lungi ale notelor.
+- În interfață, cu datele din 2026-10-30, la 1440 × 900 și 1024 × 700: toate ecranele, dialogurile „Simulează un meci”, „Caută o echipă” și „Scurtăturile tastaturii”, proiecția celor cinci ligi (234–300 de meciuri rămase, toate cu predicție), bilanțul modelelor și nota pentru datele vechi.
+
+## 22. Setul de date și perioadele
 
 Sursa datelor este Football-Data.co.uk: cinci ligi (Premier League, La Liga, Serie A, Bundesliga, Ligue 1), fiecare cu 20 de sezoane încheiate, 2006/07–2025/26 (36.197 de meciuri). Perioadele sunt aceleași pentru toate ligile. Sezonul în desfășurare (2026/27) este descărcat separat și nu face parte din evaluare (secțiunea 15).
 
@@ -1215,7 +1250,7 @@ Sursa datelor este Football-Data.co.uk: cinci ligi (Premier League, La Liga, Ser
 | 2007/08–2009/10 | Calibrare: se aleg hiperparametrii; rezultatele nu sunt raportate. |
 | 2010/11–2025/26 | Evaluarea raportată: 16 sezoane; 6.080 de meciuri în fiecare ligă cu 20 de echipe, 4.896 în Bundesliga, 5.757 în Ligue 1; 28.893 în total. |
 
-## 22. Tehnologii
+## 23. Tehnologii
 
 | Componentă | Versiune | Rol |
 |---|---|---|
@@ -1239,7 +1274,7 @@ Sursa datelor este Football-Data.co.uk: cinci ligi (Premier League, La Liga, Ser
 | Vitest, Testing Library, jsdom | 5.0.5, 16.3.3, 30.1.3 | testele interfeței web |
 | Rust / Tauri | 1.99 / 2.12.4 | fereastra de desktop a interfeței web |
 
-## 23. Decizii tehnice
+## 24. Decizii tehnice
 
 | Decizie | Motiv |
 |---|---|
@@ -1248,7 +1283,7 @@ Sursa datelor este Football-Data.co.uk: cinci ligi (Premier League, La Liga, Ser
 | `pyproject.toml` cu versiuni fixe (`==`), mediu virtual `.venv` și `pip` | Aceleași versiuni pe macOS și Windows. Actualizările se fac intenționat și sunt urmate de rularea tuturor testelor. |
 | ruff, fără verificator static de tipuri | Un singur instrument rapid pentru stil și erori frecvente. Adnotările de tip rămân obligatorii. |
 | Avertismentele sunt tratate ca erori în teste | Schimbările de API din pandas 3 și NumPy 2 sunt observate imediat, nu ignorate. |
-| Interfața în română (din Faza 16); codul și comentariile în engleză; documentația și raportul în română | Decizia echipei: aplicația este prezentată colegilor și profesorilor din UTM. Până în Faza 15, interfața era în engleză. |
+| Interfața în română (din Faza 16); codul și comentariile în engleză; documentația în română | Decizia echipei: aplicația este prezentată colegilor și profesorilor din UTM. Până în Faza 15, interfața era în engleză. |
 | Statisticile unui meci sunt păstrate doar dacă există toate cele 12 valori | Un model care folosește statistici primește mereu setul complet; un meci cu date parțiale este tratat ca un meci fără statistici. |
 | Cotele de pariuri și scorul la pauză nu sunt încărcate | Nu sunt folosite de niciun algoritm, iar pariurile sunt în afara scopului proiectului. |
 | Numele echipelor rămân ca în sursă (`Ath Madrid`, `Sociedad`) | Sunt consecvente în toate cele 20 de sezoane; nume mai prietenoase se pot adăuga ulterior într-un singur loc. |
@@ -1329,3 +1364,7 @@ Sursa datelor este Football-Data.co.uk: cinci ligi (Premier League, La Liga, Ser
 | Graficele interfeței web sunt desenate în interfață (Recharts și grile CSS), cu numerele calculate de server | Decizia echipei; graficele urmează culorile ligii, au indicii la trecerea mausului și se încarcă doar când sunt afișate. |
 | Ecranul Predicții, cu surprizele definite ca rezultate cu șansă sub 20% | Cererea echipei; pragul este scris o singură dată (`SURPRISE_CHANCE`) și explicat pe ecran. |
 | Fotografiile stadioanelor de pe Wikipedia, cu sursa fiecăreia | Cererea echipei, care a permis imagini protejate în proiectul privat; aceeași metodă ca la steme. |
+| Fiecare meci și fiecare grup în culorile ligii lui; liga aleasă colorează doar meniul și antetele (Faza 25) | Culoarea unei ligi o identifică; pusă pe meciurile altor ligi, nu mai spunea nimic și se ciocnea cu semnele rezultatelor. |
+| Nimerit și ratat prin formă (disc deschis cu bifă, disc închis cu X), nu prin verde și roșu | Verdele și roșul sunt și accentele a trei ligi; forma se citește pe orice accent și și de daltoniști. |
+| Proiecția finalului joacă doar rezultatele meciurilor rămase, din predicțiile modelului, de 10.000 de ori, cu sămânța fixă | Folosește predicțiile deja evaluate, fără un model nou; răspunsul este același la fiecare cerere, iar marja unei șanse este de cel mult un punct procentual. |
+| Zonele clasamentului doar în sezonul în desfășurare | Numărul locurilor de Liga Campionilor și de retrogradare s-a schimbat de-a lungul celor 20 de sezoane; marcate cu regulile de azi, sezoanele vechi ar fi greșite. |

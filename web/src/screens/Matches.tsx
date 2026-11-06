@@ -1,5 +1,7 @@
 // Meciuri: the matches of a day in every league, the chosen league first, with the match of the
 // day on top; any day of any season can be chosen. On the right: your team and the table.
+// Since Phase 25 every league's group and "your team" wear their own league's colours, the
+// arrows move a day, M changes the model, and the models' record of the season leads the screen.
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api";
 import { Crest } from "../components/Crest";
@@ -7,8 +9,12 @@ import { DayStrip } from "../components/DayStrip";
 import { FeaturedMatch } from "../components/FeaturedMatch";
 import { FormSquares } from "../components/FormSquares";
 import { Flag } from "../components/Flag";
-import { MatchRow } from "../components/MatchRow";
-import { capitalised, dayName, parseDay, quantity, seasonText, shortDateText } from "../format";
+import { ColumnsHead, MatchRow } from "../components/MatchRow";
+import { usePageKeys } from "../components/Shortcuts";
+import { SkeletonCard, SkeletonRows } from "../components/Skeleton";
+import { TrackRecord } from "../components/TrackRecord";
+import { capitalised, dayName, isoDay, parseDay, quantity, seasonText, shortDateText, teamName } from "../format";
+import { themeStyle } from "../theme";
 import type { Day, Days, Forecast, League, Preferences, Standings } from "../types";
 import { MODEL_LABELS, MODELS } from "../types";
 
@@ -19,13 +25,27 @@ interface Props {
   ready: string; // changes when a league's predictions become ready
   onOpenMatch: (forecast: Forecast) => void;
   onStandings: (code: string) => void;
+  onPredictions: () => void;
 }
 
 function seasonStart(season: string): string {
   return `${season.slice(0, 4)}-07-01`;
 }
 
-export function Matches({ leagues, league, preferences, ready, onOpenMatch, onStandings }: Props) {
+/** The next model of the list, after the last the first: the M key. */
+export function nextModel(model: string): string {
+  const index = MODELS.indexOf(model as (typeof MODELS)[number]);
+  return MODELS[(index + 1) % MODELS.length];
+}
+
+/** The day ``days`` after ``day`` (ISO). */
+function shifted(day: string, days: number): string {
+  const moved = parseDay(day);
+  moved.setDate(moved.getDate() + days);
+  return isoDay(moved);
+}
+
+export function Matches({ leagues, league, preferences, ready, onOpenMatch, onStandings, onPredictions }: Props) {
   const [days, setDays] = useState<Days | null>(null);
   const [day, setDay] = useState<string | null>(null);
   const [answer, setAnswer] = useState<Day | null>(null);
@@ -50,7 +70,29 @@ export function Matches({ leagues, league, preferences, ready, onOpenMatch, onSt
     return [...league.seasons].reverse().find((season) => seasonStart(season) <= day) ?? league.seasons[0];
   }, [day, league.seasons]);
 
-  if (!days || !day) return <p className="caption">Se pregătesc predicțiile…</p>;
+  usePageKeys((key) => {
+    if (!day) return;
+    if (key === "ArrowLeft") setDay(shifted(day, -1));
+    else if (key === "ArrowRight") setDay(shifted(day, 1));
+    else if (key === "m" || key === "M") setModel(nextModel);
+    else if ((key === "t" || key === "T") && days) setDay(days.today);
+  });
+
+  if (!days || !day) {
+    return (
+      <div className="matches-layout">
+        <div className="matches-main">
+          <SkeletonCard height={190} title={false} />
+          <section className="card league-day">
+            <SkeletonRows rows={5} label="Se pregătesc predicțiile…" />
+          </section>
+        </div>
+        <aside className="matches-side">
+          <SkeletonCard height={160} />
+        </aside>
+      </div>
+    );
+  }
 
   const groups = (answer?.leagues ?? []).filter((group) => !onlyLeague || group.code === league.code);
   const name = dayName(parseDay(day), parseDay(days.today));
@@ -70,19 +112,23 @@ export function Matches({ leagues, league, preferences, ready, onOpenMatch, onSt
             onOpen={onOpenMatch}
           />
         )}
+        <TrackRecord league={league} ready={ready} onOpen={onPredictions} />
         <DayStrip day={day} today={days.today} matchDays={matchDays} onDay={setDay} />
         <div className="controls">
           <h2 className="day-title">{name === dateName ? capitalised(dateName) : `${name} · ${dateName}`}</h2>
           <div className="control-row">
-            <button className={`pill${onlyLeague ? "" : " chosen"}`} onClick={() => setOnlyLeague(false)}>
+            <button className={`pill${onlyLeague ? "" : " chosen"}`} aria-pressed={!(onlyLeague)} onClick={() => setOnlyLeague(false)}>
               Toate ligile
             </button>
-            <button className={`pill${onlyLeague ? " chosen" : ""}`} onClick={() => setOnlyLeague(true)}>
+            <button className={`pill${onlyLeague ? " chosen" : ""}`} aria-pressed={onlyLeague} onClick={() => setOnlyLeague(true)}>
               Doar {league.name}
             </button>
             <span className="grow" />
-            <label className="caption">Sezon</label>
+            <label className="caption" htmlFor="matches-season">
+              Sezon
+            </label>
             <select
+              id="matches-season"
               value={seasonOfDay}
               onChange={(event) => {
                 const start = seasonStart(event.target.value);
@@ -96,8 +142,10 @@ export function Matches({ leagues, league, preferences, ready, onOpenMatch, onSt
                 </option>
               ))}
             </select>
-            <label className="caption">Model</label>
-            <select value={model} onChange={(event) => setModel(event.target.value)}>
+            <label className="caption" htmlFor="matches-model" title="Tasta M schimbă modelul">
+              Model
+            </label>
+            <select id="matches-model" value={model} onChange={(event) => setModel(event.target.value)} aria-keyshortcuts="M">
               {MODELS.map((item) => (
                 <option key={item} value={item}>
                   {MODEL_LABELS[item]}
@@ -106,9 +154,16 @@ export function Matches({ leagues, league, preferences, ready, onOpenMatch, onSt
             </select>
           </div>
         </div>
-        {groups.length === 0 && <p className="caption">Nu sunt meciuri în această zi.</p>}
+        {answer && groups.length === 0 && (
+          <EmptyDay day={day} days={days.days} onlyLeague={onlyLeague ? league.name : null} onDay={setDay} />
+        )}
+        {!answer && (
+          <section className="card league-day">
+            <SkeletonRows rows={4} />
+          </section>
+        )}
         {groups.map((group) => (
-          <section key={group.code} className="card league-day">
+          <section key={group.code} className="card league-day" style={themeStyle(group.code)}>
             <header>
               <Flag code={group.code} size={34} />
               <div>
@@ -124,11 +179,7 @@ export function Matches({ leagues, league, preferences, ready, onOpenMatch, onSt
             </header>
             {group.prepared ? (
               <>
-                <div className="columns-head">
-                  <span>Gazde</span>
-                  <span>Egal</span>
-                  <span>Oaspeți</span>
-                </div>
+                <ColumnsHead />
                 <div className="match-list">
                   {group.forecasts.map((forecast) => (
                     <MatchRow
@@ -142,7 +193,7 @@ export function Matches({ leagues, league, preferences, ready, onOpenMatch, onSt
                 </div>
               </>
             ) : (
-              <p className="caption">Se pregătesc predicțiile…</p>
+              <SkeletonRows rows={Math.min(group.forecasts.length || 3, 4)} label="Se pregătesc predicțiile…" />
             )}
           </section>
         ))}
@@ -187,22 +238,25 @@ function FavouriteCard({
     return (match.result === "H") === home ? "W" : "L";
   });
   return (
-    <section className="card favourite-card">
+    <section className="card favourite-card" style={themeStyle(league.code)}>
       <h2>Echipa ta</h2>
       <div className="favourite-identity">
         <Crest team={favourite.team} size={56} ring />
         <div>
-          <strong>{favourite.team}</strong>
+          <strong>{teamName(favourite.team)}</strong>
           <div className="caption">
             {league.name} · {seasonText(league.seasons[league.seasons.length - 1])}
           </div>
         </div>
       </div>
       <FormSquares results={form} />
-      <div className="match-list">
-        {shown.map((forecast) => (
-          <MatchRow key={forecast.date} forecast={forecast} model={model} favourite={favourite.team} stacked onOpen={onOpenMatch} />
-        ))}
+      <div>
+        <ColumnsHead stacked />
+        <div className="match-list">
+          {shown.map((forecast) => (
+            <MatchRow key={forecast.date} forecast={forecast} model={model} favourite={favourite.team} stacked showDate onOpen={onOpenMatch} />
+          ))}
+        </div>
       </div>
     </section>
   );
@@ -222,7 +276,7 @@ function MiniTable({ league, favourite, onStandings }: { league: League; favouri
         <div key={row.team} className={`mini-row${row.team === favourite ? " favourite" : ""}`}>
           <span className="position">{row.position}</span>
           <Crest team={row.team} size={22} />
-          <span className="name">{row.team}</span>
+          <span className="name">{teamName(row.team)}</span>
           <span className="caption">{row.record.played}</span>
           <strong>{row.record.points}</strong>
         </div>
@@ -230,6 +284,32 @@ function MiniTable({ league, favourite, onStandings }: { league: League; favouri
       <button className="link" onClick={() => onStandings(league.code)}>
         Tot clasamentul ›
       </button>
+    </section>
+  );
+}
+
+/** A day without matches: says so, and offers the nearest day that has some. */
+function EmptyDay({
+  day, days, onlyLeague, onDay,
+}: { day: string; days: string[]; onlyLeague: string | null; onDay: (day: string) => void }) {
+  const next = days.find((found) => found > day);
+  const previous = [...days].reverse().find((found) => found < day);
+  return (
+    <section className="card empty-state">
+      <h3>{onlyLeague ? `${onlyLeague} nu joacă în această zi` : "Nu sunt meciuri în această zi"}</h3>
+      <p className="caption">Alege altă zi din bara de mai sus sau sari direct la cea mai apropiată zi cu meciuri.</p>
+      <div className="empty-actions">
+        {previous && (
+          <button className="button" onClick={() => onDay(previous)}>
+            ‹ {capitalised(shortDateText(parseDay(previous)))}
+          </button>
+        )}
+        {next && (
+          <button className="button primary" onClick={() => onDay(next)}>
+            {capitalised(shortDateText(parseDay(next)))} ›
+          </button>
+        )}
+      </div>
     </section>
   );
 }

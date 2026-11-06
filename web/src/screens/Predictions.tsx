@@ -1,11 +1,17 @@
 // Predicții (the team's request after Phase 21): what a model predicted for a season's played
 // matches and what happened. The matches it got right, those it missed, and the surprises: results
 // it gave less than a fifth of a chance. Every prediction was made before its match, from earlier
-// matches only. Since Phase 23 it also tells how often the model was right when it was sure.
+// matches only. Since Phase 23 it also tells how often the model was right when it was sure; since
+// Phase 25 the latest matches come week by week, each week with its hits, and only surprises carry
+// a badge (the chip's mark already says hit or miss).
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api";
-import { MatchRow } from "../components/MatchRow";
-import { capitalised, integer, percent, quantity, seasonText } from "../format";
+import { ColumnsHead, MatchRow } from "../components/MatchRow";
+import { Problem } from "../components/Problem";
+import { usePageKeys } from "../components/Shortcuts";
+import { SkeletonCard, SkeletonRows } from "../components/Skeleton";
+import { capitalised, integer, isoDay, MONTHS, parseDay, percent, quantity, seasonText } from "../format";
+import { nextModel } from "./Matches";
 import type { Forecast, League, Review, ReviewedMatch } from "../types";
 import { MODEL_LABELS, MODELS } from "../types";
 
@@ -29,6 +35,42 @@ export function chosenRows(rows: ReviewedMatch[], kind: Kind, order: Order): Rev
   return [...kept].reverse(); // the latest first
 }
 
+/** The Monday of a day's week (ISO), the key of its group. */
+export function weekOf(day: string): string {
+  const moment = parseDay(day);
+  moment.setDate(moment.getDate() - ((moment.getDay() + 6) % 7));
+  return isoDay(moment);
+}
+
+/** "27 oct – 2 nov": a week from its Monday. */
+export function weekText(monday: string): string {
+  const first = parseDay(monday);
+  const last = new Date(first);
+  last.setDate(last.getDate() + 6);
+  const text = (day: Date) => `${day.getDate()} ${MONTHS[day.getMonth()]}`;
+  return `${text(first)} – ${text(last)}`;
+}
+
+export interface Week {
+  monday: string;
+  rows: ReviewedMatch[];
+  hits: number;
+}
+
+/** Consecutive rows of the same week together, in the rows' order. */
+export function byWeek(rows: ReviewedMatch[]): Week[] {
+  const weeks: Week[] = [];
+  for (const row of rows) {
+    const monday = weekOf(row.forecast.date);
+    const last = weeks[weeks.length - 1];
+    if (last && last.monday === monday) {
+      last.rows.push(row);
+      last.hits += row.hit ? 1 : 0;
+    } else weeks.push({ monday, rows: [row], hits: row.hit ? 1 : 0 });
+  }
+  return weeks;
+}
+
 interface Props {
   league: League;
   season: string;
@@ -45,6 +87,9 @@ export function Predictions({ league, season, favourite, ready, onSeason, onOpen
   const [review, setReview] = useState<Review | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [shown, setShown] = useState(PAGE);
+  usePageKeys((key) => {
+    if (key === "m" || key === "M") setModel(nextModel);
+  });
 
   useEffect(() => {
     let live = true;
@@ -88,7 +133,7 @@ export function Predictions({ league, season, favourite, ready, onSeason, onOpen
         <label className="caption" htmlFor="review-model">
           Model
         </label>
-        <select id="review-model" value={model} onChange={(event) => setModel(event.target.value)}>
+        <select id="review-model" value={model} onChange={(event) => setModel(event.target.value)} aria-keyshortcuts="M">
           {MODELS.map((item) => (
             <option key={item} value={item}>
               {MODEL_LABELS[item]}
@@ -96,8 +141,20 @@ export function Predictions({ league, season, favourite, ready, onSeason, onOpen
           ))}
         </select>
       </div>
-      {!league.prepared && <p className="caption">Predicțiile ligii se pregătesc…</p>}
-      {error && <p className="problem">Predicțiile nu au putut fi citite. {error}</p>}
+      {(!league.prepared || (!review && !error)) && (
+        <>
+          <div className="review-summary">
+            <SkeletonCard height={110} />
+            <SkeletonCard height={110} />
+          </div>
+          <section className="card review-list">
+            <SkeletonRows rows={6} label="Se pregătesc predicțiile…" />
+          </section>
+        </>
+      )}
+      {error && (
+        <Problem detail={error}>Predicțiile sezonului nu au putut fi citite. Alege alt sezon sau încearcă mai târziu.</Problem>
+      )}
       {review && review.matches === 0 && (
         <p className="caption">
           Modelul nu are predicții pentru meciurile acestui sezon: are nevoie de meciuri anterioare din care să învețe.
@@ -135,12 +192,13 @@ export function Predictions({ league, season, favourite, ready, onSeason, onOpen
                 </div>
               ))}
               <p className="caption">Cât din fiecare fel de rezultat a anticipat modelul.</p>
+              <DrawNote review={review} />
             </section>
             <WhenSure review={review} />
           </div>
           <div className="control-row">
             {counts.map(([name, label, count]) => (
-              <button key={name} className={`pill${kind === name ? " chosen" : ""}`} onClick={() => setKind(name)}>
+              <button key={name} className={`pill${kind === name ? " chosen" : ""}`} aria-pressed={kind === name} onClick={() => setKind(name)}>
                 {label} <span className="count">{integer(count)}</span>
               </button>
             ))}
@@ -155,25 +213,30 @@ export function Predictions({ league, season, favourite, ready, onSeason, onOpen
             </select>
           </div>
           <section className="card review-list">
-            <div className="columns-head with-extra">
-              <span>Gazde</span>
-              <span>Egal</span>
-              <span>Oaspeți</span>
-              <span />
-            </div>
-            <div className="match-list">
-              {rows.slice(0, shown).map((row) => (
-                <MatchRow
-                  key={`${row.forecast.date}-${row.forecast.home_team}`}
-                  forecast={row.forecast}
-                  model={model}
-                  favourite={favourite}
-                  showDate
-                  onOpen={onOpenMatch}
-                  extra={<Verdict row={row} />}
-                />
-              ))}
-            </div>
+            <ColumnsHead extra />
+            {order === "recent" ? (
+              byWeek(rows.slice(0, shown)).map((week) => (
+                <div key={week.monday} className="week">
+                  <h3 className="week-head">
+                    <span>{weekText(week.monday)}</span>
+                    <span className="caption">
+                      {week.hits} din {week.rows.length} nimerite
+                    </span>
+                  </h3>
+                  <div className="match-list">
+                    {week.rows.map((row) => (
+                      <ReviewRow key={`${row.forecast.date}-${row.forecast.home_team}`} row={row} model={model} favourite={favourite} onOpen={onOpenMatch} />
+                    ))}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="match-list">
+                {rows.slice(0, shown).map((row) => (
+                  <ReviewRow key={`${row.forecast.date}-${row.forecast.home_team}`} row={row} model={model} favourite={favourite} onOpen={onOpenMatch} />
+                ))}
+              </div>
+            )}
             {rows.length === 0 && <p className="caption">Niciun meci de acest fel.</p>}
             {rows.length > shown && (
               <button className="button more" onClick={() => setShown(shown + PAGE)}>
@@ -210,13 +273,38 @@ function WhenSure({ review }: { review: Review }) {
   );
 }
 
-function Verdict({ row }: { row: ReviewedMatch }) {
-  if (row.surprise) {
-    return (
-      <span className="verdict-badge surprise" title="Rezultatul avea o șansă mică în predicție">
-        Surpriză · {percent(row.chance, 0)}
-      </span>
-    );
-  }
-  return <span className={`verdict-badge ${row.hit ? "hit" : "miss"}`}>{row.hit ? "Nimerit" : "Ratat"}</span>;
+function ReviewRow({
+  row, model, favourite, onOpen,
+}: { row: ReviewedMatch; model: string; favourite: string | null; onOpen: (forecast: Forecast) => void }) {
+  return (
+    <MatchRow
+      forecast={row.forecast}
+      model={model}
+      favourite={favourite}
+      showDate
+      onOpen={onOpen}
+      extra={
+        row.surprise ? (
+          <span className="verdict-badge surprise" title="Rezultatul avea o șansă mică în predicție">
+            Surpriză · {percent(row.chance, 0)}
+          </span>
+        ) : (
+          <span />
+        )
+      }
+    />
+  );
+}
+
+/** Why the draws are missed: the most likely result is almost never a draw. */
+function DrawNote({ review }: { review: Review }) {
+  const draws = review.by_result.find((result) => result.result === "D");
+  if (!draws || draws.matches === 0 || draws.hits / draws.matches > 0.1) return null;
+  return (
+    <p className="caption draw-note">
+      De ce egalurile sunt ratate: chiar într-un meci echilibrat, una dintre victorii are de obicei o șansă puțin mai
+      mare decât egalul, așa că egalul iese rar „cel mai probabil”. Șansa lui rămâne însă în fiecare predicție, în
+      coloana Egal.
+    </p>
+  );
 }

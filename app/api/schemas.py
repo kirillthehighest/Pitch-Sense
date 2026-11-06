@@ -210,6 +210,7 @@ class TeamPage(Schema):
     groups: Groups | None
     groups_problem: str | None
     stadium: str | None  # the club's ground, when its photo is known
+    first_evaluated_season: str  # earlier seasons only start the models (warm-up, calibration)
 
 
 class ReviewedMatch(Schema):
@@ -247,6 +248,54 @@ class Review(Schema):
     by_result: list[ResultReview]
     sure: list[SureReview]  # when the model was sure (Phase 23)
     rows: list[ReviewedMatch]
+
+
+class ModelRecord(Schema):
+    model: str
+    label: str
+    hits: int
+    matches: int
+    recent_hits: int  # over the latest week of matches
+    recent_matches: int
+
+
+class TrackRecord(Schema):
+    """How often each model has been right this season, in all and over its latest week."""
+
+    competition: str
+    season: str
+    in_progress: bool
+    last_day: date | None
+    recent_from: date | None
+    models: list[ModelRecord]
+
+
+class ProjectedTeam(Schema):
+    team: str
+    position: int
+    played: int
+    points: int
+    goal_difference: int
+    remaining: int
+    expected_points: float
+    places: list[float]  # the chance of each final place, first to last
+    top: float
+    bottom: float
+
+
+class Projection(Schema):
+    """The rest of the season played many times from one model's predictions (Phase 25)."""
+
+    competition: str
+    season: str
+    model: str
+    label: str
+    simulations: int
+    fixtures: int
+    unpredicted: int  # fixtures the model has no prediction for, left out
+    top_places: int
+    bottom_places: int
+    teams: list[ProjectedTeam]
 
 
 class SeasonDays(Schema):

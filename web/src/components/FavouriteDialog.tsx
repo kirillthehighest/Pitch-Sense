@@ -2,8 +2,10 @@
 // highlighted everywhere, its card leads Meciuri and the match of the day prefers it.
 import { type FormEvent, useEffect, useState } from "react";
 import { api } from "../api";
+import { teamName } from "../format";
 import type { Favourite, League } from "../types";
 import { Crest } from "./Crest";
+import { Modal } from "./Modal";
 
 interface Props {
   leagues: League[];
@@ -32,20 +34,14 @@ export function FavouriteDialog({ leagues, league, favourite, onClose, onChoose,
     };
   }, [chosen.code, chosen.seasons]);
 
-  useEffect(() => {
-    const close = (event: KeyboardEvent) => event.key === "Escape" && onClose();
-    document.addEventListener("keydown", close);
-    return () => document.removeEventListener("keydown", close);
-  }, [onClose]);
-
   const submit = (event: FormEvent) => {
     event.preventDefault();
     onChoose({ competition: code, team });
   };
 
   return (
-    <div className="overlay" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
-      <form className="dialog card" onSubmit={submit} role="dialog" aria-label="Echipa ta">
+    <Modal label="Echipa ta" onClose={onClose}>
+      <form className="dialog card" onSubmit={submit}>
         <div className="dialog-head">
           {team && <Crest team={team} size={40} ring />}
           <h2>Echipa ta</h2>
@@ -65,7 +61,9 @@ export function FavouriteDialog({ leagues, league, favourite, onClose, onChoose,
           <label htmlFor="favourite-team">Echipa</label>
           <select id="favourite-team" value={team} onChange={(event) => setTeam(event.target.value)} disabled={!teams.length}>
             {teams.map((item) => (
-              <option key={item}>{item}</option>
+              <option key={item} value={item}>
+                {teamName(item)}
+              </option>
             ))}
           </select>
         </div>
@@ -88,6 +86,6 @@ export function FavouriteDialog({ leagues, league, favourite, onClose, onChoose,
           </button>
         </div>
       </form>
-    </div>
+    </Modal>
   );
 }

@@ -4,7 +4,7 @@
 // the day and kickoff, the chosen model's three probabilities and a button to the match's page.
 // The card takes the colours of the match's league, whichever league is on screen: its image and
 // its deep colour are that league's, so another accent on them would clash.
-import { capitalised, parseDay, percent, shortDateText, withKickoff } from "../format";
+import { capitalised, parseDay, percent, shortDateText, teamName, withKickoff } from "../format";
 import { themeFor, themeStyle } from "../theme";
 import type { Forecast, League, Outcome } from "../types";
 import { MODEL_LABELS } from "../types";
@@ -53,7 +53,7 @@ export function FeaturedMatch({ forecast, day, league, model, favourite, onOpen 
         {teams.map(([team, goals]) => (
           <div key={team} className="featured-team">
             <Crest team={team} size={40} ring={team === favourite} />
-            <span>{team}</span>
+            <span>{teamName(team)}</span>
             {goals !== null && <strong>{goals}</strong>}
           </div>
         ))}
