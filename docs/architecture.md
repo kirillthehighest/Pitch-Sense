@@ -1240,6 +1240,14 @@ Rulări din 2026-11-06:
 - O a doua analiză `/impeccable critique`, după aceste schimbări, a dat 29 din 40 de puncte (de la 24). Ce a mai găsit a fost corectat în aceeași fază: un ecran nou se deschide de sus, iar focusul tastaturii trece la conținutul lui (cu legătura „Sari la conținut”); pagina unui meci trecut fără rezultat scrie „Fără rezultat”, nu „Programat”; cluburile apar cu numele lor întregi (`teamName` în `format.ts`: „Ath Madrid” devine „Atlético Madrid”, „Nott'm Forest” devine „Nottingham Forest”; datele, stemele și serverul păstrează numele scurte); propoziția modelelor spune „la limită” când favorita conduce cu mai puțin de cinci puncte; grupurile K‑Means ale sezonului trecut se văd doar în grafic, fără să schimbe sezonul celorlalte ecrane; „Înainte de o zi” pornește, în sezonul în desfășurare, cu o săptămână înaintea ultimului meci; tasta T și butonul „Azi” întorc la ziua de azi; contrastul locurilor din proiecție, textul de 10 px și rândurile prea lungi ale notelor.
 - În interfață, cu datele din 2026-10-30, la 1440 × 900 și 1024 × 700: toate ecranele, dialogurile „Simulează un meci”, „Caută o echipă” și „Scurtăturile tastaturii”, proiecția celor cinci ligi (234–300 de meciuri rămase, toate cu predicție), bilanțul modelelor și nota pentru datele vechi.
 
+### 21.5. Versiunea 0.7.0
+
+La acceptarea fazei (2026-11-06), echipa a cerut versiunea 0.7.0, publicată pe GitHub (`v0.7.0`), cu capturi noi în README:
+
+- macOS: `.dmg` de 91 MB, cu sezonul în desfășurare descărcat pe 2026-11-06; semnătura aplicației trece `codesign --verify --deep --strict`; autoverificarea serverului trece din `dist/` și din imaginea `.dmg`.
+- Windows (GitHub Actions): trec toate cele 801 de teste Python și cele 50 ale interfeței web; programul de instalare are 72 MB; autoverificarea trece în pachet și după instalare; serverul pornit de fereastra instalată are toate ligile gata la 10,5 s după deschiderea ei. Ecranele nu au putut fi privite pe mașina de construire.
+- Capturile din `docs/images/` sunt făcute din aplicația construită pentru macOS, cu datele din 2026-11-06.
+
 ## 22. Setul de date și perioadele
 
 Sursa datelor este Football-Data.co.uk: cinci ligi (Premier League, La Liga, Serie A, Bundesliga, Ligue 1), fiecare cu 20 de sezoane încheiate, 2006/07–2025/26 (36.197 de meciuri). Perioadele sunt aceleași pentru toate ligile. Sezonul în desfășurare (2026/27) este descărcat separat și nu face parte din evaluare (secțiunea 15).

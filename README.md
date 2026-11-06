@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/kirillthehighest/Pitch-Sense/releases/latest"><img alt="Versiunea 0.6.1" src="https://img.shields.io/badge/versiunea-0.6.1-E8622A"></a>
+  <a href="https://github.com/kirillthehighest/Pitch-Sense/releases/latest"><img alt="Versiunea 0.7.0" src="https://img.shields.io/badge/versiunea-0.7.0-E8622A"></a>
   <img alt="macOS și Windows" src="https://img.shields.io/badge/macOS%20%7C%20Windows-desktop-555">
   <img alt="Python 3.14" src="https://img.shields.io/badge/Python-3.14-3776AB?logo=python&logoColor=white">
   <img alt="React și Tauri" src="https://img.shields.io/badge/React%20%2B%20Tauri-interfa%C8%9Ba-24C8DB?logo=tauri&logoColor=white">
@@ -63,16 +63,16 @@ Când regresia logistică dă peste 65% unui rezultat, are dreptate în **76,0%*
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/images/pagina-meci.jpg" alt="Pagina unui meci"><br><sub><b>Pagina unui meci:</b> ce spune fiecare model și cum vin echipele</sub></td>
-    <td width="50%"><img src="docs/images/scoruri.jpg" alt="Scorurile probabile"><br><sub><b>Scorurile probabile</b> calculate de modelul Poisson</sub></td>
+    <td width="50%"><img src="docs/images/pagina-meci.jpg" alt="Pagina unui meci"><br><sub><b>Pagina unui meci:</b> pe ce mizează fiecare model și cum vin echipele</sub></td>
+    <td width="50%"><img src="docs/images/scoruri.jpg" alt="Scorurile probabile"><br><sub><b>Scorurile probabile</b> ale modelului Poisson, cu scorul final încercuit</sub></td>
   </tr>
   <tr>
     <td><img src="docs/images/echipa.jpg" alt="Pagina unei echipe"><br><sub><b>Pagina unei echipe:</b> sezonul în cifre, forma și meciurile</sub></td>
-    <td><img src="docs/images/clasament.jpg" alt="Clasamentul"><br><sub><b>Clasamentul</b> oricărui sezon, cu forma echipelor</sub></td>
+    <td><img src="docs/images/clasament.jpg" alt="Proiecția clasamentului final"><br><sub><b>Proiecția finalului de sezon:</b> meciurile rămase jucate de 10.000 de ori</sub></td>
   </tr>
   <tr>
-    <td><img src="docs/images/predictii.jpg" alt="Predicțiile unui sezon"><br><sub><b>Predicții:</b> cât de bine a prezis un model un sezon întreg</sub></td>
-    <td><img src="docs/images/analiza.jpg" alt="Analiza modelelor"><br><sub><b>Analiză:</b> compararea modelelor, calibrarea și matricea de confuzie</sub></td>
+    <td><img src="docs/images/predictii.jpg" alt="Predicțiile unui sezon"><br><sub><b>Predicții:</b> ce a nimerit un model, săptămână cu săptămână</sub></td>
+    <td><img src="docs/images/analiza.jpg" alt="Cum funcționează algoritmii"><br><sub><b>Analiză:</b> schema fiecărui algoritm, apoi compararea modelelor</sub></td>
   </tr>
 </table>
 
