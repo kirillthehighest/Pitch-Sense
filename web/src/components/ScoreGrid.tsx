@@ -1,6 +1,7 @@
 // The Poisson probability of every score from 0–0 to 6–6, drawn as a grid:
 // home goals down, away goals across; each cell mixes the league's accent into the card by its
-// share of the most likely score, and its number takes the ink that reads on it.
+// share of the most likely score, and its number takes the ink that reads on it. Once the match is
+// played, the score that happened is ringed (Phase 25).
 import { inkOn, mix } from "../colour";
 import { percent } from "../format";
 
@@ -24,9 +25,10 @@ interface Props {
   home: string;
   away: string;
   accent: string;
+  actual?: [number, number] | null; // the final score, once played
 }
 
-export function ScoreGrid({ grid, home, away, accent }: Props) {
+export function ScoreGrid({ grid, home, away, accent, actual = null }: Props) {
   const largest = Math.max(...grid.flat());
   const goals = grid.map((_, index) => index);
   return (
@@ -42,7 +44,14 @@ export function ScoreGrid({ grid, home, away, accent }: Props) {
             </span>
           ))}
           {grid.map((row, homeGoals) => (
-            <Row key={homeGoals} row={row} homeGoals={homeGoals} largest={largest} accent={accent} />
+            <Row
+              key={homeGoals}
+              row={row}
+              homeGoals={homeGoals}
+              largest={largest}
+              accent={accent}
+              actualAway={actual && actual[0] === homeGoals ? actual[1] : null}
+            />
           ))}
         </div>
       </div>
@@ -50,7 +59,9 @@ export function ScoreGrid({ grid, home, away, accent }: Props) {
   );
 }
 
-function Row({ row, homeGoals, largest, accent }: { row: number[]; homeGoals: number; largest: number; accent: string }) {
+function Row({
+  row, homeGoals, largest, accent, actualAway,
+}: { row: number[]; homeGoals: number; largest: number; accent: string; actualAway: number | null }) {
   return (
     <>
       <span className="axis">{homeGoals}</span>
@@ -59,9 +70,9 @@ function Row({ row, homeGoals, largest, accent }: { row: number[]; homeGoals: nu
         return (
           <span
             key={awayGoals}
-            className="cell"
+            className={`cell${actualAway === awayGoals ? " actual" : ""}`}
             style={{ background: fill, color: ink }}
-            title={`${homeGoals}–${awayGoals}: ${percent(probability)}`}
+            title={`${homeGoals}–${awayGoals}: ${percent(probability)}${actualAway === awayGoals ? " · scorul final" : ""}`}
           >
             {cellText(probability)}
           </span>

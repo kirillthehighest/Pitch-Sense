@@ -1,9 +1,10 @@
 // A team's Elo rating before each of its matches, one line per season (the Elo chart of Phase 12): the
 // chosen season in the league's accent and on top, the others thin and grey as its context (the
 // Elo blue was too close to Serie A's cyan); gaps are summers and seasons outside the league.
-// "Doar sezonul" narrows it to the chosen season.
+// "Doar sezonul" narrows it to the chosen season. The seasons before the first evaluated one only
+// start the models (every club begins at 1500), so they are shaded and named (Phase 25).
 import { useState } from "react";
-import { CartesianGrid, Line, LineChart, Tooltip, XAxis, YAxis } from "recharts";
+import { CartesianGrid, Line, LineChart, ReferenceArea, Tooltip, XAxis, YAxis } from "recharts";
 import { dateText, integer, seasonText, shortDateText } from "../../format";
 import type { RatingSeason } from "../../types";
 import { axisLine, CONTEXT_COLOUR, GRID, tick } from "./chartStyle";
@@ -39,14 +40,21 @@ interface Props {
   history: RatingSeason[];
   season: string;
   accent: string;
+  warmUpUntil?: string; // the first season whose results are reported
 }
 
-export function EloChart({ team, history, season, accent }: Props) {
+export function EloChart({ team, history, season, accent, warmUpUntil }: Props) {
   const [onlySeason, setOnlySeason] = useState(false);
   const chosen = history.find((item) => item.season === season);
   const shown = onlySeason && chosen ? [chosen] : [...history.filter((item) => item !== chosen), ...(chosen ? [chosen] : [])];
   const yearOf = (value: number) => String(new Date(value).getFullYear());
   const dayOf = (value: number) => dateText(new Date(value)).slice(0, 5);
+  const firstPoint = history.find((item) => item.points.length > 0);
+  const evaluated = history.find((item) => warmUpUntil !== undefined && item.season >= warmUpUntil && item.points.length > 0);
+  const warmUp =
+    !onlySeason && firstPoint && evaluated && firstPoint !== evaluated
+      ? { from: points(firstPoint)[0].x, to: points(evaluated)[0].x }
+      : null;
   return (
     <div className="chart-box" role="figure" aria-label={`${team}: ratingul Elo înaintea fiecărui meci`}>
       <div className="chart-head">
@@ -61,6 +69,7 @@ export function EloChart({ team, history, season, accent }: Props) {
               <i style={{ background: CONTEXT_COLOUR }} /> Celelalte sezoane
             </span>
           )}
+          {warmUp && <span className="caption">Zona umbrită: sezoanele care doar pornesc modelele, fără rezultate raportate</span>}
         </div>
         {chosen && (
           <div className="segmented">
@@ -100,6 +109,16 @@ export function EloChart({ team, history, season, accent }: Props) {
           tickLine={false}
           width={52}
         />
+        {warmUp && (
+          <ReferenceArea
+            x1={warmUp.from}
+            x2={warmUp.to}
+            fill="#FFFFFF"
+            fillOpacity={0.035}
+            stroke="none"
+            label={{ value: "Pornirea modelelor", position: "insideTopLeft", fill: "#9C9CA6", fontSize: 12 }}
+          />
+        )}
         <Tooltip content={<EloTooltip />} cursor={{ stroke: GRID }} isAnimationActive={false} />
         {shown.map((item) => {
           const isChosen = item.season === season;

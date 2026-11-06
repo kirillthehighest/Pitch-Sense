@@ -67,3 +67,57 @@ export function ChevronIcon({ direction }: { direction: "left" | "right" }) {
     </svg>
   );
 }
+
+/** The marks of a prediction that came true or did not: drawn, so they read at any size. */
+export function CheckIcon({ size = 12 }: { size?: number }) {
+  return (
+    <svg {...base} width={size} height={size} strokeWidth={3.2}>
+      <path d="M5 12.5l4.5 4.5L19 7.5" />
+    </svg>
+  );
+}
+
+export function CrossIcon({ size = 12 }: { size?: number }) {
+  return (
+    <svg {...base} width={size} height={size} strokeWidth={3.2}>
+      <path d="M6.5 6.5l11 11M17.5 6.5l-11 11" />
+    </svg>
+  );
+}
+
+export function SearchIcon() {
+  return (
+    <svg {...base}>
+      <circle cx="11" cy="11" r="6.5" />
+      <path d="M16 16l4.5 4.5" />
+    </svg>
+  );
+}
+
+/** "Simulează un meci": two teams' paths meeting at one point. */
+export function SimulateIcon() {
+  return (
+    <svg {...base}>
+      <circle cx="6" cy="6.5" r="2.5" />
+      <circle cx="18" cy="6.5" r="2.5" />
+      <path d="M6 9v1.5a4 4 0 0 0 4 4h4a4 4 0 0 0 4-4V9M12 14.5V20" />
+    </svg>
+  );
+}
+
+export function KeyboardIcon() {
+  return (
+    <svg {...base}>
+      <rect x="3" y="6" width="18" height="12" rx="2.5" />
+      <path d="M7 10h.01M11 10h.01M15 10h.01M7 14h10" />
+    </svg>
+  );
+}
+
+export function StarIcon({ filled = false }: { filled?: boolean }) {
+  return (
+    <svg {...base} width={16} height={16} fill={filled ? "currentColor" : "none"}>
+      <path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z" />
+    </svg>
+  );
+}

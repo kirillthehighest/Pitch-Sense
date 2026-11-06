@@ -24,12 +24,13 @@ Proiect de an la disciplina *Analiza și Proiectarea Algoritmilor*, Universitate
 
 ## Ce face aplicația
 
-- arată meciurile fiecărei zile din **Premier League, La Liga, Serie A, Bundesliga și Ligue 1**, cu șansele fiecărui rezultat;
-- deschide pagina unui meci: ce spune fiecare model, scorurile cele mai probabile și cum vin echipele;
-- prezice orice meci dintre două echipe ale aceluiași sezon, la o dată aleasă;
-- arată clasamente, inclusiv „înainte de o zi”, și pagina fiecărei echipe, cu ratingul Elo și tipul ei de joc;
-- verifică un sezon întreg: ce predicții s-au adeverit, care au fost surprizele și cât de des are dreptate un model când e sigur;
-- își actualizează singură sezonul în desfășurare și merge și fără internet.
+- arată meciurile fiecărei zile din **Premier League, La Liga, Serie A, Bundesliga și Ligue 1**, cu șansele fiecărui rezultat și cât au nimerit modelele în sezonul curent;
+- deschide pagina unui meci: pe ce rezultat mizează fiecare model, scorurile cele mai probabile și cum vin echipele;
+- simulează orice meci dintre două echipe ale aceluiași sezon, la o dată aleasă;
+- arată clasamente, inclusiv „înainte de o zi”, și **proiecția finalului de sezon**: meciurile rămase jucate de 10.000 de ori din predicțiile modelelor;
+- arată pagina fiecărei echipe, cu ratingul Elo și tipul ei de joc;
+- verifică un sezon întreg, săptămână cu săptămână: ce predicții s-au adeverit, care au fost surprizele și cât de des are dreptate un model când e sigur;
+- se folosește și de la tastatură (tasta `?` arată scurtăturile), își actualizează singură sezonul în desfășurare și merge și fără internet.
 
 ## Cei patru algoritmi
 

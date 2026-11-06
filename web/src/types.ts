@@ -211,6 +211,7 @@ export interface TeamPage {
   groups: Groups | null;
   groups_problem: string | null;
   stadium: string | null;
+  first_evaluated_season: string; // earlier seasons only start the models
 }
 
 export interface ReviewedMatch {
@@ -233,6 +234,52 @@ export interface Review {
   by_result: { result: Outcome; label: string; hits: number; matches: number }[];
   sure: { threshold: number; hits: number; matches: number }[]; // when the model was sure
   rows: ReviewedMatch[];
+}
+
+// --- The season at a glance (Phase 25) ---
+
+export interface ModelRecord {
+  model: string;
+  label: string;
+  hits: number;
+  matches: number;
+  recent_hits: number;
+  recent_matches: number;
+}
+
+export interface TrackRecord {
+  competition: string;
+  season: string;
+  in_progress: boolean;
+  last_day: string | null;
+  recent_from: string | null;
+  models: ModelRecord[];
+}
+
+export interface ProjectedTeam {
+  team: string;
+  position: number;
+  played: number;
+  points: number;
+  goal_difference: number;
+  remaining: number;
+  expected_points: number;
+  places: number[];
+  top: number;
+  bottom: number;
+}
+
+export interface Projection {
+  competition: string;
+  season: string;
+  model: string;
+  label: string;
+  simulations: number;
+  fixtures: number;
+  unpredicted: number;
+  top_places: number;
+  bottom_places: number;
+  teams: ProjectedTeam[];
 }
 
 // --- Analiză ---

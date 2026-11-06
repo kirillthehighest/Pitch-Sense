@@ -2,17 +2,23 @@
 // of the match's league, what each model expects and why, how both teams came into the match side
 // by side, and the likely scores of the Poisson model. A hypothetical match (two teams of a season
 // and a day chosen by the user) opens on the same page. The page takes its league's colours.
+// Since Phase 25 the head carries the verdict: the three models' bars under the score, and which
+// club they favour; on the Poisson grid the score that happened is ringed.
 import { useEffect, useState } from "react";
 import { api } from "../api";
 import { Crest } from "../components/Crest";
 import { Flag } from "../components/Flag";
 import { FormSquares } from "../components/FormSquares";
+import { CheckIcon, CrossIcon } from "../components/Icons";
+import { HitMark } from "../components/MatchRow";
+import { Problem } from "../components/Problem";
 import { ProbabilityBar } from "../components/ProbabilityBar";
+import { SkeletonCard } from "../components/Skeleton";
 import { ScoreGrid } from "../components/ScoreGrid";
 import { StadiumPhoto } from "../components/StadiumPhoto";
 import { capitalised, dateText, integer, longDateText, number, parseDay, percent, seasonText, withKickoff } from "../format";
 import { MODEL_COLOURS, themeFor, themeStyle } from "../theme";
-import type { League, MatchKey, MatchPage as Page, Prediction, TeamState } from "../types";
+import type { Forecast, League, MatchKey, MatchPage as Page, Outcome, Prediction, TeamState } from "../types";
 import { MODELS } from "../types";
 
 interface Props {
@@ -51,11 +57,21 @@ export function MatchPage({ matchKey, leagues, favourite, onBack, onTeam, onOthe
           ‹ Înapoi
         </button>
         <button className="button" onClick={onOther}>
-          Alt meci…
+          Simulează alt meci
         </button>
       </div>
-      {error && <p className="problem">Meciul nu a putut fi deschis. {error}</p>}
-      {!page && !error && <p className="caption">Se calculează predicțiile…</p>}
+      {error && (
+        <Problem detail={error}>Meciul nu a putut fi deschis. Întoarce-te la listă și încearcă din nou.</Problem>
+      )}
+      {!page && !error && (
+        <>
+          <SkeletonCard height={250} title={false} />
+          <div className="match-grid">
+            <SkeletonCard height={300} />
+            <SkeletonCard height={300} />
+          </div>
+        </>
+      )}
       {page && league && (
         <>
           <MatchHead page={page} league={league} favourite={favourite} onTeam={openTeam} />
@@ -108,8 +124,65 @@ function MatchHead({
           </span>
         </div>
       </div>
+      <Consensus forecast={forecast} />
       {page.stadium && <span className="credit">Foto: Wikimedia Commons</span>}
     </section>
+  );
+}
+
+const SIDES: Record<Outcome, string> = { H: "home", D: "draw", A: "away" };
+
+/** Whom the models favour: "Toate trei modelele mizează pe Napoli", "2 din 3 modele mizează pe
+ * egal", "Modelele nu cad de acord". */
+export function consensusText(forecast: Forecast): string {
+  const predictions = forecast.predictions;
+  if (predictions.length === 0) return "Niciun model nu are destule meciuri anterioare";
+  const counts = new Map<Outcome, number>();
+  for (const prediction of predictions) counts.set(prediction.most_likely, (counts.get(prediction.most_likely) ?? 0) + 1);
+  const [outcome, count] = [...counts.entries()].sort((a, b) => b[1] - a[1])[0];
+  const total = predictions.length;
+  if (count === 1 && total > 1) return "Modelele nu cad de acord";
+  const choice = outcome === "D" ? "egal" : outcome === "H" ? forecast.home_team : forecast.away_team;
+  let who = `${count} din ${total} modele`;
+  if (count === total) who = total === 1 ? "Singurul model" : total === 3 ? "Toate trei modelele" : "Toate modelele";
+  return `${who} mizează pe ${choice}`;
+}
+
+/** The three models' bars, one under the other, under the score of the head. */
+function Consensus({ forecast }: { forecast: Forecast }) {
+  const predictions = ordered(forecast.predictions);
+  if (predictions.length === 0) return null;
+  const played = forecast.result !== null;
+  const right = predictions.filter((prediction) => prediction.hit).length;
+  return (
+    <div className="consensus" aria-label="Ce spun modelele">
+      <p className="consensus-verdict">
+        {played ? `${right} din ${predictions.length} modele au nimerit rezultatul` : consensusText(forecast)}
+      </p>
+      {predictions.map((prediction) => (
+        <div key={prediction.model} className="consensus-row">
+          <span className="consensus-name">
+            <i style={{ background: MODEL_COLOURS[prediction.model] }} />
+            {prediction.label}
+          </span>
+          <span className="consensus-bar" role="img" aria-label={`${prediction.label}: gazde ${percent(prediction.home, 0)}, egal ${percent(prediction.draw, 0)}, oaspeți ${percent(prediction.away, 0)}`}>
+            {(["H", "D", "A"] as Outcome[]).map((outcome) => {
+              const value = outcome === "H" ? prediction.home : outcome === "D" ? prediction.draw : prediction.away;
+              return (
+                <span
+                  key={outcome}
+                  className={`part ${SIDES[outcome]}${prediction.most_likely === outcome ? " likely" : ""}${forecast.result === outcome ? " actual" : ""}`}
+                  style={{ flexGrow: value }}
+                >
+                  {value >= 0.12 && percent(value, 0)}
+                </span>
+              );
+            })}
+          </span>
+          <span className="consensus-mark">{prediction.hit !== null && <HitMark hit={prediction.hit} />}</span>
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -147,7 +220,8 @@ function ModelsCard({ page }: { page: Page }) {
             <strong>{prediction.label}</strong>
             {prediction.hit !== null && (
               <span className={`verdict-pill ${prediction.hit ? "hit" : "miss"}`}>
-                {prediction.hit ? "✓ Nimerit" : "✕ Ratat"}
+                {prediction.hit ? <CheckIcon size={12} /> : <CrossIcon size={11} />}
+                {prediction.hit ? "Nimerit" : "Ratat"}
               </span>
             )}
           </div>
@@ -243,6 +317,9 @@ function PoissonCard({ page }: { page: Page }) {
             </div>
           </div>
           <p className="caption">Goluri așteptate: câte ar marca în medie fiecare echipă în acest meci.</p>
+          {forecast.result !== null && (
+            <ActualScore grid={poisson.grid} home={forecast.home_goals as number} away={forecast.away_goals as number} />
+          )}
           <h3>Cele mai probabile scoruri</h3>
           <div className="top-scores">
             {poisson.top_scores.map((score) => (
@@ -258,8 +335,29 @@ function PoissonCard({ page }: { page: Page }) {
             ))}
           </div>
         </div>
-        <ScoreGrid grid={poisson.grid} home={forecast.home_team} away={forecast.away_team} accent={themeFor(forecast.competition).accent} />
+        <ScoreGrid
+          grid={poisson.grid}
+          home={forecast.home_team}
+          away={forecast.away_team}
+          accent={themeFor(forecast.competition).accent}
+          actual={forecast.result !== null ? [forecast.home_goals as number, forecast.away_goals as number] : null}
+        />
       </div>
     </section>
+  );
+}
+
+/** The score that happened, as the Poisson model saw it: its chance and its rank among all scores. */
+function ActualScore({ grid, home, away }: { grid: number[][]; home: number; away: number }) {
+  const chance = grid[home]?.[away];
+  if (chance === undefined) {
+    return <p className="actual-score">Scorul final, {home}–{away}, iese din grila 0–6 a modelului.</p>;
+  }
+  const rank = grid.flat().filter((value) => value > chance).length + 1;
+  return (
+    <p className="actual-score">
+      Scorul final, <strong>{home}–{away}</strong>, avea {percent(chance)} în modelul Poisson:{" "}
+      {rank === 1 ? "era cel mai probabil scor." : `al ${rank}-lea cel mai probabil scor.`}
+    </p>
   );
 }

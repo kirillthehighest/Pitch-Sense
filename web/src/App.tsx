@@ -5,9 +5,13 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import { flushSync } from "react-dom";
 import { api, askUntilAnswered } from "./api";
 import { FavouriteDialog } from "./components/FavouriteDialog";
+import { CrossIcon, SimulateIcon } from "./components/Icons";
 import { OtherMatch } from "./components/OtherMatch";
+import { Problem } from "./components/Problem";
 import { ScreenHead } from "./components/ScreenHead";
-import { type ScreenName, SCREENS, Sidebar } from "./components/Sidebar";
+import { ShortcutsDialog, usePageKeys } from "./components/Shortcuts";
+import { TeamSearch } from "./components/TeamSearch";
+import { type ScreenName, SCREENS, Sidebar, updatedText } from "./components/Sidebar";
 import { Analysis } from "./screens/Analysis";
 import { MatchPage } from "./screens/MatchPage";
 import { Matches } from "./screens/Matches";
@@ -23,6 +27,13 @@ const RETRY_MS = 1000; // the first questions, asked again while the server star
 const BUSY_POLL_MS = 1500; // the server's state while it prepares or updates
 const IDLE_POLL_MS = 30000; // and otherwise: the season in progress is updated on its own
 const FAILURES_SHOWN = 3; // unanswered for about three seconds: say so, and keep asking
+const STALE_HOURS = 48; // older data is said on Meciuri: results after it may be missing
+
+/** The data was downloaded more than ``STALE_HOURS`` ago (``now`` in milliseconds). */
+export function isStale(updatedAt: string | null, now: number = Date.now()): boolean {
+  if (!updatedAt) return false;
+  return now - new Date(updatedAt).getTime() > STALE_HOURS * 3600 * 1000;
+}
 
 export default function App() {
   const [leagues, setLeagues] = useState<League[]>([]);
@@ -40,7 +51,9 @@ export default function App() {
   const [updating, setUpdating] = useState(false); // the user's update
   const [serverUpdating, setServerUpdating] = useState(false); // any update, the automatic one too
   const seenVersion = useRef<number | null>(null); // the server's data the screens show
-  const [notice, setNotice] = useState<{ text: string; problem: boolean } | null>(null);
+  const [notice, setNotice] = useState<{ text: string; problem: boolean; detail?: string } | null>(null);
+  const [search, setSearch] = useState(false);
+  const [shortcuts, setShortcuts] = useState(false);
   const [generation, setGeneration] = useState(0); // a new one after each update of the data
   const scroller = useRef<HTMLElement>(null);
   const screenScroll = useRef(0); // where the screen was when a match opened over it
@@ -120,8 +133,9 @@ export default function App() {
       })
       .catch((reason: Error) =>
         setNotice({
-          text: `Datele nu au putut fi actualizate; au rămas cele de până acum. Verificați conexiunea la internet și încercați din nou. Detalii: ${reason.message}`,
+          text: "Datele nu au putut fi actualizate; au rămas cele de până acum. Verificați conexiunea la internet și încercați din nou.",
           problem: true,
+          detail: reason.message,
         }),
       )
       .finally(() => setUpdating(false));
@@ -204,6 +218,15 @@ export default function App() {
     [league, chooseLeague],
   );
 
+  // The page's keys: 1–5 choose a league, / finds a team, S simulates a match, ? lists them all
+  usePageKeys((key) => {
+    const index = Number(key) - 1;
+    if (Number.isInteger(index) && index >= 0 && index < leagues.length) chooseLeague(leagues[index].code);
+    else if (key === "/") setSearch(true);
+    else if (key === "s" || key === "S") setOtherMatch(true);
+    else if (key === "?") setShortcuts(true);
+  });
+
   const current = leagues.find((item) => item.code === league);
   const about = SCREENS.find((item) => item.name === screen);
   const season = current ? (seasons[current.code] ?? current.seasons[current.seasons.length - 1]) : "";
@@ -221,6 +244,10 @@ export default function App() {
         onUpdate={update}
         updating={updating || serverUpdating}
         updatedAt={current?.updated_at ?? null}
+        compact={compact}
+        onSimulate={() => setOtherMatch(true)}
+        onSearch={() => setSearch(true)}
+        onShortcuts={() => setShortcuts(true)}
       />
       <main className="screen" ref={scroller}>
         <div className="screen-inner">
@@ -241,14 +268,40 @@ export default function App() {
                   <h1>{about?.title}</h1>
                   <p>{about?.description}</p>
                 </div>
-                <button className="button" onClick={() => setOtherMatch(true)}>
-                  Alt meci…
+                <button className="button" onClick={() => setOtherMatch(true)} aria-keyshortcuts="S" title="Tasta S">
+                  <SimulateIcon />
+                  Simulează un meci
                 </button>
               </div>
             ) : (
-              current && about && <ScreenHead league={current} title={about.title} description={about.description} />
+              current &&
+              about &&
+              (screen === "predictions" || screen === "analysis") && (
+                <ScreenHead
+                  league={current}
+                  title={about.title}
+                  description={about.description}
+                  variant={screen === "analysis" ? "lab" : "league"}
+                />
+              )
             )}
-            {error && <p className="problem">Serverul nu răspunde: {error}</p>}
+            {error && (
+              <Problem detail={error}>
+                Serverul aplicației nu răspunde încă. Dacă mesajul nu dispare în câteva secunde, închide și redeschide
+                PitchSense.
+              </Problem>
+            )}
+            {current && screen === "matches" && isStale(current.updated_at) && !serverUpdating && (
+              <div className="stale-note" role="status">
+                <p>
+                  Datele sezonului în desfășurare sunt din {updatedText(current.updated_at as string)}. Meciurile jucate de
+                  atunci apar „Fără rezultat” până la actualizare.
+                </p>
+                <button className="button" onClick={update} disabled={updating}>
+                  Actualizează acum
+                </button>
+              </div>
+            )}
             {current && screen === "matches" && (
               <Matches
                 leagues={leagues}
@@ -260,6 +313,7 @@ export default function App() {
                   chooseLeague(code);
                   chooseScreen("standings");
                 }}
+                onPredictions={() => chooseScreen("predictions")}
               />
             )}
             {current && screen === "team" && (
@@ -291,8 +345,10 @@ export default function App() {
                 onOpenMatch={openMatch}
               />
             )}
-            {current && screen === "standings" && (
+            {current && screen === "standings" && about && (
               <Standings
+                title={about.title}
+                description={about.description}
                 league={current}
                 season={season}
                 favourite={favourite}
@@ -322,15 +378,34 @@ export default function App() {
       )}
       {notice && (
         <div className={`notice${notice.problem ? " problem" : ""}`} role="status">
-          <span>{notice.text}</span>
-          <button className="link" onClick={() => setNotice(null)} aria-label="Închide">
-            ✕
+          <div>
+            <span>{notice.text}</span>
+            {notice.detail && (
+              <details>
+                <summary>Detalii tehnice</summary>
+                <code>{notice.detail}</code>
+              </details>
+            )}
+          </div>
+          <button className="round small" onClick={() => setNotice(null)} aria-label="Închide">
+            <CrossIcon size={12} />
           </button>
         </div>
       )}
       {otherMatch && current && (
         <OtherMatch leagues={leagues} league={current} onClose={() => setOtherMatch(false)} onOpen={showMatch} />
       )}
+      {search && (
+        <TeamSearch
+          leagues={leagues}
+          onClose={() => setSearch(false)}
+          onOpen={(code, chosen, chosenSeason) => {
+            setSearch(false);
+            openTeam(code, chosen, chosenSeason);
+          }}
+        />
+      )}
+      {shortcuts && <ShortcutsDialog onClose={() => setShortcuts(false)} />}
     </div>
   );
 }
