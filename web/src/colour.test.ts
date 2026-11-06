@@ -26,7 +26,7 @@ describe("colours painted from data", () => {
   });
 
   it("writes each score's chance in the grid", () => {
-    expect(cellText(0.1234)).toBe("12%");
+    expect(cellText(0.1234)).toBe("12,3%");
     expect(cellText(0.0871)).toBe("8,7%");
     expect(cellText(0.0004)).toBe("<0,1%");
   });

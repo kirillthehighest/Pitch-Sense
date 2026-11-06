@@ -16,6 +16,7 @@ from app.data.models import Outcome
 from app.evaluation.metrics import CONFIDENCE_THRESHOLDS
 from app.evaluation.periods import FIRST_EVALUATION_SEASON
 from app.prediction.outputs import ModelName
+from app.prediction.settings import settings_for
 from app.services.explanations import (
     GROUPS_IN_PROGRESS,
     GROUPS_NO_STATISTICS,
@@ -284,6 +285,7 @@ def create_app(backend: Backend) -> FastAPI:
             home=team_state(services, season, home, before),
             away=team_state(services, season, away, before),
             stadium=stadium_name(home),
+            elo_home_advantage=settings_for(code).elo.home_advantage,
         )
 
     def groups_of(services, season: str) -> tuple[schemas.Groups | None, str | None]:

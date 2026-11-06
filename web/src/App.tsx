@@ -235,8 +235,9 @@ export default function App() {
     else if (key === "s" || key === "S") {
       setSimulateFrom(null);
       setOtherMatch(true);
-    }
-    else if (key === "?") setShortcuts(true);
+    } else if (key === "?") setShortcuts(true);
+    else return false;
+    return true;
   });
 
   const current = leagues.find((item) => item.code === league);
@@ -245,6 +246,12 @@ export default function App() {
   const favourite = preferences?.favourite?.team ?? null;
   return (
     <div className={`app${compact ? " compact" : ""}`}>
+      <a className="skip-link" href="#continut" onClick={(event) => {
+        event.preventDefault();
+        scroller.current?.focus();
+      }}>
+        Sari la conținut
+      </a>
       <Sidebar
         screen={screen}
         onScreen={chooseScreen}
@@ -259,12 +266,6 @@ export default function App() {
         compact={compact}
         onShortcuts={() => setShortcuts(true)}
       />
-      <a className="skip-link" href="#continut" onClick={(event) => {
-        event.preventDefault();
-        scroller.current?.focus();
-      }}>
-        Sari la conținut
-      </a>
       <main className="screen" ref={scroller} id="continut" tabIndex={-1} aria-label="Conținut">
         <div className="command-bar">
           <button className="command-field" onClick={() => setSearch(true)} aria-keyshortcuts="/ S">

@@ -89,7 +89,9 @@ export function Predictions({ league, season, favourite, ready, onSeason, onOpen
   const [error, setError] = useState<string | null>(null);
   const [shown, setShown] = useState(PAGE);
   usePageKeys((key) => {
-    if (key === "m" || key === "M") setModel(nextModel);
+    if (key !== "m" && key !== "M") return false;
+    setModel(nextModel);
+    return true;
   });
 
   useEffect(() => {
@@ -213,7 +215,7 @@ export function Predictions({ league, season, favourite, ready, onSeason, onOpen
                   <h3 className="week-head">
                     <span>{weekText(week.monday)}</span>
                     <span className="caption">
-                      {week.hits} din {week.rows.length} nimerite
+                      nimerite: {week.hits} din {week.rows.length}
                     </span>
                   </h3>
                   <div className="match-list">

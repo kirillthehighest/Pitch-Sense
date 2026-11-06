@@ -153,7 +153,6 @@ function HowItWorks() {
               </figure>
               <h2>{item.title}</h2>
               <p>{item.text}</p>
-              {item.title === "K‑Means" && <p>{about.groups}</p>}
             </section>
           );
         })}
@@ -220,7 +219,8 @@ function SeasonCheckTab({ league, ready }: { league: League; ready: string }) {
         <>
           <DataTable
             columns={columns}
-            rows={check.models.map((model) => [
+            highlight={(index) => index === 0}
+            rows={[...check.models].sort((a, b) => a.brier.value - b.brier.value).map((model) => [
               model.label,
               integer(check.matches),
               percent(model.accuracy),

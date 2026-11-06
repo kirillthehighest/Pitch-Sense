@@ -149,6 +149,7 @@ export interface MatchPage {
   home: TeamState;
   away: TeamState;
   stadium: string | null;
+  elo_home_advantage: number; // Elo's H in this league, rating points
 }
 
 /** A match to open: of the calendar, or two teams of a season on a day (hypothetical). */

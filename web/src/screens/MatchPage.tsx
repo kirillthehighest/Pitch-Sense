@@ -12,12 +12,12 @@ import { Crest } from "../components/Crest";
 import { Flag } from "../components/Flag";
 import { FormSquares } from "../components/FormSquares";
 import { ChevronIcon } from "../components/Icons";
-import { HitMark, isPending } from "../components/MatchRow";
+import { HitMark, isPending, UNSURE } from "../components/MatchRow";
 import { Problem } from "../components/Problem";
 import { SkeletonCard } from "../components/Skeleton";
 import { ScoreGrid } from "../components/ScoreGrid";
 import { StadiumPhoto } from "../components/StadiumPhoto";
-import { capitalised, dateText, integer, longDateText, number, parseDay, percent, seasonText, teamName, withKickoff } from "../format";
+import { capitalised, dateText, integer, longDateText, number, parseDay, percent, quantity, seasonText, teamName, withKickoff } from "../format";
 import { ACCENT, MODEL_COLOURS } from "../theme";
 import type { Forecast, League, MatchKey, MatchPage as Page, Outcome, Prediction, TeamState } from "../types";
 import { MODELS } from "../types";
@@ -120,7 +120,7 @@ function MatchHead({
           </button>
         ))}
         <div className="head-score">
-          <strong>{played ? `${forecast.home_goals} – ${forecast.away_goals}` : "VS"}</strong>
+          <strong>{played ? `${forecast.home_goals}–${forecast.away_goals}` : "VS"}</strong>
           <span className={`state ${played ? "final" : forecast.hypothetical ? "hypothetical" : pending ? "pending" : "upcoming"}`}>
             {pending ? "Fără rezultat" : page.status}
           </span>
@@ -134,9 +134,9 @@ function MatchHead({
 
 const SIDES: Record<Outcome, string> = { H: "home", D: "draw", A: "away" };
 
-/** Whom the models favour: "Toate cele trei modele mizează pe Napoli", "2 din 3 modele mizează pe
- * egal", "Modelele nu cad de acord"; "la limită" when their favourite leads the next result by
- * less than five points on average. */
+/** Whom the models favour: "Toate cele trei modele o văd favorită pe Napoli", "2 din 3 modele văd
+ * egalul cel mai probabil", "Modelele nu cad de acord"; "la limită" when their favourite leads
+ * the next result by less than five points on average. */
 export function consensusText(forecast: Forecast): string {
   const predictions = forecast.predictions;
   if (predictions.length === 0) return "Niciun model nu are destule meciuri anterioare";
@@ -145,16 +145,44 @@ export function consensusText(forecast: Forecast): string {
   const [outcome, count] = [...counts.entries()].sort((a, b) => b[1] - a[1])[0];
   const total = predictions.length;
   if (count === 1 && total > 1) return "Modelele nu cad de acord";
-  const choice = outcome === "D" ? "egal" : teamName(outcome === "H" ? forecast.home_team : forecast.away_team);
   let who = `${count} din ${total} modele`;
   if (count === total) who = total === 1 ? "Singurul model" : total === 3 ? "Toate cele trei modele" : "Toate modelele";
+  const one = count === 1;
   const backing = predictions.filter((prediction) => prediction.most_likely === outcome);
   const lead =
     backing.reduce((sum, prediction) => {
       const chances = [prediction.home, prediction.draw, prediction.away].sort((a, b) => b - a);
       return sum + chances[0] - chances[1];
     }, 0) / backing.length;
-  return `${who} mizează pe ${choice}${lead < 0.05 ? ", la limită" : ""}`;
+  const close = lead < 0.05 ? ", la limită" : "";
+  if (outcome === "D") return `${who} ${one ? "vede" : "văd"} egalul cel mai probabil${close}`;
+  const team = teamName(outcome === "H" ? forecast.home_team : forecast.away_team);
+  return `${who} o ${one ? "vede" : "văd"} favorită pe ${team}${close}`;
+}
+
+const FORM_POINTS: Record<string, number> = { W: 3, D: 1, L: 0 };
+
+/** Why one model sees this match as it does, from the numbers it starts from (the server's):
+ * Elo's ratings and home advantage, Poisson's expected goals, the differences the logistic
+ * regression weighs. Each sentence is about this match, not the model in general. */
+export function modelReason(model: string, page: Page): string {
+  const { forecast, home, away } = page;
+  const homeName = teamName(home.team);
+  const awayName = teamName(away.team);
+  if (model === "Elo") {
+    const lead = home.rating + page.elo_home_advantage - away.rating;
+    const points = (value: number) => quantity(Math.round(Math.abs(value)), "punct", "puncte");
+    const ahead = lead >= 0 ? `${homeName} pornește cu ${points(lead)} înainte` : `${awayName} rămâne cu ${points(lead)} înainte`;
+    return `Ratingul Elo: ${homeName} ${integer(Math.round(home.rating))}, ${awayName} ${integer(Math.round(away.rating))}. Terenul propriu valorează ${points(page.elo_home_advantage)}, deci ${ahead}.`;
+  }
+  if (model === "Poisson" && page.poisson) {
+    const [homeGoals, awayGoals] = page.poisson.expected_goals;
+    const likely = forecast.predictions.find((p) => p.model === "Poisson")?.likely_score;
+    return `Goluri așteptate: ${homeName} ${number(homeGoals, 2)}, ${awayName} ${number(awayGoals, 2)}.${likely ? ` Cu rezultatul pe care îl socotește cel mai probabil, scorul cel mai probabil e ${likely[0]}–${likely[1]}.` : ""}`;
+  }
+  const perMatch = (points: number, played: number) => (played ? number(points / played, 2) : "–");
+  const form = (results: string[]) => results.reduce((sum, result) => sum + (FORM_POINTS[result] ?? 0), 0);
+  return `Cântărește diferențele dintre echipe. În acest sezon: ${homeName} ${perMatch(home.record.points, home.record.played)} puncte pe meci, ${awayName} ${perMatch(away.record.points, away.record.played)}; forma, ${form(home.form)} față de ${form(away.form)} puncte din ultimele 5 meciuri; ratingul Elo, ${integer(Math.round(home.rating))} față de ${integer(Math.round(away.rating))}.`;
 }
 
 /** The three models' bars, one under the other, under the score of the head: the most likely
@@ -198,7 +226,7 @@ function Consensus({ page }: { page: Page }) {
                   return (
                     <span
                       key={outcome}
-                      className={`part ${SIDES[outcome]}${prediction.most_likely === outcome ? " likely" : ""}${forecast.result === outcome ? " actual" : ""}`}
+                      className={`part ${SIDES[outcome]}${prediction.most_likely === outcome ? " likely" : ""}${prediction.most_likely === outcome && value < UNSURE ? " unsure" : ""}${forecast.result === outcome ? " actual" : ""}`}
                       style={{ flexGrow: value }}
                     >
                       {value >= 0.1 && percent(value, 0)}
@@ -211,13 +239,18 @@ function Consensus({ page }: { page: Page }) {
                 <ChevronIcon direction={expanded ? "up" : "down"} />
               </span>
             </button>
-            {expanded && <p className="consensus-reason">{page.explanations[prediction.model]}</p>}
+            {expanded && (
+              <div className="consensus-reason">
+                <p>{modelReason(prediction.model, page)}</p>
+                <p className="consensus-general">{page.explanations[prediction.model]}</p>
+              </div>
+            )}
           </div>
         );
       })}
       <p className="consensus-note">
         {page.verdict ? `${page.verdict} ` : ""}
-        {page.knowledge} Apasă pe un model ca să vezi de ce.
+        {page.knowledge} Apasă pe un model ca să vezi de ce vede meciul așa.
       </p>
     </div>
   );

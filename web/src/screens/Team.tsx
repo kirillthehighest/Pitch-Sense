@@ -98,7 +98,7 @@ export function Team({ league, season, team, favourite, ready, onChoice, onOpenM
           Echipă
         </label>
         <select id="team-name" value={page?.team ?? ""} onChange={(event) => onChoice(event.target.value, season)}>
-          {teams.map((item) => (
+          {[...teams].sort((a, b) => teamName(a).localeCompare(teamName(b), "ro")).map((item) => (
             <option key={item} value={item}>
               {teamName(item)}
             </option>

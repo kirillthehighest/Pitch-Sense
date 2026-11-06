@@ -92,7 +92,8 @@ export function TeamSearch({ leagues, onClose, onOpen, onSimulate }: Props) {
   }, [leagues]);
 
   const shown = useMemo(() => searchTeams(teams, query, 7), [teams, query]);
-  useEffect(() => setChosen(0), [query]);
+  // typing a name points Enter at the first club found; an empty field, at the simulation
+  useEffect(() => setChosen(query.trim() && shown.length ? 1 : 0), [query, shown.length]);
   const rows = shown.length + 1; // the simulation first, then the clubs
 
   const choose = (index: number, simulate: boolean) => {

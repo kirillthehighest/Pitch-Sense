@@ -70,11 +70,13 @@ export function Matches({ leagues, league, preferences, ready, onOpenMatch, onSt
   }, [day, league.seasons]);
 
   usePageKeys((key) => {
-    if (!day) return;
+    if (!day) return false;
     if (key === "ArrowLeft") setDay(shifted(day, -1));
     else if (key === "ArrowRight") setDay(shifted(day, 1));
     else if (key === "m" || key === "M") setModel(nextModel);
     else if ((key === "t" || key === "T") && days) setDay(days.today);
+    else return false;
+    return true;
   });
 
   if (!days || !day) {
@@ -144,7 +146,6 @@ export function Matches({ leagues, league, preferences, ready, onOpenMatch, onSt
               ))}
             </select>
           </div>
-          <ChipLegend />
         </div>
         {answer && groups.length === 0 && (
           <EmptyDay day={day} days={days.days} onlyLeague={onlyLeague ? league.name : null} onDay={setDay} />
@@ -154,7 +155,7 @@ export function Matches({ leagues, league, preferences, ready, onOpenMatch, onSt
             <SkeletonRows rows={4} />
           </section>
         )}
-        {groups.map((group) => (
+        {groups.map((group, index) => (
           <section key={group.code} className="card league-day">
             <header>
               <Flag code={group.code} size={34} />
@@ -171,7 +172,9 @@ export function Matches({ leagues, league, preferences, ready, onOpenMatch, onSt
             </header>
             {group.prepared ? (
               <>
-                <ColumnsHead likely={group.forecasts.some((forecast) => forecast.result === null && likelyScore(forecast) !== null)} />
+                {index === 0 && (
+                  <ColumnsHead likely={group.forecasts.some((forecast) => forecast.result === null && likelyScore(forecast) !== null)} />
+                )}
                 <div className="match-list">
                   {group.forecasts.map((forecast) => (
                     <MatchRow
@@ -189,6 +192,7 @@ export function Matches({ leagues, league, preferences, ready, onOpenMatch, onSt
             )}
           </section>
         ))}
+        {groups.length > 0 && <ChipLegend />}
       </div>
       <aside className="matches-side">
         <FavouriteCard preferences={preferences} leagues={leagues} model={model} ready={ready} onOpenMatch={onOpenMatch} />

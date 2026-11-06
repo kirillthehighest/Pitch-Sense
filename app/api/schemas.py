@@ -4,8 +4,10 @@ Romanian); names a person reads (models, outcomes, countries) come translated, f
 
 from datetime import date, datetime
 
+import numpy as np
 from pydantic import BaseModel, ConfigDict
 
+from app.data.models import Outcome
 from app.prediction.outputs import ModelPrediction
 from app.services.labels import model_label
 from app.services.predictions import MatchForecast, ModelSummary
@@ -50,7 +52,9 @@ class Prediction(Schema):
     most_likely: str  # H, D or A
     hit: bool | None  # whether the most likely outcome happened; None before the match
     expected_goals: tuple[float, float] | None
-    likely_score: tuple[int, int] | None = None  # Poisson's most likely score (Phase 26)
+    likely_score: tuple[int, int] | None = (
+        None  # Poisson's likeliest score of its favourite (Phase 26)
+    )
 
 
 class Forecast(Schema):
@@ -150,6 +154,7 @@ class MatchPage(Schema):
     home: TeamState
     away: TeamState
     stadium: str | None  # the home club's ground, when its photo is known
+    elo_home_advantage: float  # Elo's H in this league, in rating points (Phase 26)
 
 
 class Shots(Schema):
@@ -354,12 +359,23 @@ def prediction_of(prediction: ModelPrediction, forecast: MatchForecast) -> Predi
 
 
 def likely_score(prediction: ModelPrediction) -> tuple[int, int] | None:
-    """The single most likely score of a model with a score distribution (Poisson), else None."""
+    """The most likely score among those giving the model's most likely result, for a model
+    with a score distribution (Poisson), else None. Taken within the favourite result, so the
+    score never contradicts the chances beside it (the overall likeliest score is often 1-1)."""
     distribution = prediction.score_distribution
     if distribution is None:
         return None
-    home_goals, away_goals, _ = distribution.most_likely_scores(1)[0]
-    return home_goals, away_goals
+    grid = distribution.probabilities
+    home_goals, away_goals = np.indices(grid.shape)
+    favourite = prediction.probabilities.most_likely
+    if favourite is Outcome.HOME_WIN:
+        allowed = home_goals > away_goals
+    elif favourite is Outcome.AWAY_WIN:
+        allowed = home_goals < away_goals
+    else:
+        allowed = home_goals == away_goals
+    best = np.unravel_index(np.argmax(np.where(allowed, grid, -1.0)), grid.shape)
+    return int(best[0]), int(best[1])
 
 
 def forecast_of(forecast: MatchForecast) -> Forecast:

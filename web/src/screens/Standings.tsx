@@ -8,12 +8,13 @@ import { useEffect, useState } from "react";
 import { api } from "../api";
 import { Crest } from "../components/Crest";
 import { FormSquares } from "../components/FormSquares";
+import { ModelSwitch } from "../components/ModelSwitch";
 import { Problem } from "../components/Problem";
 import { StadiumHead } from "../components/ScreenHead";
 import { SkeletonTable } from "../components/Skeleton";
-import { dateText, integer, isoDay, number, parseDay, percent, seasonText, signed, teamName } from "../format";
+import { dateText, integer, isoDay, number, parseDay, percent, quantity, seasonText, signed, teamName } from "../format";
 import type { League, Projection, SeasonDays, Standings as Table } from "../types";
-import { MODEL_LABELS, MODELS } from "../types";
+import { MODELS } from "../types";
 
 interface Props {
   title: string;
@@ -264,20 +265,11 @@ function ProjectedTable({ league, favourite, onTeam }: { league: League; favouri
         <div>
           <h2>Cum s-ar putea termina {league.name} {seasonText(projection.season)}</h2>
           <p className="caption">
-            Cele {integer(projection.fixtures)} meciuri rămase, jucate de {integer(projection.simulations)} de ori cu
+            Cele {quantity(projection.fixtures, "meci rămas", "meciuri rămase")}, jucate de {integer(projection.simulations)} de ori cu
             probabilitățile modelului. Ordinea: punctele așteptate la final.
           </p>
         </div>
-        <label className="caption" htmlFor="projection-model">
-          Model
-        </label>
-        <select id="projection-model" value={model} onChange={(event) => setModel(event.target.value)}>
-          {MODELS.map((item) => (
-            <option key={item} value={item}>
-              {MODEL_LABELS[item]}
-            </option>
-          ))}
-        </select>
+        <ModelSwitch league={league} model={model} ready="" onModel={setModel} />
       </div>
       <div className="projection">
         <div className="projection-row head" aria-hidden="true">

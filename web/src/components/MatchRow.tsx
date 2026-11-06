@@ -153,7 +153,7 @@ export function rowName(forecast: Forecast, prediction: Prediction | undefined):
 
 /** Between the teams: the real score once played, else Poisson's most likely score outlined. */
 function CentreScore({ forecast }: { forecast: Forecast }) {
-  if (forecast.result !== null) return <span className="score">{`${forecast.home_goals} : ${forecast.away_goals}`}</span>;
+  if (forecast.result !== null) return <span className="score">{`${forecast.home_goals}–${forecast.away_goals}`}</span>;
   const likely = likelyScore(forecast);
   if (!likely) return <span className="score empty">–</span>;
   return (

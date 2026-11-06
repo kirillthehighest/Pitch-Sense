@@ -37,6 +37,7 @@ export function ModelSwitch({ league, model, ready, onModel }: Props) {
   const shown = record?.competition === league.code ? record : null;
   const of = (name: string) => shown?.models.find((item) => item.model === name);
   return (
+    <div className="model-choice">
     <div className="model-switch" role="radiogroup" aria-label="Modelul" aria-keyshortcuts="M">
       {MODELS.map((name) => {
         const found = of(name);
@@ -60,6 +61,12 @@ export function ModelSwitch({ league, model, ready, onModel }: Props) {
           </button>
         );
       })}
+    </div>
+    {shown && shown.models.some((item) => item.matches > 0) && (
+      <span className="model-scope">
+        meciuri nimerite în {league.name} {seasonText(shown.season)}
+      </span>
+    )}
     </div>
   );
 }
