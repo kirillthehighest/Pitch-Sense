@@ -848,3 +848,13 @@ main.screen:focus { outline: none; }
 .model-switch i { width: 8px; height: 8px; border-radius: 50%; flex: none; }
 .model-switch b { font-family: var(--display); font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--text); }
 .model-switch button:not(.chosen) b { color: var(--muted); }
+
+/* The legend of a list's marks */
+.chip-legend { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 18px; color: var(--muted); font-size: 12px; font-weight: 600; }
+.chip-legend span { display: inline-flex; align-items: center; gap: 7px; }
+.chip-legend .mark { position: static; box-shadow: none; width: 16px; height: 16px; }
+.legend-chip { width: 22px; height: 14px; border-radius: 5px; background: var(--surface-high); display: inline-block; }
+.legend-chip.chosen { background: var(--accent); }
+.legend-chip.chosen.unsure { background: repeating-linear-gradient(135deg, var(--accent) 0 4px, color-mix(in srgb, var(--accent) 62%, var(--surface)) 4px 7px); }
+.legend-chip.actual { box-shadow: inset 0 0 0 2px var(--text); }
+.legend-ghost { font-style: normal; font-family: var(--display); font-size: 13px; font-weight: 600; padding: 0 5px; border: 1.5px dashed #4a4a54; border-radius: 6px; color: var(--muted); }

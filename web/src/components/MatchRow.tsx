@@ -204,3 +204,29 @@ export function MatchRow({ forecast, model, favourite, stacked = false, showDate
     </button>
   );
 }
+
+/** What the marks of a list mean, once per screen (the chips carry no words of their own). */
+export function ChipLegend() {
+  return (
+    <p className="chip-legend">
+      <span>
+        <i className="legend-chip chosen" /> cel mai probabil
+      </span>
+      <span>
+        <i className="legend-chip chosen unsure" /> nesigur (sub 45%)
+      </span>
+      <span>
+        <i className="legend-chip actual" /> rezultatul meciului
+      </span>
+      <span>
+        <HitMark hit /> nimerit
+      </span>
+      <span>
+        <HitMark hit={false} /> ratat
+      </span>
+      <span>
+        <i className="legend-ghost">1–0</i> scorul probabil după Poisson
+      </span>
+    </p>
+  );
+}

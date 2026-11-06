@@ -10,7 +10,7 @@ import { DayStrip } from "../components/DayStrip";
 import { FeaturedMatch } from "../components/FeaturedMatch";
 import { FormSquares } from "../components/FormSquares";
 import { Flag } from "../components/Flag";
-import { ColumnsHead, likelyScore, MatchRow } from "../components/MatchRow";
+import { ChipLegend, ColumnsHead, likelyScore, MatchRow } from "../components/MatchRow";
 import { usePageKeys } from "../components/Shortcuts";
 import { SkeletonCard, SkeletonRows } from "../components/Skeleton";
 import { ModelSwitch } from "../components/ModelSwitch";
@@ -144,6 +144,7 @@ export function Matches({ leagues, league, preferences, ready, onOpenMatch, onSt
               ))}
             </select>
           </div>
+          <ChipLegend />
         </div>
         {answer && groups.length === 0 && (
           <EmptyDay day={day} days={days.days} onlyLeague={onlyLeague ? league.name : null} onDay={setDay} />
