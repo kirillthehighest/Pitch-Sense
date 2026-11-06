@@ -1248,7 +1248,23 @@ La acceptarea fazei (2026-11-06), echipa a cerut versiunea 0.7.0, publicată pe 
 - Windows (GitHub Actions): trec toate cele 801 de teste Python și cele 50 ale interfeței web; programul de instalare are 72 MB; autoverificarea trece în pachet și după instalare; serverul pornit de fereastra instalată are toate ligile gata la 10,5 s după deschiderea ei. Ecranele nu au putut fi privite pe mașina de construire.
 - Capturile din `docs/images/` sunt făcute din aplicația construită pentru macOS, cu datele din 2026-11-06.
 
-## 22. Setul de date și perioadele
+## 22. Un singur aspect PitchSense (Faza 26)
+
+După Faza 25, echipa a cerut (2026-11-06) o nouă rundă `/impeccable`. Probleme semnalate: culorile ligilor pe probabilități atrag prea mult atenția, „Simulează un meci” apărea de două ori, fâșia cu bilanțul modelelor distrăgea atenția, liniuța dintre echipe era plictisitoare, iar pagina meciului arăta de două ori barele modelelor. Skillul a propus cinci direcții vizuale, fiecare cu o schiță a ecranului Meciuri. Echipa a ales standardul categoriei (LiveScore, FotMob, OneFootball) executat la nivelul lor de finisaj, plus soluțiile propuse pentru fiecare problemă.
+
+### 22.1. Ce s-a schimbat
+
+- **O singură paletă.** Toate ligile au aceleași culori. Accentul `#FF7A3D` marchează rezultatul cel mai probabil și selecția. Ligile se recunosc după steag, nume și imaginea DAZN. La schimbarea ligii nu se mai repictează interfața: imaginea noii ligi alunecă din dreapta și se clarifică (animația `league-in`, oprită pentru cine a cerut mai puțină mișcare). Valul de la schimbarea ligii (`reveal.ts`) a fost scos, cu testul lui.
+- **Favoritul nesigur.** Când modelul dă rezultatului cel mai probabil sub 45% (`UNSURE`), căsuța lui e hașurată, nu recolorată. Cititorul de ecran spune „cel mai probabil, dar nesigur”.
+- **O singură intrare pentru căutare și simulare.** Câmpul „Caută o echipă sau simulează un meci…” stă deasupra fiecărui ecran (tasta /). Dialogul lui are pe primul rând simularea unui meci; o echipă găsită se deschide cu Enter, iar cu ⇧ Enter (sau butonul ei) devine gazda unei simulări. Butoanele din bara laterală și de pe ecrane au dispărut.
+- **Bilanțul în comutatorul de model.** Pe Meciuri și Predicții, modelul se alege dintr-un comutator cu trei butoane. Fiecare arată cât a nimerit modelul în sezonul ligii (`/api/track-record`), deci dovada stă exact unde se alege modelul. Fâșia separată a fost scoasă.
+- **Scorul probabil.** Fiecare predicție Poisson trimite acum și scorul ei cel mai probabil (`likely_score` în `app/api/schemas.py`). Un meci care urmează îl arată între echipe, conturat punctat, sub eticheta „scor probabil”; după meci, locul lui îl ia scorul real.
+- **Pagina meciului.** Barele modelelor apar o singură dată, sub scor, cu rezultatul cel mai probabil în accent, ca peste tot. Un clic pe un model deschide raționamentul lui. Dedesubt stau „Ce contează în acest meci” (echipele față în față, valorile din care învață modelele), scorurile probabile Poisson și grila tuturor scorurilor.
+- **Legenda semnelor.** Pe Meciuri, un rând explică semnele listei: cel mai probabil, nesigur, rezultatul meciului, nimerit, ratat și scorul probabil.
+
+### 22.2. Verificare
+
+## 23. Setul de date și perioadele
 
 Sursa datelor este Football-Data.co.uk: cinci ligi (Premier League, La Liga, Serie A, Bundesliga, Ligue 1), fiecare cu 20 de sezoane încheiate, 2006/07–2025/26 (36.197 de meciuri). Perioadele sunt aceleași pentru toate ligile. Sezonul în desfășurare (2026/27) este descărcat separat și nu face parte din evaluare (secțiunea 15).
 
@@ -1258,7 +1274,7 @@ Sursa datelor este Football-Data.co.uk: cinci ligi (Premier League, La Liga, Ser
 | 2007/08–2009/10 | Calibrare: se aleg hiperparametrii; rezultatele nu sunt raportate. |
 | 2010/11–2025/26 | Evaluarea raportată: 16 sezoane; 6.080 de meciuri în fiecare ligă cu 20 de echipe, 4.896 în Bundesliga, 5.757 în Ligue 1; 28.893 în total. |
 
-## 23. Tehnologii
+## 24. Tehnologii
 
 | Componentă | Versiune | Rol |
 |---|---|---|
@@ -1282,7 +1298,7 @@ Sursa datelor este Football-Data.co.uk: cinci ligi (Premier League, La Liga, Ser
 | Vitest, Testing Library, jsdom | 5.0.5, 16.3.3, 30.1.3 | testele interfeței web |
 | Rust / Tauri | 1.99 / 2.12.4 | fereastra de desktop a interfeței web |
 
-## 24. Decizii tehnice
+## 25. Decizii tehnice
 
 | Decizie | Motiv |
 |---|---|
@@ -1376,3 +1392,5 @@ Sursa datelor este Football-Data.co.uk: cinci ligi (Premier League, La Liga, Ser
 | Nimerit și ratat prin formă (disc deschis cu bifă, disc închis cu X), nu prin verde și roșu | Verdele și roșul sunt și accentele a trei ligi; forma se citește pe orice accent și și de daltoniști. |
 | Proiecția finalului joacă doar rezultatele meciurilor rămase, din predicțiile modelului, de 10.000 de ori, cu sămânța fixă | Folosește predicțiile deja evaluate, fără un model nou; răspunsul este același la fiecare cerere, iar marja unei șanse este de cel mult un punct procentual. |
 | Zonele clasamentului doar în sezonul în desfășurare | Numărul locurilor de Liga Campionilor și de retrogradare s-a schimbat de-a lungul celor 20 de sezoane; marcate cu regulile de azi, sezoanele vechi ar fi greșite. |
+| O singură paletă pentru toate ligile; liga se recunoaște după steag, nume și imagine (Faza 26) | Alegerea echipei, după a doua rundă `/impeccable`: culorile ligilor pe probabilități atrăgeau prea mult atenția și schimbau sensul aceleiași căsuțe de la o ligă la alta. |
+| Căutarea și simularea au o singură intrare, câmpul de deasupra ecranelor | Aceeași acțiune în două locuri îl făcea pe utilizator să se întrebe dacă sunt lucruri diferite. |

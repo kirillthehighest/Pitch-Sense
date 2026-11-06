@@ -145,58 +145,6 @@ export function Team({ league, season, team, favourite, ready, onChoice, onOpenM
             {page.stadium && <span className="credit">Foto: Wikimedia Commons</span>}
           </section>
           <div className="team-grid">
-            <SkeletonCard height={260} />
-            <SkeletonCard height={260} />
-          </div>
-        </>
-      )}
-      {page && (
-        <>
-          <section className="team-head">
-            <StadiumPhoto team={page.team} className="beside" />
-            <Crest team={page.team} size={104} ring={isFavourite} />
-            <div className="team-head-text">
-              <h1>{teamName(page.team)}</h1>
-              <span>
-                {league.name} {seasonText(page.season)} · locul {page.position} din {page.teams} ·{" "}
-                {page.in_progress ? "sezon în desfășurare" : "sezon încheiat"}
-              </span>
-              <span className="team-facts">
-                {page.record.points} puncte din {page.record.played} meciuri · golaveraj{" "}
-                {page.record.goal_difference > 0 ? "+" : ""}
-                {page.record.goal_difference}
-                {latestRating(page) !== null && ` · rating Elo ${integer(Math.round(latestRating(page) as number))}`}
-              </span>
-              {page.stadium && <span className="stadium-name">Stadion: {page.stadium}</span>}
-            </div>
-            <button
-              className={`button${isFavourite ? "" : " primary"}`}
-              aria-pressed={isFavourite}
-              onClick={() => onFavourite(isFavourite ? null : { competition: league.code, team: page.team })}
-            >
-              <StarIcon filled={isFavourite} />
-              {isFavourite ? "Echipa ta" : "Alege ca echipa ta"}
-            </button>
-            {page.stadium && <span className="credit">Foto: Wikimedia Commons</span>}
-          </section>
-          <div className="tiles">
-            {(
-              [
-                ["Loc", page.position],
-                ["Meciuri", page.record.played],
-                ["Victorii", page.record.wins],
-                ["Goluri marcate", page.record.goals_for],
-                ["Goluri primite", page.record.goals_against],
-                ["Puncte", page.record.points],
-              ] as [string, number][]
-            ).map(([name, value]) => (
-              <div key={name} className="tile">
-                <strong>{value}</strong>
-                <span>{name}</span>
-              </div>
-            ))}
-          </div>
-          <div className="team-grid">
             <div className="team-column">
               <FormCard page={page} />
               <ProfileCard page={page} onAnalysis={onAnalysis} />

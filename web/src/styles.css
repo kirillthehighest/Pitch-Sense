@@ -1,5 +1,5 @@
-/* PitchSense, web interface (Phase 22). Neutral surfaces shared by every league; the league's
-   colours come as variables (theme.ts). Plus Jakarta Sans for the interface, Barlow Condensed
+/* PitchSense, web interface (Phase 22; one look for every league since Phase 26). The
+   colours are CSS variables (theme.ts mirrors them). Plus Jakarta Sans for the interface, Barlow Condensed
    for what is read at a glance, Kanit for the logo. */
 
 @font-face { font-family: "Plus Jakarta Sans"; font-weight: 400; src: url("/fonts/PlusJakartaSans-Regular.ttf"); }
@@ -469,13 +469,6 @@ button.standings-row:hover { background: var(--surface-high); }
 .team-head h1 {
   margin: 0; font-family: var(--display); font-weight: 800; font-size: 44px; line-height: 1; text-transform: uppercase; color: #fff;
 }
-.tiles { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; }
-.tile {
-  background: var(--surface); border: 1px solid var(--edge); border-radius: 16px; padding: 14px 16px;
-  display: flex; flex-direction: column; gap: 2px;
-}
-.tile strong { font-family: var(--display); font-size: 32px; font-weight: 800; line-height: 1.05; }
-.tile span { color: var(--muted); font-size: 12px; font-weight: 600; }
 .team-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
 .team-column { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .team-grid h3 { margin: 18px 0 10px; font-size: 14px; font-weight: 700; }
@@ -788,7 +781,6 @@ dialog.modal[open] { animation: rise 180ms cubic-bezier(0.2, 0.8, 0.2, 1); }
 }
 
 @media (max-width: 1240px) {
-  .tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .standings-row { grid-template-columns: 30px minmax(150px, 1fr) repeat(7, 38px) 46px 132px; }
   .standings-row .form-square { width: 22px; height: 22px; }
 }
