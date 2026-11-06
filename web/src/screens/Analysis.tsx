@@ -13,7 +13,7 @@ import { Problem } from "../components/Problem";
 import { SkeletonCard } from "../components/Skeleton";
 import { Flag } from "../components/Flag";
 import { capitalised, dateText, integer, number, parseDay, percent, quantity, seasonText, signed } from "../format";
-import { themeFor, themeStyle } from "../theme";
+import { ACCENT } from "../theme";
 import type {
   About,
   BookmakerComparison,
@@ -318,7 +318,7 @@ function Models({ league }: { league: League }) {
     );
   }
 
-  const accent = themeFor(league.code).accent;
+  const accent = ACCENT;
   const lowestBrier = Math.min(...evaluation.models.map((m) => m.brier ?? Infinity));
   const confusion = evaluation.models.find((m) => m.model === confusionModel) ?? evaluation.models[0];
   const subsets: Subset[] = evaluation[breakdown];
@@ -638,7 +638,6 @@ function Leagues({ league, leagues, onLeague }: { league: League; leagues: Leagu
           <button
             key={result.code}
             className={`card league-card${result.code === league.code ? " current" : ""}`}
-            style={themeStyle(result.code)}
             onClick={() => onLeague(result.code)}
             aria-pressed={result.code === league.code}
           >

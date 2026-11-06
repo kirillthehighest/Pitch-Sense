@@ -1,7 +1,8 @@
 // Meciuri: the matches of a day in every league, the chosen league first, with the match of the
 // day on top; any day of any season can be chosen. On the right: your team and the table.
 // Since Phase 25 every league's group and "your team" wear their own league's colours, the
-// arrows move a day, M changes the model, and the models' record of the season leads the screen.
+// arrows move a day and M changes the model; since Phase 26 the model switch carries each model's
+// record of the season.
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api";
 import { Crest } from "../components/Crest";
@@ -9,14 +10,13 @@ import { DayStrip } from "../components/DayStrip";
 import { FeaturedMatch } from "../components/FeaturedMatch";
 import { FormSquares } from "../components/FormSquares";
 import { Flag } from "../components/Flag";
-import { ColumnsHead, MatchRow } from "../components/MatchRow";
+import { ColumnsHead, likelyScore, MatchRow } from "../components/MatchRow";
 import { usePageKeys } from "../components/Shortcuts";
 import { SkeletonCard, SkeletonRows } from "../components/Skeleton";
-import { TrackRecord } from "../components/TrackRecord";
+import { ModelSwitch } from "../components/ModelSwitch";
 import { capitalised, dayName, isoDay, parseDay, quantity, seasonText, shortDateText, teamName } from "../format";
-import { themeStyle } from "../theme";
 import type { Day, Days, Forecast, League, Preferences, Standings } from "../types";
-import { MODEL_LABELS, MODELS } from "../types";
+import { MODELS } from "../types";
 
 interface Props {
   leagues: League[];
@@ -25,7 +25,6 @@ interface Props {
   ready: string; // changes when a league's predictions become ready
   onOpenMatch: (forecast: Forecast) => void;
   onStandings: (code: string) => void;
-  onPredictions: () => void;
 }
 
 function seasonStart(season: string): string {
@@ -45,7 +44,7 @@ function shifted(day: string, days: number): string {
   return isoDay(moved);
 }
 
-export function Matches({ leagues, league, preferences, ready, onOpenMatch, onStandings, onPredictions }: Props) {
+export function Matches({ leagues, league, preferences, ready, onOpenMatch, onStandings }: Props) {
   const [days, setDays] = useState<Days | null>(null);
   const [day, setDay] = useState<string | null>(null);
   const [answer, setAnswer] = useState<Day | null>(null);
@@ -112,10 +111,12 @@ export function Matches({ leagues, league, preferences, ready, onOpenMatch, onSt
             onOpen={onOpenMatch}
           />
         )}
-        <TrackRecord league={league} ready={ready} onOpen={onPredictions} />
         <DayStrip day={day} today={days.today} matchDays={matchDays} onDay={setDay} />
         <div className="controls">
-          <h2 className="day-title">{name === dateName ? capitalised(dateName) : `${name} · ${dateName}`}</h2>
+          <div className="day-line">
+            <h2 className="day-title">{name === dateName ? capitalised(dateName) : `${name} · ${dateName}`}</h2>
+            <ModelSwitch league={league} model={model} ready={ready} onModel={setModel} />
+          </div>
           <div className="control-row">
             <button className={`pill${onlyLeague ? "" : " chosen"}`} aria-pressed={!(onlyLeague)} onClick={() => setOnlyLeague(false)}>
               Toate ligile
@@ -142,16 +143,6 @@ export function Matches({ leagues, league, preferences, ready, onOpenMatch, onSt
                 </option>
               ))}
             </select>
-            <label className="caption" htmlFor="matches-model" title="Tasta M schimbă modelul">
-              Model
-            </label>
-            <select id="matches-model" value={model} onChange={(event) => setModel(event.target.value)} aria-keyshortcuts="M">
-              {MODELS.map((item) => (
-                <option key={item} value={item}>
-                  {MODEL_LABELS[item]}
-                </option>
-              ))}
-            </select>
           </div>
         </div>
         {answer && groups.length === 0 && (
@@ -163,7 +154,7 @@ export function Matches({ leagues, league, preferences, ready, onOpenMatch, onSt
           </section>
         )}
         {groups.map((group) => (
-          <section key={group.code} className="card league-day" style={themeStyle(group.code)}>
+          <section key={group.code} className="card league-day">
             <header>
               <Flag code={group.code} size={34} />
               <div>
@@ -179,7 +170,7 @@ export function Matches({ leagues, league, preferences, ready, onOpenMatch, onSt
             </header>
             {group.prepared ? (
               <>
-                <ColumnsHead />
+                <ColumnsHead likely={group.forecasts.some((forecast) => forecast.result === null && likelyScore(forecast) !== null)} />
                 <div className="match-list">
                   {group.forecasts.map((forecast) => (
                     <MatchRow
@@ -238,7 +229,7 @@ function FavouriteCard({
     return (match.result === "H") === home ? "W" : "L";
   });
   return (
-    <section className="card favourite-card" style={themeStyle(league.code)}>
+    <section className="card favourite-card">
       <h2>Echipa ta</h2>
       <div className="favourite-identity">
         <Crest team={favourite.team} size={56} ring />

@@ -1,35 +1,11 @@
-// The colours of each league (docs/brand.md, section 3; Phase 21): neutral surfaces shared by every
-// league, and each league's accent, the ink on it, the accent written on the dark and its deep
-// colour. Choosing a league sets them as CSS variables on the whole page.
+// The colours of PitchSense. Since Phase 26 one constant palette for every league (the team's
+// choice of the category standard): the accent marks the pick and the selection, the leagues are
+// told apart by their flag, name and image, never by repainting the interface. The values mirror
+// the CSS variables of styles.css for the places that paint from code (charts, the score grid).
 
-export interface Theme {
-  accent: string;
-  accentInk: string;
-  accentText: string;
-  brand: string;
-}
-
-export const THEMES: Record<string, Theme> = {
-  E0: { accent: "#00FF85", accentInk: "#0A0A0C", accentText: "#00FF85", brand: "#37003C" },
-  SP1: { accent: "#FF7A3D", accentInk: "#0A0A0C", accentText: "#FF8B55", brand: "#6E140E" },
-  I1: { accent: "#3DDCFF", accentInk: "#0A0A0C", accentText: "#3DDCFF", brand: "#0B2A6F" },
-  D1: { accent: "#E2001A", accentInk: "#FFFFFF", accentText: "#FF5A6A", brand: "#7A0410" },
-  F1: { accent: "#D4FF3D", accentInk: "#0A0A0C", accentText: "#D4FF3D", brand: "#0E1D45" },
-};
-
-export const DEFAULT_THEME = THEMES.SP1;
-
-export function themeFor(code: string): Theme {
-  return THEMES[code] ?? DEFAULT_THEME;
-}
-
-export function applyTheme(code: string, root: HTMLElement = document.documentElement): void {
-  const theme = themeFor(code);
-  root.style.setProperty("--accent", theme.accent);
-  root.style.setProperty("--accent-ink", theme.accentInk);
-  root.style.setProperty("--accent-text", theme.accentText);
-  root.style.setProperty("--brand", theme.brand);
-}
+export const ACCENT = "#FF7A3D";
+/** The deep colour the league images run into at their edge: neutral, as every surface. */
+export const IMAGE_FILL = "#141418";
 
 /** The models' identity colours (docs/brand.md, section 6): fixed, never reassigned. */
 export const MODEL_COLOURS: Record<string, string> = {
@@ -37,14 +13,3 @@ export const MODEL_COLOURS: Record<string, string> = {
   Poisson: "#EF5A6F",
   "Logistic regression": "#00A3A8",
 };
-
-/** A league's colours as CSS variables on one element: a match of another league in its own. */
-export function themeStyle(code: string): Record<string, string> {
-  const theme = themeFor(code);
-  return {
-    "--accent": theme.accent,
-    "--accent-ink": theme.accentInk,
-    "--accent-text": theme.accentText,
-    "--brand": theme.brand,
-  };
-}

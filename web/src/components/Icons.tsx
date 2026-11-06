@@ -60,10 +60,12 @@ export function RefreshIcon() {
   );
 }
 
-export function ChevronIcon({ direction }: { direction: "left" | "right" }) {
+const CHEVRONS = { left: "M15 5l-7 7 7 7", right: "M9 5l7 7-7 7", up: "M5 15l7-7 7 7", down: "M5 9l7 7 7-7" };
+
+export function ChevronIcon({ direction }: { direction: "left" | "right" | "up" | "down" }) {
   return (
     <svg {...base} width={18} height={18}>
-      <path d={direction === "left" ? "M15 5l-7 7 7 7" : "M9 5l7 7-7 7"} />
+      <path d={CHEVRONS[direction]} />
     </svg>
   );
 }

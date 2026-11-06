@@ -73,3 +73,18 @@ def test_the_team_page_says_from_which_season_results_are_reported(api_client):
     found = api_client.get("/api/team/SP1", params={"season": "2007-08"}).json()
 
     assert found["first_evaluated_season"] == "2010-11"
+
+
+def test_a_poisson_prediction_carries_its_most_likely_score(api_client, api_backend):
+    found = api_client.get(
+        "/api/review/SP1", params={"season": "2007-08", "model": "Poisson"}
+    ).json()
+
+    row = found["rows"][0]
+    predictions = {p["model"]: p for p in row["forecast"]["predictions"]}
+    assert predictions["Elo"]["likely_score"] is None
+    services = api_backend.league("SP1").predictions
+    review = services.review("2007-08", ModelName.POISSON)
+    distribution = review.matches[0].forecast.predictions[ModelName.POISSON].score_distribution
+    home, away, _ = distribution.most_likely_scores(1)[0]
+    assert predictions["Poisson"]["likely_score"] == [home, away]

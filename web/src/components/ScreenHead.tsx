@@ -3,7 +3,7 @@
 // colour with the three models in their identity colours, the screen's subject; Clasament the
 // stadium of the league's leader (in Standings); Echipe the club's own head (in Team).
 import { teamName } from "../format";
-import { MODEL_COLOURS, themeFor } from "../theme";
+import { IMAGE_FILL, MODEL_COLOURS } from "../theme";
 import type { League } from "../types";
 import { MODEL_LABELS, MODELS } from "../types";
 import { Flag } from "./Flag";
@@ -45,7 +45,7 @@ export function ScreenHead({ league, title, description, variant = "league" }: P
       code={league.code}
       top={league.photo_top}
       credit={league.photo_credit}
-      brand={themeFor(league.code).brand}
+      brand={IMAGE_FILL}
       share={0.5}
       maxWidth={640}
       className="screen-head"

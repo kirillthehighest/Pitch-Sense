@@ -11,6 +11,7 @@ const prediction: Prediction = {
   most_likely: "H",
   hit: true,
   expected_goals: null,
+  likely_score: null,
 };
 
 function match(changes: Partial<Forecast>): Forecast {

@@ -14,7 +14,7 @@ import { Problem } from "../components/Problem";
 import { SkeletonCard } from "../components/Skeleton";
 import { StadiumPhoto } from "../components/StadiumPhoto";
 import { number, seasonText, teamName } from "../format";
-import { themeFor } from "../theme";
+import { ACCENT } from "../theme";
 import type { Favourite, Forecast, League, TeamPage, TeamRecord } from "../types";
 import { MODELS } from "../types";
 
@@ -79,7 +79,7 @@ export function Team({ league, season, team, favourite, ready, onChoice, onOpenM
     };
   }, [league.code, league.prepared, page?.team, page?.season, ready]);
 
-  const accent = themeFor(league.code).accent;
+  const accent = ACCENT;
   const isFavourite = !!page && favourite?.competition === league.code && favourite.team === page.team;
   return (
     <div className="team-screen">

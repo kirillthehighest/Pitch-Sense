@@ -50,6 +50,7 @@ class Prediction(Schema):
     most_likely: str  # H, D or A
     hit: bool | None  # whether the most likely outcome happened; None before the match
     expected_goals: tuple[float, float] | None
+    likely_score: tuple[int, int] | None = None  # Poisson's most likely score (Phase 26)
 
 
 class Forecast(Schema):
@@ -348,7 +349,17 @@ def prediction_of(prediction: ModelPrediction, forecast: MatchForecast) -> Predi
         most_likely=most_likely.value,
         hit=None if played is None else most_likely == played.result,
         expected_goals=prediction.expected_goals,
+        likely_score=likely_score(prediction),
     )
+
+
+def likely_score(prediction: ModelPrediction) -> tuple[int, int] | None:
+    """The single most likely score of a model with a score distribution (Poisson), else None."""
+    distribution = prediction.score_distribution
+    if distribution is None:
+        return None
+    home_goals, away_goals, _ = distribution.most_likely_scores(1)[0]
+    return home_goals, away_goals
 
 
 def forecast_of(forecast: MatchForecast) -> Forecast:

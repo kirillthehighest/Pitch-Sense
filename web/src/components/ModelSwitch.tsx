@@ -1,0 +1,65 @@
+// The model switch (Phase 26): the three models side by side, each with its share of hits in the
+// league's season so far, so the proof sits where the model is chosen. The chosen model's chances
+// fill the lists; M moves to the next model.
+import { useEffect, useState } from "react";
+import { api } from "../api";
+import { integer, percent, seasonText } from "../format";
+import { MODEL_COLOURS } from "../theme";
+import type { League, ModelRecord, TrackRecord } from "../types";
+import { MODEL_LABELS, MODELS } from "../types";
+
+interface Props {
+  league: League;
+  model: string;
+  ready: string;
+  onModel: (model: string) => void;
+}
+
+/** "55,0%" of a model's hits, or nothing before its first reviewed match. */
+export function recordText(record: ModelRecord | undefined): string {
+  return record && record.matches > 0 ? percent(record.hits / record.matches) : "";
+}
+
+export function ModelSwitch({ league, model, ready, onModel }: Props) {
+  const [record, setRecord] = useState<TrackRecord | null>(null);
+  useEffect(() => {
+    let live = true;
+    if (!league.prepared) return;
+    api
+      .trackRecord(league.code)
+      .then((found) => live && setRecord(found))
+      .catch(() => live && setRecord(null)); // the switch works without the record
+    return () => {
+      live = false;
+    };
+  }, [league.code, league.prepared, ready]);
+
+  const shown = record?.competition === league.code ? record : null;
+  const of = (name: string) => shown?.models.find((item) => item.model === name);
+  return (
+    <div className="model-switch" role="radiogroup" aria-label="Modelul" aria-keyshortcuts="M">
+      {MODELS.map((name) => {
+        const found = of(name);
+        const text = recordText(found);
+        return (
+          <button
+            key={name}
+            role="radio"
+            aria-checked={model === name}
+            className={model === name ? "chosen" : undefined}
+            onClick={() => onModel(name)}
+            title={
+              found && found.matches > 0
+                ? `${MODEL_LABELS[name]}: ${integer(found.hits)} din ${integer(found.matches)} meciuri nimerite în ${league.name} ${seasonText(shown?.season ?? "")}`
+                : MODEL_LABELS[name]
+            }
+          >
+            <i style={{ background: MODEL_COLOURS[name] }} />
+            <span>{MODEL_LABELS[name]}</span>
+            {text && <b>{text}</b>}
+          </button>
+        );
+      })}
+    </div>
+  );
+}

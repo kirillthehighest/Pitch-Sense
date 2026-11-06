@@ -7,13 +7,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api";
 import { ColumnsHead, MatchRow } from "../components/MatchRow";
+import { ModelSwitch } from "../components/ModelSwitch";
 import { Problem } from "../components/Problem";
 import { usePageKeys } from "../components/Shortcuts";
 import { SkeletonCard, SkeletonRows } from "../components/Skeleton";
 import { capitalised, integer, isoDay, MONTHS, parseDay, percent, quantity, seasonText } from "../format";
 import { nextModel } from "./Matches";
 import type { Forecast, League, Review, ReviewedMatch } from "../types";
-import { MODEL_LABELS, MODELS } from "../types";
+import { MODELS } from "../types";
 
 type Kind = "all" | "hits" | "misses" | "surprises" | "sure";
 type Order = "recent" | "surprising" | "confident";
@@ -130,16 +131,8 @@ export function Predictions({ league, season, favourite, ready, onSeason, onOpen
             </option>
           ))}
         </select>
-        <label className="caption" htmlFor="review-model">
-          Model
-        </label>
-        <select id="review-model" value={model} onChange={(event) => setModel(event.target.value)} aria-keyshortcuts="M">
-          {MODELS.map((item) => (
-            <option key={item} value={item}>
-              {MODEL_LABELS[item]}
-            </option>
-          ))}
-        </select>
+        <span className="grow" />
+        <ModelSwitch league={league} model={model} ready={ready} onModel={setModel} />
       </div>
       {(!league.prepared || (!review && !error)) && (
         <>

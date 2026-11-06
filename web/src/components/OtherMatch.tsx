@@ -11,11 +11,12 @@ import { Problem } from "./Problem";
 interface Props {
   leagues: League[];
   league: League;
+  home?: string | null; // a team picked in the search, home side of the simulation
   onClose: () => void;
   onOpen: (key: MatchKey) => void;
 }
 
-export function OtherMatch({ leagues, league, onClose, onOpen }: Props) {
+export function OtherMatch({ leagues, league, home: chosenHome = null, onClose, onOpen }: Props) {
   const [code, setCode] = useState(league.code);
   const chosen = leagues.find((item) => item.code === code) ?? league;
   const [season, setSeason] = useState(chosen.seasons[chosen.seasons.length - 1]);
@@ -34,8 +35,9 @@ export function OtherMatch({ leagues, league, onClose, onOpen }: Props) {
       .then((found) => {
         if (!live) return;
         setSeasonDays(found);
-        setHome(found.teams[0]);
-        setAway(found.teams[1] ?? found.teams[0]);
+        const first = chosenHome && found.teams.includes(chosenHome) ? chosenHome : found.teams[0];
+        setHome(first);
+        setAway(found.teams.find((team) => team !== first) ?? first);
         setDay(found.suggested_day);
       })
       .catch((reason: Error) => {

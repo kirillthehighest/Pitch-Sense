@@ -2,10 +2,9 @@
 // references (when the league does not play that day, its next match, else its last one):
 // the league's image, both teams with their crests in large capitals (and the score once played),
 // the day and kickoff, the chosen model's three probabilities and a button to the match's page.
-// The card takes the colours of the match's league, whichever league is on screen: its image and
-// its deep colour are that league's, so another accent on them would clash.
+// The card shows the match's league image; its colours are PitchSense's (Phase 26).
 import { capitalised, parseDay, percent, shortDateText, teamName, withKickoff } from "../format";
-import { themeFor, themeStyle } from "../theme";
+import { IMAGE_FILL } from "../theme";
 import type { Forecast, League, Outcome } from "../types";
 import { MODEL_LABELS } from "../types";
 import { Crest } from "./Crest";
@@ -38,12 +37,11 @@ export function FeaturedMatch({ forecast, day, league, model, favourite, onOpen 
     [forecast.away_team, forecast.away_goals],
   ];
   return (
-    <div style={themeStyle(league.code)}>
     <LeagueImageCard
       code={league.code}
       top={league.photo_top}
       credit={league.photo_credit}
-      brand={themeFor(league.code).brand}
+      brand={IMAGE_FILL}
       className="featured"
     >
       <span className="eyebrow">
@@ -73,6 +71,5 @@ export function FeaturedMatch({ forecast, day, league, model, favourite, onOpen 
         </button>
       </div>
     </LeagueImageCard>
-    </div>
   );
 }

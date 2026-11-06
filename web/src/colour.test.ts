@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { contrast, inkOn, isDark, mix } from "./colour";
 import { cellColours, cellText } from "./components/ScoreGrid";
-import { THEMES } from "./theme";
+import { ACCENT } from "./theme";
 
 describe("colours painted from data", () => {
   it("mixes colours and measures their contrast", () => {
@@ -31,9 +31,9 @@ describe("colours painted from data", () => {
     expect(cellText(0.0004)).toBe("<0,1%");
   });
 
-  it.each(Object.entries(THEMES))("keeps every number of the score grid readable in %s", (_, theme) => {
+  it("keeps every number of the score grid readable", () => {
     for (let step = 0; step <= 100; step += 1) {
-      const [fill, ink] = cellColours(step / 100, 1, theme.accent);
+      const [fill, ink] = cellColours(step / 100, 1, ACCENT);
       expect(contrast(ink, fill)).toBeGreaterThanOrEqual(4.5);
     }
   });

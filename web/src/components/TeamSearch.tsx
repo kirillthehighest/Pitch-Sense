@@ -1,12 +1,12 @@
-// "Caută o echipă" (Phase 25, key /): every club of the five leagues' latest seasons, found as
-// you type (accents and case do not matter); the arrows choose, Enter opens the club's page.
+// The command field's dialog (key /): every club of the five leagues' latest seasons, found as you
+// type by its short or full name (accents and case do not matter), and the match simulation.
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api";
 import { teamName } from "../format";
 import type { League } from "../types";
 import { Crest } from "./Crest";
 import { Flag } from "./Flag";
-import { SearchIcon } from "./Icons";
+import { SearchIcon, SimulateIcon } from "./Icons";
 import { Modal } from "./Modal";
 
 interface Found {
@@ -65,9 +65,12 @@ interface Props {
   leagues: League[];
   onClose: () => void;
   onOpen: (code: string, team: string, season: string) => void;
+  onSimulate: (code: string | null, home: string | null) => void; // a match from scratch, or with this team at home
 }
 
-export function TeamSearch({ leagues, onClose, onOpen }: Props) {
+/** The command field's one dialog (Phase 26): find a club and open its page, or simulate a match,
+ * from scratch (the first row) or with a found club at home (⇧ Enter, or its button). */
+export function TeamSearch({ leagues, onClose, onOpen, onSimulate }: Props) {
   const [teams, setTeams] = useState<Found[]>([]);
   const [query, setQuery] = useState("");
   const [chosen, setChosen] = useState(0);
@@ -88,53 +91,78 @@ export function TeamSearch({ leagues, onClose, onOpen }: Props) {
     };
   }, [leagues]);
 
-  const shown = useMemo(() => searchTeams(teams, query), [teams, query]);
+  const shown = useMemo(() => searchTeams(teams, query, 7), [teams, query]);
   useEffect(() => setChosen(0), [query]);
+  const rows = shown.length + 1; // the simulation first, then the clubs
 
-  const open = (item: Found | undefined) => {
-    if (item) onOpen(item.code, item.team, item.season);
+  const choose = (index: number, simulate: boolean) => {
+    if (index === 0) return onSimulate(null, null);
+    const item = shown[index - 1];
+    if (!item) return;
+    if (simulate) onSimulate(item.code, item.team);
+    else onOpen(item.code, item.team, item.season);
   };
 
   return (
-    <Modal label="Caută o echipă" onClose={onClose}>
+    <Modal label="Caută o echipă sau simulează un meci" onClose={onClose}>
       <div className="dialog card search-dialog">
         <label className="search-field">
           <SearchIcon />
           <input
             autoFocus
             value={query}
-            placeholder="Caută o echipă din cele cinci ligi"
+            placeholder="Caută o echipă sau simulează un meci"
             aria-label="Numele echipei"
             aria-controls="search-results"
-            aria-activedescendant={shown[chosen] ? `found-${chosen}` : undefined}
+            aria-activedescendant={`found-${chosen}`}
             onChange={(event) => setQuery(event.target.value)}
             onKeyDown={(event) => {
               if (event.key === "ArrowDown") {
                 event.preventDefault();
-                setChosen((index) => Math.min(index + 1, shown.length - 1));
+                setChosen((index) => Math.min(index + 1, rows - 1));
               } else if (event.key === "ArrowUp") {
                 event.preventDefault();
                 setChosen((index) => Math.max(index - 1, 0));
               } else if (event.key === "Enter") {
                 event.preventDefault();
-                open(shown[chosen]);
+                choose(chosen, event.shiftKey);
               }
             }}
           />
           <kbd>Esc</kbd>
         </label>
-        <ul id="search-results" className="search-results" role="listbox" aria-label="Echipe găsite">
+        <ul id="search-results" className="search-results" role="listbox" aria-label="Acțiuni și echipe">
+          <li
+            id="found-0"
+            role="option"
+            aria-selected={chosen === 0}
+            className={`search-action${chosen === 0 ? " chosen" : ""}`}
+            onMouseEnter={() => setChosen(0)}
+            onMouseDown={(event) => {
+              event.preventDefault();
+              choose(0, true);
+            }}
+          >
+            <span className="search-action-icon">
+              <SimulateIcon />
+            </span>
+            <span className="search-team">
+              Simulează un meci
+              <small>Oricare două echipe ale unui sezon, la o zi aleasă</small>
+            </span>
+            <kbd>S</kbd>
+          </li>
           {shown.map((item, index) => (
             <li
               key={`${item.code}-${item.team}`}
-              id={`found-${index}`}
+              id={`found-${index + 1}`}
               role="option"
-              aria-selected={index === chosen}
-              className={index === chosen ? "chosen" : undefined}
-              onMouseEnter={() => setChosen(index)}
+              aria-selected={index + 1 === chosen}
+              className={index + 1 === chosen ? "chosen" : undefined}
+              onMouseEnter={() => setChosen(index + 1)}
               onMouseDown={(event) => {
                 event.preventDefault();
-                open(item);
+                choose(index + 1, false);
               }}
             >
               <Crest team={item.team} size={28} />
@@ -143,13 +171,26 @@ export function TeamSearch({ leagues, onClose, onOpen }: Props) {
                 <Flag code={item.code} size={16} />
                 {item.league}
               </span>
+              <button
+                type="button"
+                className="search-simulate"
+                tabIndex={-1}
+                aria-label={`Simulează un meci cu ${teamName(item.team)} gazdă`}
+                onMouseDown={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  choose(index + 1, true);
+                }}
+              >
+                Simulează
+              </button>
             </li>
           ))}
           {teams.length > 0 && shown.length === 0 && <li className="search-empty">Nicio echipă cu acest nume.</li>}
           {teams.length === 0 && <li className="search-empty">Se încarcă echipele…</li>}
         </ul>
         <p className="caption search-hint">
-          <kbd>↑</kbd> <kbd>↓</kbd> alegi · <kbd>Enter</kbd> deschizi pagina echipei
+          <kbd>↑</kbd> <kbd>↓</kbd> alegi · <kbd>Enter</kbd> deschizi · <kbd>⇧</kbd> <kbd>Enter</kbd> simulezi cu echipa gazdă
         </p>
       </div>
     </Modal>
