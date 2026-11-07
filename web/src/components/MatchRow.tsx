@@ -5,9 +5,9 @@
 // (it did not), so the marks never borrow a league's green or red. The chip of the result that
 // happened is ringed. A match whose day is past but has no result yet says so (Phase 25).
 // Since Phase 26 the most likely chip is always PitchSense's accent (hatched when the model gives
-// it under UNSURE), and a coming match shows, outlined between the teams, the likeliest score of
-// the chosen model's favourite result (read from the Poisson score grid), so the score and the
-// chips beside it always agree; the real score replaces it once played.
+// it under UNSURE), and a coming match shows, outlined between the teams, the Poisson model's
+// single most likely score (a draw included), named as Poisson's; the real score replaces it once
+// played. Only Poisson predicts scores, so the score never borrows another model's pick.
 import type { ReactNode } from "react";
 import { isoDay, percent, teamName } from "../format";
 import type { Forecast, Outcome, Prediction } from "../types";
@@ -109,7 +109,7 @@ export function ColumnsHead({ stacked = false, extra = false, likely = false }: 
     <div className={`columns-head${extra ? " with-extra" : ""}`} aria-hidden="true">
       <span />
       <span className="columns-teams">
-        {likely && <span title="Cel mai probabil scor al rezultatului ales de model, după grila de scoruri Poisson">scor probabil</span>}
+        {likely && <span title="Cel mai probabil scor după modelul Poisson, singurul care prezice scoruri">scor probabil · Poisson</span>}
       </span>
       <span className="columns-chips">
         <span>Gazde</span>
@@ -121,11 +121,11 @@ export function ColumnsHead({ stacked = false, extra = false, likely = false }: 
   );
 }
 
-/** The likeliest score of a model's favourite result, for a match still to come (never for a
- * played match, nor for one past its day without a result: it would read as the result). */
-export function likelyScore(forecast: Forecast, model: string): [number, number] | null {
+/** Poisson's most likely score, for a match still to come (never for a played match, nor for
+ * one past its day without a result: it would read as the result). */
+export function likelyScore(forecast: Forecast): [number, number] | null {
   if (forecast.result !== null || forecast.postponed || isPending(forecast)) return null;
-  return forecast.predictions.find((p) => p.model === model)?.likely_score ?? null;
+  return forecast.predictions.find((p) => p.model === "Poisson")?.likely_score ?? null;
 }
 
 interface Props {
@@ -153,22 +153,21 @@ function StackedTeam({ team, goals, favourite, won }: { team: string; goals: num
 export function rowName(forecast: Forecast, prediction: Prediction | undefined): string {
   const score = forecast.result !== null ? ` ${forecast.home_goals}–${forecast.away_goals}` : "";
   const day = `${forecast.date.slice(8, 10)}.${forecast.date.slice(5, 7)}`;
-  const likely = prediction ? likelyScore(forecast, prediction.model) : null;
-  const state = forecast.result !== null ? "" : `, ${statusText(forecast)}${likely ? `, scor probabil ${likely[0]}–${likely[1]}` : ""}`;
+  const likely = likelyScore(forecast);
+  const state = forecast.result !== null ? "" : `, ${statusText(forecast)}${likely ? `, scor probabil după Poisson ${likely[0]}–${likely[1]}` : ""}`;
   const chances = prediction
     ? OUTCOMES.map((outcome) => chipLabel(prediction, outcome, forecast.result)).join("; ")
     : "fără predicție";
   return `${teamName(forecast.home_team)}${score} ${teamName(forecast.away_team)}, ${day}${state}. ${prediction?.label ?? ""}: ${chances}`;
 }
 
-/** Between the teams: the real score once played, else the likeliest score of the model's
- * favourite result, outlined. */
-function CentreScore({ forecast, model }: { forecast: Forecast; model: string }) {
+/** Between the teams: the real score once played, else Poisson's most likely score, outlined. */
+function CentreScore({ forecast }: { forecast: Forecast }) {
   if (forecast.result !== null) return <span className="score">{`${forecast.home_goals}–${forecast.away_goals}`}</span>;
-  const likely = likelyScore(forecast, model);
+  const likely = likelyScore(forecast);
   if (!likely) return <span className="score empty">–</span>;
   return (
-    <span className="score ghost" title={`Cel mai probabil scor al rezultatului ales: ${likely[0]}–${likely[1]}`}>
+    <span className="score ghost" title={`Cel mai probabil scor după Poisson: ${likely[0]}–${likely[1]}`}>
       {likely[0]}–{likely[1]}
     </span>
   );
@@ -207,7 +206,7 @@ export function MatchRow({ forecast, model, favourite, stacked = false, showDate
       {status}
       <span className="teams">
         <Team team={forecast.home_team} side="home" favourite={favourite === forecast.home_team} won={forecast.result === "H"} />
-        <CentreScore forecast={forecast} model={model} />
+        <CentreScore forecast={forecast} />
         <Team team={forecast.away_team} side="away" favourite={favourite === forecast.away_team} won={forecast.result === "A"} />
       </span>
       <Chips prediction={prediction} result={forecast.result} />
@@ -236,7 +235,7 @@ export function ChipLegend() {
         <HitMark hit={false} /> ratat
       </span>
       <span>
-        <i className="legend-ghost">1–0</i> scorul cel mai probabil al rezultatului ales
+        <i className="legend-ghost">1–1</i> cel mai probabil scor, după Poisson
       </span>
     </p>
   );

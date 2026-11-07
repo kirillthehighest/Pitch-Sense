@@ -243,7 +243,7 @@ function FormCard({ page }: { page: TeamPage }) {
     <section className="card form-card">
       <h2>Forma</h2>
       <div className="form-line">
-        <span className="caption">Ultimele 5 meciuri</span>
+        <span className="caption">Ultimele 5 meciuri, cel mai recent în dreapta</span>
         <FormSquares results={page.form} />
       </div>
       <div className="record-table" role="table">

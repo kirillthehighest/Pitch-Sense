@@ -19,7 +19,7 @@ interface Props {
 
 /** Why logistic regression is chosen by default: the lowest Brier score over all the evaluation
  * seasons of the five leagues together (docs/leagues.md). */
-export const DEFAULT_REASON = "implicit: regresia logistică, cea mai precisă pe 16 sezoane";
+export const DEFAULT_REASON = "implicit: regresia logistică, cel mai mic scor Brier pe 16 sezoane";
 
 /** "55,0%" of a model's hits, or nothing before its first reviewed match. */
 export function recordText(record: ModelRecord | undefined): string {

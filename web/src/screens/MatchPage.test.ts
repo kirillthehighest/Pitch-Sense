@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Forecast, Outcome, Prediction } from "../types";
-import { consensusText, logisticVerdict, modelReason } from "./MatchPage";
+import { consensusText, favouriteScore, logisticVerdict, modelReason } from "./MatchPage";
 
 function prediction(model: string, most_likely: Outcome): Prediction {
   return { model, label: model, home: 0.4, draw: 0.3, away: 0.3, most_likely, hit: null, expected_goals: null, likely_score: null };
@@ -86,5 +86,17 @@ describe("why a model sees a match as it does", () => {
     expect(logisticVerdict(2, "A", "Leeds", "Tottenham")).toContain("o vede totuși favorită pe Tottenham");
     expect(logisticVerdict(3, "H", "Leeds", "Tottenham")).toContain("o arată favorită pe Leeds");
     expect(logisticVerdict(0, "D", "Leeds", "Tottenham")).toContain("egalul cel mai probabil");
+  });
+});
+
+describe("Poisson's favourite result told as a score", () => {
+  it("is the likeliest cell of that result on the grid", () => {
+    const grid = [
+      [0.1, 0.08],
+      [0.11, 0.13],
+    ];
+    expect(favouriteScore(grid, "H")).toEqual([1, 0]);
+    expect(favouriteScore(grid, "D")).toEqual([1, 1]);
+    expect(favouriteScore(grid, "A")).toEqual([0, 1]);
   });
 });

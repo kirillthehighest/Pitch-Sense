@@ -3,7 +3,7 @@
 export function FormSquares({ results }: { results: string[] }) {
   const letters: Record<string, string> = { W: "V", D: "E", L: "Î" };
   return (
-    <div className="form">
+    <div className="form" title="Cel mai vechi rezultat în stânga, cel mai recent în dreapta">
       {results.map((result, index) => (
         <span key={index} className={`form-square ${result}`}>
           {letters[result]}

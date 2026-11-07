@@ -196,7 +196,7 @@ function SeasonCheckTab({ league, ready }: { league: League; ready: string }) {
   const columns: Column[] = [
     { label: "Model", width: "minmax(150px, 1.6fr)" },
     { label: "Meciuri", width: EVEN },
-    { label: "Acuratețe", width: EVEN },
+    { label: "Nimerite", width: EVEN },
     { label: "Scor Brier", width: "minmax(0, 1.4fr)" },
     { label: "Pierdere logaritmică", width: "minmax(0, 1.4fr)" },
   ];
@@ -210,8 +210,8 @@ function SeasonCheckTab({ league, ready }: { league: League; ready: string }) {
     <div className="analysis-stack">
       {best && (
         <Finding title={`În ${seasonText(check.season as string)}, până acum, ${named(best.model, best.label)} are cel mai mic scor Brier`}>
-          {number(best.brier.value)} pe {quantity(check.matches, "meci", "meciuri")}, cu o acuratețe de{" "}
-          {percent(best.accuracy)}.
+          {number(best.brier.value)} pe {quantity(check.matches, "meci", "meciuri")}, cu {percent(best.accuracy)} din meciuri{" "}
+          nimerite.
           {overlap && " Marjele de 95% se suprapun încă, așa că sezonul nu decide un câștigător."}
         </Finding>
       )}
@@ -530,7 +530,7 @@ function WhenSure({ models }: { models: ModelEvaluation[] }) {
         ])}
       />
       <p className="caption table-note">
-        Acuratețea pe meciurile în care modelul dădea rezultatului socotit cel mai probabil cel puțin pragul din coloană,
+        Cât a nimerit pe meciurile în care modelul dădea rezultatului socotit cel mai probabil cel puțin pragul din coloană,
         apoi câte meciuri au fost și ce parte din toate. Cu cât pragul e mai mare, cu atât meciurile sunt mai puține, dar
         mai des nimerite. Un model bine calibrat nimerește pe aceste meciuri cel puțin cât arată pragul.
       </p>
@@ -546,7 +546,7 @@ function Bookmakers({ comparison }: { comparison: BookmakerComparison }) {
       <DataTable
         columns={[
           { label: "Model", width: "minmax(150px, 1.6fr)" },
-          { label: "Acuratețe", width: EVEN },
+          { label: "Nimerite", width: EVEN },
           { label: "Scor Brier", width: EVEN },
           { label: "Pierdere logaritmică", width: EVEN },
           { label: `Peste ${percent(SURE, 0)}`, width: EVEN },
@@ -578,7 +578,9 @@ function Bookmakers({ comparison }: { comparison: BookmakerComparison }) {
         probabilități fără marja lor. Sunt doar o referință: nu intră în niciun model. Comparația folosește{" "}
         {quantity(comparison.matches, "meci", "meciuri")} cu cote
         {comparison.missing > 0 ? ` (${quantity(comparison.missing, "meci", "meciuri")} nu au)` : ""}; o diferență pozitivă
-        înseamnă că modelul greșește mai mult decât casele de pariuri.
+        înseamnă că modelul greșește mai mult decât casele de pariuri. Avantajul lor e de așteptat: cotele țin cont și de
+        ce nu e în date (accidentări, echipele probabile, banii pariați), iar modelele văd doar rezultatele și
+        statisticile meciurilor trecute.
       </p>
     </section>
   );

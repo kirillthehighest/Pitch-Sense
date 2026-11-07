@@ -10,7 +10,7 @@ import { DayStrip } from "../components/DayStrip";
 import { FeaturedMatch } from "../components/FeaturedMatch";
 import { FormSquares } from "../components/FormSquares";
 import { Flag } from "../components/Flag";
-import { ChipLegend, ColumnsHead, likelyScore, MatchRow } from "../components/MatchRow";
+import { ChipLegend, ColumnsHead, isPending, likelyScore, MatchRow } from "../components/MatchRow";
 import { usePageKeys } from "../components/Shortcuts";
 import { SkeletonCard, SkeletonRows } from "../components/Skeleton";
 import { ModelSwitch } from "../components/ModelSwitch";
@@ -25,6 +25,13 @@ interface Props {
   ready: string; // changes when a league's predictions become ready
   onOpenMatch: (forecast: Forecast) => void;
   onStandings: (code: string) => void;
+  onUpdate?: () => void; // download the season in progress again
+  updating?: boolean;
+}
+
+/** A past day whose every match still waits for its result: the data is older than the day. */
+export function awaitsResults(forecasts: Forecast[], today?: string): boolean {
+  return forecasts.length > 0 && forecasts.every((forecast) => isPending(forecast, today));
 }
 
 function seasonStart(season: string): string {
@@ -33,12 +40,12 @@ function seasonStart(season: string): string {
 
 const LEGEND_KEY = "pitchsense.legend";
 
-/** Whether the list's legend is open: open until the viewer closes it once (this browser only). */
+/** Whether the list's legend is open: as the viewer last left it (this browser only), else closed. */
 function legendShown(): boolean {
   try {
-    return window.localStorage.getItem(LEGEND_KEY) !== "closed";
+    return window.localStorage.getItem(LEGEND_KEY) === "open";
   } catch {
-    return true; // no storage (a private window): the legend stays open
+    return false; // no storage (a private window): closed, one click away
   }
 }
 
@@ -64,7 +71,7 @@ function shifted(day: string, days: number): string {
   return isoDay(moved);
 }
 
-export function Matches({ leagues, league, preferences, ready, onOpenMatch, onStandings }: Props) {
+export function Matches({ leagues, league, preferences, ready, onOpenMatch, onStandings, onUpdate, updating = false }: Props) {
   const [days, setDays] = useState<Days | null>(null);
   const [day, setDay] = useState<string | null>(null);
   const [answer, setAnswer] = useState<Day | null>(null);
@@ -172,6 +179,14 @@ export function Matches({ leagues, league, preferences, ready, onOpenMatch, onSt
           </div>
           {legend && <ChipLegend />}
         </div>
+        {answer && onUpdate && awaitsResults(groups.flatMap((group) => group.forecasts)) && (
+          <div className="stale-note" role="status">
+            <p>Rezultatele acestei zile nu au ajuns încă în aplicație: datele sunt mai vechi decât ziua.</p>
+            <button className="button" onClick={onUpdate} disabled={updating}>
+              Actualizează acum
+            </button>
+          </div>
+        )}
         {answer && groups.length === 0 && (
           <EmptyDay day={day} days={days.days} onlyLeague={onlyLeague ? league.name : null} onDay={setDay} />
         )}
@@ -198,7 +213,7 @@ export function Matches({ leagues, league, preferences, ready, onOpenMatch, onSt
             {group.prepared ? (
               <>
                 {/* every league's group names its columns, so a group scrolled to alone is still read */}
-                <ColumnsHead likely={group.forecasts.some((forecast) => likelyScore(forecast, model) !== null)} />
+                <ColumnsHead likely={group.forecasts.some((forecast) => likelyScore(forecast) !== null)} />
                 <div className="match-list">
                   {group.forecasts.map((forecast) => (
                     <MatchRow

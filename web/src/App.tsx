@@ -337,6 +337,8 @@ export default function App() {
                   chooseLeague(code);
                   chooseScreen("standings");
                 }}
+                onUpdate={isStale(current.updated_at) ? undefined : update}
+                updating={updating || serverUpdating}
               />
             )}
             {current && screen === "team" && (

@@ -1,5 +1,7 @@
 """The server's season at a glance (Phase 25): the models' record and the projected table."""
 
+from types import SimpleNamespace
+
 import numpy as np
 import pytest
 from fastapi.testclient import TestClient
@@ -79,34 +81,31 @@ def test_the_team_page_says_from_which_season_results_are_reported(api_client):
     assert found["first_evaluated_season"] == "2010-11"
 
 
-def test_every_prediction_carries_the_likeliest_score_of_its_own_favourite(api_client):
+def test_a_poisson_prediction_carries_its_single_likeliest_score(api_client):
     found = api_client.get(
         "/api/review/SP1", params={"season": "2007-08", "model": "Poisson"}
     ).json()
 
-    models_seen = set()
     for row in found["rows"]:
-        for prediction in row["forecast"]["predictions"]:
-            home, away = prediction["likely_score"]
-            outcome = "H" if home > away else "A" if home < away else "D"
-            assert outcome == prediction["most_likely"]  # never contradicts its own chances
-            models_seen.add(prediction["model"])
-    assert models_seen == {"Elo", "Poisson", "Logistic regression"}
+        predictions = {p["model"]: p for p in row["forecast"]["predictions"]}
+        assert predictions["Elo"]["likely_score"] is None  # no scores of its own
+        assert predictions["Logistic regression"]["likely_score"] is None
+        assert len(predictions["Poisson"]["likely_score"]) == 2
 
 
-def test_the_likely_score_is_the_poisson_grids_best_within_the_favourite():
-    grid = np.array([[0.10, 0.08, 0.02], [0.20, 0.12, 0.03], [0.15, 0.05, 0.01]])
-    draw_pick = ModelPrediction(
-        model=ModelName.ELO, probabilities=OutcomeProbabilities(0.3, 0.4, 0.3)
-    )
-    home_pick = ModelPrediction(
-        model=ModelName.ELO, probabilities=OutcomeProbabilities(0.5, 0.3, 0.2)
+def test_the_likely_score_is_the_grids_largest_cell_a_draw_included():
+    grid = np.array([[0.10, 0.08, 0.02], [0.20, 0.22, 0.03], [0.15, 0.05, 0.01]])
+    distribution = SimpleNamespace(probabilities=grid)
+    poisson = ModelPrediction(
+        model=ModelName.POISSON,
+        probabilities=OutcomeProbabilities(0.45, 0.35, 0.20),
+        score_distribution=distribution,
     )
 
-    assert draw_pick.probabilities.most_likely is Outcome.DRAW
-    assert likely_score(draw_pick, grid) == (1, 1)
-    assert likely_score(home_pick, grid) == (1, 0)
-    assert likely_score(home_pick) is None  # no grid of its own, none given
+    assert poisson.probabilities.most_likely is Outcome.HOME_WIN
+    assert likely_score(poisson) == (1, 1)  # the likeliest score, though the favourite is a win
+    elo = ModelPrediction(model=ModelName.ELO, probabilities=OutcomeProbabilities(0.5, 0.3, 0.2))
+    assert likely_score(elo) is None
 
 
 def test_a_match_page_says_elos_home_advantage(api_client):

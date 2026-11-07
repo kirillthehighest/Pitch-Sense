@@ -133,6 +133,13 @@ function MatchHead({
           <span className={`state ${played ? "final" : forecast.hypothetical ? "hypothetical" : pending ? "pending" : "upcoming"}`}>
             {pending ? "Fără rezultat" : page.status}
           </span>
+          {!played && !pending && page.poisson?.top_scores[0] && (
+            // the same outlined score as in the lists, with its chance
+            <span className="head-likely" title="Cel mai probabil scor după modelul Poisson">
+              scor probabil <b>{page.poisson.top_scores[0].home}–{page.poisson.top_scores[0].away}</b>{" "}
+              {percent(page.poisson.top_scores[0].probability)} · Poisson
+            </span>
+          )}
         </div>
       </div>
       <Consensus page={page} />
@@ -204,7 +211,7 @@ export function modelReason(model: string, page: Page): string {
   if (model === "Poisson" && page.poisson) {
     const [homeGoals, awayGoals] = page.poisson.expected_goals;
     const prediction = forecast.predictions.find((p) => p.model === "Poisson");
-    const likely = prediction?.likely_score;
+    const likely = prediction ? favouriteScore(page.poisson.grid, prediction.most_likely) : null;
     const top = page.poisson.top_scores[0];
     let scores = "";
     if (prediction && likely) {
@@ -322,9 +329,7 @@ function TeamsCard({ page, favourite, onTeam }: { page: Page; favourite: string 
   const record = (state: TeamState) => `${state.record.wins}–${state.record.draws}–${state.record.losses}`;
   const goals = (state: TeamState) => `${state.record.goals_for}–${state.record.goals_against}`;
   const rows: [string, string, string, Better][] = [
-    ["Loc în clasament", `${home.position}`, `${away.position}`, better(home.position, away.position, false)],
     ["Puncte", `${home.record.points}`, `${away.record.points}`, better(home.record.points, away.record.points)],
-    ["Meciuri jucate", `${home.record.played}`, `${away.record.played}`, null],
     ["Victorii – egaluri – înfrângeri", record(home), record(away), null],
     ["Goluri marcate – primite", goals(home), goals(away), better(difference(home), difference(away))],
     ["Rating Elo", integer(Math.round(home.rating)), integer(Math.round(away.rating)), better(home.rating, away.rating)],
@@ -364,8 +369,21 @@ function TeamsCard({ page, favourite, onTeam }: { page: Page; favourite: string 
   );
 }
 
-function likelyOf(forecast: Forecast): [number, number] | null {
-  return forecast.predictions.find((p) => p.model === "Poisson")?.likely_score ?? null;
+/** The likeliest score giving one result, read off the server's score grid (rows home goals,
+ * columns away goals): Poisson's favourite result told as a score. */
+export function favouriteScore(grid: number[][], outcome: string): [number, number] | null {
+  let best: [number, number] | null = null;
+  let chance = -1;
+  grid.forEach((row, home) =>
+    row.forEach((value, away) => {
+      const result = home > away ? "H" : home < away ? "A" : "D";
+      if (result === outcome && value > chance) {
+        best = [home, away];
+        chance = value;
+      }
+    }),
+  );
+  return best;
 }
 
 function PoissonCard({ page }: { page: Page }) {
@@ -402,8 +420,7 @@ function PoissonCard({ page }: { page: Page }) {
         {poisson.top_scores.map((score) => (
           <div
             key={`${score.home}-${score.away}`}
-            className={`top-score${likelyOf(forecast)?.[0] === score.home && likelyOf(forecast)?.[1] === score.away ? " favourite" : ""}`}
-            title={likelyOf(forecast)?.[0] === score.home && likelyOf(forecast)?.[1] === score.away ? "Cel mai probabil scor al rezultatului pe care Poisson îl vede favorit" : undefined}
+            className="top-score"
           >
             <strong>
               {score.home}–{score.away}
