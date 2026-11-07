@@ -26,7 +26,7 @@ export const FULL_NAMES: Record<string, string> = {
   Vallecano: "Rayo Vallecano",
   Celta: "Celta Vigo",
   "Man City": "Manchester City",
-  "Man United": "Manchester United",
+  "Man United": "Manchester United Man Utd",
   "Nott'm Forest": "Nottingham Forest",
   Wolves: "Wolverhampton",
   Tottenham: "Tottenham Hotspur Spurs",

@@ -1,7 +1,7 @@
-// A match's page (Phase 19's, in the web interface): both clubs on a head lit by the deep colour
-// of the match's league, what each model expects and why, how both teams came into the match side
-// by side, and the likely scores of the Poisson model. A hypothetical match (two teams of a season
-// and a day chosen by the user) opens on the same page. The page takes its league's colours.
+// A match's page (Phase 19's, in the web interface): both clubs on a head over the home club's
+// stadium, what each model expects and why, how both teams came into the match side by side, and
+// the likely scores of the Poisson model. A hypothetical match (two teams of a season and a day
+// chosen by the user) opens on the same page.
 // Since Phase 25 the head carries the verdict: the three models' bars under the score, and which
 // club they favour; on the Poisson grid the score that happened is ringed. Since Phase 26 the bars
 // are shown once, in the head, each opening its model's reasoning; below them, what the models
@@ -17,8 +17,8 @@ import { Problem } from "../components/Problem";
 import { SkeletonCard } from "../components/Skeleton";
 import { ScoreGrid } from "../components/ScoreGrid";
 import { StadiumPhoto } from "../components/StadiumPhoto";
-import { capitalised, dateText, integer, longDateText, number, parseDay, percent, quantity, seasonText, teamName, withKickoff } from "../format";
-import { ACCENT, MODEL_COLOURS } from "../theme";
+import { capitalised, dateText, integer, longDateText, number, parseDay, percent, quantity, seasonText, stadiumName, teamName, withKickoff } from "../format";
+import { MODEL_COLOURS } from "../theme";
 import type { Forecast, League, MatchKey, MatchPage as Page, Outcome, Prediction, TeamState } from "../types";
 import { MODELS } from "../types";
 
@@ -109,7 +109,7 @@ function MatchHead({
         <Flag code={league.code} size={20} />
         <span>
           {league.name} · {seasonText(forecast.season)} · {when}
-          {page.stadium && ` · ${page.stadium}`}
+          {page.stadium && ` · ${stadiumName(page.stadium)}`}
         </span>
       </div>
       <div className="match-head-teams">
@@ -244,7 +244,7 @@ function Consensus({ page }: { page: Page }) {
                       className={`part ${SIDES[outcome]}${prediction.most_likely === outcome ? " likely" : ""}${prediction.most_likely === outcome && isUnsure(value) ? " unsure" : ""}${forecast.result === outcome ? " actual" : ""}`}
                       style={{ flexGrow: value }}
                     >
-                      {value >= 0.1 && percent(value, 0)}
+                      {percent(value, 0)}
                     </span>
                   );
                 })}
@@ -402,7 +402,7 @@ function ScoresCard({ page }: { page: Page }) {
         grid={poisson.grid}
         home={teamName(forecast.home_team)}
         away={teamName(forecast.away_team)}
-        accent={ACCENT}
+        accent={MODEL_COLOURS.Poisson}
         actual={forecast.result !== null ? [forecast.home_goals as number, forecast.away_goals as number] : null}
       />
     </section>

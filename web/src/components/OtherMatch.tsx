@@ -34,6 +34,8 @@ export function OtherMatch({ leagues, league, home: chosenHome = null, onClose, 
       .season(code, season)
       .then((found) => {
         if (!live) return;
+        // listed by the names shown (Football-Data's short names would put "Real Betis" under B)
+        found = { ...found, teams: [...found.teams].sort((a, b) => teamName(a).localeCompare(teamName(b), "ro")) };
         setSeasonDays(found);
         const first = chosenHome && found.teams.includes(chosenHome) ? chosenHome : found.teams[0];
         setHome(first);

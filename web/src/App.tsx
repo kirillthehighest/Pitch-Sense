@@ -153,7 +153,6 @@ export default function App() {
   const chooseLeague = useCallback(
     (code: string) => {
       if (code !== league) {
-        // the page in the new league's colours, uncovered by the wave
         setLeague(code); // one look for every league: only the league's image changes (Phase 26)
       }
       api.setPreferences({ competition: code, favourite: preferences?.favourite ?? null }).then(setPreferences);
@@ -227,10 +226,12 @@ export default function App() {
     [league, chooseLeague, focusContent],
   );
 
-  // The page's keys: 1–5 choose a league, / finds a team, S simulates a match, ? lists them all
+  // The page's keys: 1–5 choose a league, / finds a team, S simulates a match, ? lists them all,
+  // Esc leaves a match page (a dialog's Esc closes the dialog first: no page key while one is open)
   usePageKeys((key) => {
     const index = Number(key) - 1;
-    if (Number.isInteger(index) && index >= 0 && index < leagues.length) chooseLeague(leagues[index].code);
+    if (key === "Escape" && match) setMatch(null);
+    else if (Number.isInteger(index) && index >= 0 && index < leagues.length) chooseLeague(leagues[index].code);
     else if (key === "/") setSearch(true);
     else if (key === "s" || key === "S") {
       setSimulateFrom(null);

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Forecast, Prediction } from "../types";
-import { chipLabel, isPending, rowName, statusText } from "./MatchRow";
+import { chipLabel, isPending, likelyScore, rowName, statusText } from "./MatchRow";
 
 const prediction: Prediction = {
   model: "Elo",
@@ -60,6 +60,23 @@ describe("a match of a list", () => {
     expect(rowName(played, prediction)).toBe(
       "Villarreal 2–0 Espanyol, 30.10. Elo: Gazde 50%, cel mai probabil, nimerit, rezultatul meciului; Egal 30%; Oaspeți 20%",
     );
+  });
+});
+
+describe("the likely score between the teams", () => {
+  const poisson: Prediction = { ...prediction, model: "Poisson", most_likely: "A", likely_score: [0, 1] };
+  const elo: Prediction = { ...prediction, likely_score: [1, 0] };
+  const coming = match({ date: "2099-01-01", predictions: [elo, poisson] });
+
+  it("is the chosen model's own, so it agrees with the chips beside it", () => {
+    expect(likelyScore(coming, "Elo")).toEqual([1, 0]);
+    expect(likelyScore(coming, "Poisson")).toEqual([0, 1]);
+  });
+
+  it("is shown only for a match still to come", () => {
+    expect(likelyScore({ ...coming, result: "H", home_goals: 2, away_goals: 0 }, "Elo")).toBeNull();
+    expect(likelyScore({ ...coming, date: "2020-01-01" }, "Elo")).toBeNull(); // past, no result
+    expect(likelyScore({ ...coming, postponed: true }, "Elo")).toBeNull();
   });
 });
 

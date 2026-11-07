@@ -1,8 +1,7 @@
 // Meciuri: the matches of a day in every league, the chosen league first, with the match of the
 // day on top; any day of any season can be chosen. On the right: your team and the table.
-// Since Phase 25 every league's group and "your team" wear their own league's colours, the
-// arrows move a day and M changes the model; since Phase 26 the model switch carries each model's
-// record of the season.
+// Since Phase 25 the arrows move a day and M changes the model; since Phase 26 every league wears
+// PitchSense's one palette and the model switch carries each model's record of the season.
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api";
 import { Crest } from "../components/Crest";
@@ -50,6 +49,7 @@ export function Matches({ leagues, league, preferences, ready, onOpenMatch, onSt
   const [answer, setAnswer] = useState<Day | null>(null);
   const [model, setModel] = useState<string>(MODELS[0]);
   const [onlyLeague, setOnlyLeague] = useState(false);
+  const [legend, setLegend] = useState(false);
   const favourite = preferences?.favourite?.team ?? null;
 
   useEffect(() => {
@@ -142,12 +142,14 @@ export function Matches({ leagues, league, preferences, ready, onOpenMatch, onSt
                 </option>
               ))}
             </select>
+          </div>
+          <div className="control-row switch-row">
+            <button className="legend-toggle" aria-expanded={legend} aria-controls="chip-legend" onClick={() => setLegend(!legend)}>
+              Ce înseamnă semnele din listă
+            </button>
             <ModelSwitch league={league} model={model} ready={ready} onModel={setModel} />
           </div>
-          <details className="legend-toggle">
-            <summary>Ce înseamnă semnele din listă</summary>
-            <ChipLegend />
-          </details>
+          {legend && <ChipLegend />}
         </div>
         {answer && groups.length === 0 && (
           <EmptyDay day={day} days={days.days} onlyLeague={onlyLeague ? league.name : null} onDay={setDay} />
@@ -175,7 +177,7 @@ export function Matches({ leagues, league, preferences, ready, onOpenMatch, onSt
             {group.prepared ? (
               <>
                 {index === 0 && (
-                  <ColumnsHead likely={group.forecasts.some((forecast) => forecast.result === null && likelyScore(forecast) !== null)} />
+                  <ColumnsHead likely={group.forecasts.some((forecast) => likelyScore(forecast, model) !== null)} />
                 )}
                 <div className="match-list">
                   {group.forecasts.map((forecast) => (

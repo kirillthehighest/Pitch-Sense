@@ -53,7 +53,7 @@ class Prediction(Schema):
     hit: bool | None  # whether the most likely outcome happened; None before the match
     expected_goals: tuple[float, float] | None
     likely_score: tuple[int, int] | None = (
-        None  # Poisson's likeliest score of its favourite (Phase 26)
+        None  # the likeliest Poisson score giving this model's favourite result (Phase 26)
     )
 
 
@@ -341,7 +341,9 @@ def record_of(record: TeamStatistics) -> Record:
     )
 
 
-def prediction_of(prediction: ModelPrediction, forecast: MatchForecast) -> Prediction:
+def prediction_of(
+    prediction: ModelPrediction, forecast: MatchForecast, grid: np.ndarray | None = None
+) -> Prediction:
     probabilities = prediction.probabilities
     played = forecast.played
     most_likely = probabilities.most_likely
@@ -354,18 +356,21 @@ def prediction_of(prediction: ModelPrediction, forecast: MatchForecast) -> Predi
         most_likely=most_likely.value,
         hit=None if played is None else most_likely == played.result,
         expected_goals=prediction.expected_goals,
-        likely_score=likely_score(prediction),
+        likely_score=likely_score(prediction, grid),
     )
 
 
-def likely_score(prediction: ModelPrediction) -> tuple[int, int] | None:
-    """The most likely score among those giving the model's most likely result, for a model
-    with a score distribution (Poisson), else None. Taken within the favourite result, so the
-    score never contradicts the chances beside it (the overall likeliest score is often 1-1)."""
-    distribution = prediction.score_distribution
-    if distribution is None:
-        return None
-    grid = distribution.probabilities
+def likely_score(
+    prediction: ModelPrediction, grid: np.ndarray | None = None
+) -> tuple[int, int] | None:
+    """The most likely score among those giving this model's most likely result, read from the
+    match's Poisson score grid (`grid`, shape home goals x away goals; else the prediction's own
+    distribution), or None without one. Taken within the model's favourite result, so the score
+    shown beside a model's chances never contradicts them (the overall likeliest is often 1-1)."""
+    if grid is None:
+        if prediction.score_distribution is None:
+            return None
+        grid = prediction.score_distribution.probabilities
     home_goals, away_goals = np.indices(grid.shape)
     favourite = prediction.probabilities.most_likely
     if favourite is Outcome.HOME_WIN:
@@ -380,6 +385,14 @@ def likely_score(prediction: ModelPrediction) -> tuple[int, int] | None:
 
 def forecast_of(forecast: MatchForecast) -> Forecast:
     played = forecast.played
+    grid = next(
+        (
+            p.score_distribution.probabilities
+            for p in forecast.predictions.values()
+            if p.score_distribution is not None
+        ),
+        None,
+    )
     return Forecast(
         competition=forecast.competition,
         season=forecast.season,
@@ -393,7 +406,7 @@ def forecast_of(forecast: MatchForecast) -> Forecast:
         postponed=forecast.postponed,
         as_of=forecast.as_of,
         hypothetical=forecast.hypothetical,
-        predictions=[prediction_of(p, forecast) for p in forecast.predictions.values()],
+        predictions=[prediction_of(p, forecast, grid) for p in forecast.predictions.values()],
     )
 
 

@@ -13,7 +13,7 @@ import { Problem } from "../components/Problem";
 import { SkeletonCard } from "../components/Skeleton";
 import { Flag } from "../components/Flag";
 import { capitalised, dateText, integer, number, parseDay, percent, quantity, seasonText, signed } from "../format";
-import { ACCENT } from "../theme";
+import { MODEL_COLOURS } from "../theme";
 import type {
   About,
   BookmakerComparison,
@@ -36,11 +36,12 @@ const SkillChart = lazy(() =>
 );
 
 type Tab = "how" | "season" | "models" | "leagues" | "sources";
+// the verdict first (which model predicts best), how the models work after it (fifth critique)
 const TABS: [Tab, string][] = [
-  ["how", "Cum funcționează"],
-  ["season", "Sezonul curent"],
   ["models", "Modele"],
+  ["season", "Sezonul curent"],
   ["leagues", "Ligi"],
+  ["how", "Cum funcționează"],
   ["sources", "Surse"],
 ];
 
@@ -91,7 +92,7 @@ interface Props {
 }
 
 export function Analysis({ league, leagues, ready, onLeague }: Props) {
-  const [tab, setTab] = useState<Tab>("how");
+  const [tab, setTab] = useState<Tab>("models");
   return (
     <div className="analysis-screen">
       <div className="tabs" role="tablist" aria-label="Analiză">
@@ -318,7 +319,6 @@ function Models({ league }: { league: League }) {
     );
   }
 
-  const accent = ACCENT;
   const lowestBrier = Math.min(...evaluation.models.map((m) => m.brier ?? Infinity));
   const confusion = evaluation.models.find((m) => m.model === confusionModel) ?? evaluation.models[0];
   const subsets: Subset[] = evaluation[breakdown];
@@ -399,7 +399,7 @@ function Models({ league }: { league: League }) {
               </button>
             ))}
           </div>
-          <ConfusionGrid matrix={confusion.confusion} accent={accent} />
+          <ConfusionGrid matrix={confusion.confusion} accent={MODEL_COLOURS[confusion.model] ?? "#8E929C"} />
           <p className="caption table-note">
             Meciurile după rezultatul real (rânduri) și cel prezis (coloane); procentele sunt din fiecare rând.
           </p>

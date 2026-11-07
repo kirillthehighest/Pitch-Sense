@@ -62,7 +62,7 @@ export function Crest({ team, size = 24, ring = false }: { team: string; size?: 
     height: size,
     borderRadius: "50%",
     background: dark && !missing ? CREST_DISC : undefined,
-    boxShadow: ring ? `inset 0 0 0 ${ringWidth}px var(--accent)` : undefined,
+    boxShadow: ring ? `inset 0 0 0 ${ringWidth}px var(--text)` : undefined, // "your team": a light ring, as every selection
   };
   if (missing || !url) {
     return (

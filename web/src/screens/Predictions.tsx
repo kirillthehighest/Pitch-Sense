@@ -134,7 +134,7 @@ export function Predictions({ league, season, favourite, ready, onSeason, onOpen
           ))}
         </select>
         <span className="grow" />
-        <ModelSwitch league={league} model={model} ready={ready} onModel={setModel} />
+        <ModelSwitch league={league} model={model} ready={ready} onModel={setModel} showRecord={false} />
       </div>
       {(!league.prepared || (!review && !error)) && (
         <>

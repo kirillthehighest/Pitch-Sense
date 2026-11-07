@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { plain, searchTeams } from "./TeamSearch";
 
 const team = (name: string, code = "SP1") => ({ code, league: "La Liga", season: "2026-27", team: name });
-const teams = [team("Ath Madrid"), team("Barcelona"), team("Real Madrid"), team("Sociedad"), team("Man City", "E0")];
+const teams = [team("Ath Madrid"), team("Barcelona"), team("Real Madrid"), team("Sociedad"), team("Man City", "E0"), team("Man United", "E0")];
 
 describe("finding a team", () => {
   it("ignores case and accents", () => {
@@ -11,7 +11,8 @@ describe("finding a team", () => {
 
   it("finds a club by its short or its full name", () => {
     expect(searchTeams(teams, "atletico").map((found) => found.team)).toEqual(["Ath Madrid"]);
-    expect(searchTeams(teams, "manchester").map((found) => found.team)).toEqual(["Man City"]);
+    expect(searchTeams(teams, "manchester").map((found) => found.team)).toEqual(["Man City", "Man United"]);
+    expect(searchTeams(teams, "man utd").map((found) => found.team)).toEqual(["Man United"]);
     expect(searchTeams(teams, "bar").map((found) => found.team)).toEqual(["Barcelona"]);
   });
 

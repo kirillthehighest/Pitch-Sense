@@ -13,8 +13,8 @@ import { ColumnsHead, MatchRow } from "../components/MatchRow";
 import { Problem } from "../components/Problem";
 import { SkeletonCard } from "../components/Skeleton";
 import { StadiumPhoto } from "../components/StadiumPhoto";
-import { integer, number, seasonText, teamName } from "../format";
-import { ACCENT } from "../theme";
+import { integer, number, seasonText, stadiumName, teamName } from "../format";
+import { HIGHLIGHT } from "../theme";
 import type { Favourite, Forecast, League, TeamPage, TeamRecord } from "../types";
 import { MODELS } from "../types";
 
@@ -79,7 +79,7 @@ export function Team({ league, season, team, favourite, ready, onChoice, onOpenM
     };
   }, [league.code, league.prepared, page?.team, page?.season, ready]);
 
-  const accent = ACCENT;
+  const accent = HIGHLIGHT;
   const isFavourite = !!page && favourite?.competition === league.code && favourite.team === page.team;
   return (
     <div className="team-screen">
@@ -132,7 +132,7 @@ export function Team({ league, season, team, favourite, ready, onChoice, onOpenM
                 {page.record.goal_difference}
                 {latestRating(page) !== null && ` · rating Elo ${integer(Math.round(latestRating(page) as number))}`}
               </span>
-              {page.stadium && <span className="stadium-name">Stadion: {page.stadium}</span>}
+              {page.stadium && <span className="stadium-name">{stadiumName(page.stadium).startsWith("Stadionul ") ? stadiumName(page.stadium) : `Stadion: ${page.stadium}`}</span>}
             </div>
             <button
               className={`button${isFavourite ? "" : " primary"}`}
