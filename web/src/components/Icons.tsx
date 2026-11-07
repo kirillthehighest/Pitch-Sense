@@ -46,7 +46,11 @@ export function PredictionsIcon() {
 export function AnalysisIcon() {
   return (
     <svg {...base}>
-      <path d="M5 20h14M7 17v-4M12 17V6M17 17v-7" />
+      {/* a line through points: the models compared (not bars, which Clasament's podium has) */}
+      <path d="M4 20h16" />
+      <path d="M5 15.5l4.5-4.5 4 3 5.5-6.5" />
+      <circle cx="9.5" cy="11" r="1.2" />
+      <circle cx="13.5" cy="14" r="1.2" />
     </svg>
   );
 }
@@ -60,10 +64,12 @@ export function RefreshIcon() {
   );
 }
 
-export function ChevronIcon({ direction }: { direction: "left" | "right" }) {
+const CHEVRONS = { left: "M15 5l-7 7 7 7", right: "M9 5l7 7-7 7", up: "M5 15l7-7 7 7", down: "M5 9l7 7 7-7" };
+
+export function ChevronIcon({ direction }: { direction: "left" | "right" | "up" | "down" }) {
   return (
     <svg {...base} width={18} height={18}>
-      <path d={direction === "left" ? "M15 5l-7 7 7 7" : "M9 5l7 7-7 7"} />
+      <path d={CHEVRONS[direction]} />
     </svg>
   );
 }

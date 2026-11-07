@@ -1,13 +1,23 @@
 import { describe, expect, it } from "vitest";
 import { isStale } from "../App";
 import { isPageKey } from "../components/Shortcuts";
-import { nextModel } from "./Matches";
+import type { Forecast } from "../types";
+import { awaitsResults, nextModel } from "./Matches";
 import { previousSeason } from "./Team";
 
 describe("small rules of the screens", () => {
   it("cycles the models with M", () => {
     expect(nextModel("Logistic regression")).toBe("Elo");
     expect(nextModel("Poisson")).toBe("Logistic regression");
+  });
+
+  it("says a past day waits for its results only when all of its matches do", () => {
+    const base = { result: null, hypothetical: false, postponed: false, date: "2026-11-06" } as Forecast;
+    const played = { ...base, result: "H" } as Forecast;
+    expect(awaitsResults([base, base], "2026-11-07")).toBe(true);
+    expect(awaitsResults([base, played], "2026-11-07")).toBe(false);
+    expect(awaitsResults([base], "2026-11-06")).toBe(false); // today: still to come
+    expect(awaitsResults([], "2026-11-07")).toBe(false);
   });
 
   it("finds the season before another", () => {

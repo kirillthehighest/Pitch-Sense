@@ -6,14 +6,15 @@
 // a badge (the chip's mark already says hit or miss).
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api";
+import { useChosenModel } from "../chosenModel";
 import { ColumnsHead, MatchRow } from "../components/MatchRow";
+import { ModelSwitch } from "../components/ModelSwitch";
 import { Problem } from "../components/Problem";
 import { usePageKeys } from "../components/Shortcuts";
 import { SkeletonCard, SkeletonRows } from "../components/Skeleton";
 import { capitalised, integer, isoDay, MONTHS, parseDay, percent, quantity, seasonText } from "../format";
 import { nextModel } from "./Matches";
 import type { Forecast, League, Review, ReviewedMatch } from "../types";
-import { MODEL_LABELS, MODELS } from "../types";
 
 type Kind = "all" | "hits" | "misses" | "surprises" | "sure";
 type Order = "recent" | "surprising" | "confident";
@@ -81,14 +82,16 @@ interface Props {
 }
 
 export function Predictions({ league, season, favourite, ready, onSeason, onOpenMatch }: Props) {
-  const [model, setModel] = useState<string>(MODELS[0]);
+  const [model, setModel] = useChosenModel();
   const [kind, setKind] = useState<Kind>("all");
   const [order, setOrder] = useState<Order>("recent");
   const [review, setReview] = useState<Review | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [shown, setShown] = useState(PAGE);
   usePageKeys((key) => {
-    if (key === "m" || key === "M") setModel(nextModel);
+    if (key !== "m" && key !== "M") return false;
+    setModel(nextModel);
+    return true;
   });
 
   useEffect(() => {
@@ -130,16 +133,8 @@ export function Predictions({ league, season, favourite, ready, onSeason, onOpen
             </option>
           ))}
         </select>
-        <label className="caption" htmlFor="review-model">
-          Model
-        </label>
-        <select id="review-model" value={model} onChange={(event) => setModel(event.target.value)} aria-keyshortcuts="M">
-          {MODELS.map((item) => (
-            <option key={item} value={item}>
-              {MODEL_LABELS[item]}
-            </option>
-          ))}
-        </select>
+        <span className="grow" />
+        <ModelSwitch league={league} model={model} ready={ready} onModel={setModel} showRecord={false} />
       </div>
       {(!league.prepared || (!review && !error)) && (
         <>
@@ -166,7 +161,7 @@ export function Predictions({ league, season, favourite, ready, onSeason, onOpen
             <section className="card review-score">
               <h2>Bilanțul modelului</h2>
               <div className="big-number">
-                <strong>{percent(review.hits / review.matches, 0)}</strong>
+                <strong>{percent(review.hits / review.matches)}</strong>
                 <span>
                   {integer(review.hits)} nimerite din {quantity(review.matches, "meci jucat", "meciuri jucate")}
                 </span>
@@ -203,14 +198,16 @@ export function Predictions({ league, season, favourite, ready, onSeason, onOpen
               </button>
             ))}
             <span className="grow" />
+            <span className="labelled">
             <label className="caption" htmlFor="review-order">
-              Ordine
-            </label>
-            <select id="review-order" value={order} onChange={(event) => setOrder(event.target.value as Order)}>
-              <option value="recent">Cele mai recente</option>
-              <option value="surprising">Cele mai mari surprize</option>
-              <option value="confident">Cele mai sigure predicții</option>
-            </select>
+                Ordine
+              </label>
+              <select id="review-order" value={order} onChange={(event) => setOrder(event.target.value as Order)}>
+                <option value="recent">Cele mai recente</option>
+                <option value="surprising">Cele mai mari surprize</option>
+                <option value="confident">Cele mai sigure predicții</option>
+              </select>
+            </span>
           </div>
           <section className="card review-list">
             <ColumnsHead extra />
@@ -220,7 +217,7 @@ export function Predictions({ league, season, favourite, ready, onSeason, onOpen
                   <h3 className="week-head">
                     <span>{weekText(week.monday)}</span>
                     <span className="caption">
-                      {week.hits} din {week.rows.length} nimerite
+                      nimerite: {week.hits} din {week.rows.length}
                     </span>
                   </h3>
                   <div className="match-list">

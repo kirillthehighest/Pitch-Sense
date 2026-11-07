@@ -125,7 +125,7 @@ export const DISPLAY_NAMES: Record<string, string> = {
   "Greuther Furth": "Greuther Fürth",
   Hercules: "Hércules",
   Hertha: "Hertha BSC",
-  "La Coruna": "Deportivo La Coruña",
+  "La Coruna": "Deportivo",
   Leganes: "Leganés",
   Leverkusen: "Bayer Leverkusen",
   "M'gladbach": "Mönchengladbach",
@@ -147,6 +147,13 @@ export const DISPLAY_NAMES: Record<string, string> = {
 };
 
 /** A club's name for the screen: "Ath Madrid" → "Atlético Madrid"; other names unchanged. */
+/** A stadium's name as Wikipedia's English article titles it, in Romanian where it is English:
+ * "Mestalla Stadium" becomes "Stadionul Mestalla"; "Old Trafford" and "Stade Vélodrome" stay. */
+export function stadiumName(name: string): string {
+  const english = /^(.+) Stadium$/.exec(name);
+  return english ? `Stadionul ${english[1]}` : name;
+}
+
 export function teamName(team: string): string {
   return DISPLAY_NAMES[team] ?? team;
 }

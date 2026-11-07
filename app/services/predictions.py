@@ -211,10 +211,16 @@ def featured_match(
     forecasts: Sequence[MatchForecast],
     strength: Callable[[MatchForecast], float],
     favourite: str | None = None,
+    today: date | None = None,
 ) -> MatchForecast | None:
     """The match of the day among ``forecasts`` (one league's matches of one day): the favourite
     team's, else the one whose teams are strongest by ``strength`` (the sum of their ratings, for
-    instance); None without matches. Ties go to the earliest."""
+    instance); None without matches. Ties go to the earliest. Given ``today``, a match whose day
+    has passed without a result is left out while another can be shown."""
+    if today is not None:
+        waiting = [f for f in forecasts if f.played is None and f.match_date < today]
+        shown = [f for f in forecasts if f not in waiting]
+        forecasts = shown or forecasts
     if favourite is not None:
         for forecast in forecasts:
             if favourite in (forecast.home_team, forecast.away_team):

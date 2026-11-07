@@ -1248,7 +1248,33 @@ La acceptarea fazei (2026-11-06), echipa a cerut versiunea 0.7.0, publicată pe 
 - Windows (GitHub Actions): trec toate cele 801 de teste Python și cele 50 ale interfeței web; programul de instalare are 72 MB; autoverificarea trece în pachet și după instalare; serverul pornit de fereastra instalată are toate ligile gata la 10,5 s după deschiderea ei. Ecranele nu au putut fi privite pe mașina de construire.
 - Capturile din `docs/images/` sunt făcute din aplicația construită pentru macOS, cu datele din 2026-11-06.
 
-## 22. Setul de date și perioadele
+## 22. Un singur aspect PitchSense (Faza 26)
+
+După Faza 25, echipa a cerut (2026-11-06) o nouă rundă `/impeccable`. Probleme semnalate: culorile ligilor pe probabilități atrag prea mult atenția, „Simulează un meci” apărea de două ori, fâșia cu bilanțul modelelor distrăgea atenția, liniuța dintre echipe era plictisitoare, iar pagina meciului arăta de două ori barele modelelor. Skillul a propus cinci direcții vizuale, fiecare cu o schiță a ecranului Meciuri. Echipa a ales standardul categoriei (LiveScore, FotMob, OneFootball) executat la nivelul lor de finisaj, plus soluțiile propuse pentru fiecare problemă.
+
+### 22.1. Ce s-a schimbat
+
+- **O singură paletă.** Toate ligile au aceleași culori. Accentul `#FF7A3D` înseamnă un singur lucru: rezultatul ales de model (în liste, pe cardul „Meciul zilei”, în barele paginii meciului). Selecția (ecranul, ziua, butoanele principale) e deschisă la culoare pe un fond ridicat; echipa ta are un cerc deschis în jurul stemei și numele îngroșat; valorile mai bune dintr-un tabel stau pe o etichetă ridicată. Grilele de scoruri și matricea de confuzie iau culoarea modelului lor. Ligile se recunosc după steag, nume și imaginea DAZN. La schimbarea ligii nu se mai repictează interfața: imaginea noii ligi alunecă din dreapta și se clarifică (animația `league-in`, oprită pentru cine a cerut mai puțină mișcare). Valul de la schimbarea ligii (`reveal.ts`) a fost scos, cu testul lui.
+- **Favoritul nesigur.** Când modelul dă rezultatului cel mai probabil sub 45% (`UNSURE`), căsuța lui e hașurată, nu recolorată. Cititorul de ecran spune „cel mai probabil, dar nesigur”.
+- **O singură intrare pentru căutare și simulare.** Câmpul „Caută o echipă sau simulează un meci…” stă deasupra fiecărui ecran (tasta /). Dialogul lui are pe primul rând simularea unui meci; o echipă găsită se deschide cu Enter, iar cu ⇧ Enter (sau butonul ei) devine gazda unei simulări. Două echipe ale aceleiași ligi scrise împreună („arsenal chelsea”, „Man City - Man Utd”) devin direct simularea lor (`searchPair`). Un meci simulat se poate schimba de pe pagina lui („Schimbă meciul simulat”). Butoanele din bara laterală și de pe ecrane au dispărut.
+- **Un singur model ales.** Modelul se alege dintr-un comutator cu trei butoane (Meciuri, Predicții, proiecția din Clasament; tasta M), iar alegerea e aceeași în toată aplicația (`web/src/chosenModel.ts`), inclusiv pe pagina echipei. Pe Meciuri și în proiecție, fiecare buton arată cât a nimerit modelul în sezonul ligii (`/api/track-record`); dedesubt, un rând spune ce sunt procentele și de ce regresia logistică e implicită (cele mai bune probabilități pe 16 sezoane). Fâșia separată a fost scoasă.
+- **Scorul favoritei.** Fiecare predicție trimite acum și `likely_score` (`app/api/schemas.py`): pe grila de scoruri Poisson a meciului, cel mai probabil scor dintre cele care dau rezultatul ales de acel model. Un meci care urmează îl arată între echipe, conturat punctat, sub eticheta „scorul favoritei”, pentru modelul ales; scorul și căsuțele de lângă el spun astfel aceeași poveste. Antetul paginii meciului pune într-un rând cel mai probabil scor în general (Poisson) și scorul dacă se confirmă favorita („cel mai probabil scor 1–1 · dacă câștigă Leeds 2–1”), sau unul singur când coincid. După meci, locul lui îl ia scorul real; un meci trecut fără rezultat nu-l arată. Variantele încercate pe parcurs (scorul Poisson în general între echipe, apoi cel al favoritei Poisson) contraziceau fie căsuțele de lângă ele, fie pagina meciului.
+- **Pagina meciului.** Barele modelelor apar o singură dată, sub scor, cu rezultatul ales în accent și fiecare procent scris, chiar și cele mici. Un clic pe un model deschide raționamentul lui; la regresia logistică, propoziția spune și ce înclină balanța când cifrele arătate o avantajează pe cealaltă echipă (terenul propriu și celelalte valori cântărite, `logisticVerdict`). Dedesubt stau „Ce contează în acest meci” (echipele față în față, fără rândurile repetate din antet), scorurile probabile Poisson și grila tuturor scorurilor. Esc întoarce la listă.
+- **Meciuri.** Cardul „Meciul zilei” e mai scund, nu alege un meci care încă își așteaptă rezultatul și, la un meci jucat, arată ca lista dacă alegerea a fost nimerită și rezultatul real. Fiecare ligă își numește coloanele. Legenda semnelor (cel mai probabil, nesigur, rezultatul meciului, nimerit, ratat, scorul alegerii) se deschide dintr-un buton de lângă comutator și rămâne cum a lăsat-o utilizatorul. O zi trecută ale cărei meciuri nu au încă rezultat oferă actualizarea datelor. Într-o fereastră scundă (până la 820 px) sau îngustă (sub 1200 px) titlul ecranului rămâne doar pentru cititoarele de ecran, iar primele meciuri încap în primul ecran și la 1024 × 700.
+- **Analiză.** Prima filă e Modele, cu verdictul ligii, nimeritele și scorul Brier, „Când modelul e sigur” și casele de pariuri (cu motivul pentru care avantajul lor e de așteptat). Calibrarea, matricea de confuzie, pierderea logaritmică și eroarea de calibrare stau în „Detalii statistice”. „Nimerite” e un singur cuvânt pentru acuratețe în toată analiza.
+- **Erori.** Pe Meciuri, o cerere eșuată spune ce s-a întâmplat, în loc de schelete fără sfârșit, iar `Problem` poate oferi „Încearcă din nou”.
+- **Mărunțișuri.** Analiză are o iconiță proprie (o linie prin puncte); numele stadioanelor scrise în engleză devin românești („Mestalla Stadium” → „Stadionul Mestalla”); nota zonelor din clasament pomenește barajul doar în Bundesliga și Ligue 1; căutarea găsește și „man utd”; echipele din dialogul de simulare sunt în ordinea numelor afișate; semnul „ratat” e un disc închis cu inel, vizibil pe orice card; bara laterală încape într-o fereastră de 900 px.
+
+### 22.2. Verificare
+
+Rulări din 2026-11-07:
+
+- Trec toate cele 805 teste Python și cele 57 ale interfeței web (12 fișiere); `ruff check`, `ruff format --check`, `tsc`, `npm run build` și `cargo fmt --check` trec. Teste noi: scorul favoritei al fiecărui model (niciodată în contradicție cu rezultatul ales, egalul inclus), cardul „Meciul zilei” care ocolește un meci fără rezultat, scorul favoritei doar pentru meciurile care urmează, alegerea comună a modelului, propoziția regresiei logistice când cifrele o avantajează pe cealaltă echipă, scorul unui rezultat pe grilă, ziua trecută fără rezultate, căutarea a două echipe și „man utd”, numele stadioanelor.
+- Detectorul `impeccable detect` pe `web/src`: rămâne doar fontul Plus Jakarta Sans, ales de echipă în Faza 21. În pagină, hașura favoritei nesigure și numele echipei tale repetat în cardul ei sunt găsiri false: hașura e cerută de această fază, iar numele aparține meciurilor ei.
+- Nouă analize `/impeccable critique` (fiecare cu un evaluator nou, separat de detector) au dat, în ordine, 24, 29, 29, 30, 29, 28, 28, 29 și 28 din 40 de puncte. Fiecare evaluator găsește alte lucruri și câteva cereri s-au contrazis între rulări (scorul dintre echipe, legenda deschisă sau închisă, ordinea modelelor în Analiză), așa că scorul s-a stabilizat între 28 și 30. Ce au găsit a fost corectat în aceeași fază, în afară de: fontul interfeței (decizia echipei), ordinea modelelor în Analiză (după scorul Brier, cerută de o rulare anterioară), titlul ascuns al ecranului Meciuri în ferestrele mici (ca să încapă meciurile) și numerele 1–5, care schimbă și liga reținută (ca un clic în bara laterală).
+- În interfață, la 1440 × 900 și 1024 × 700: nicio derulare laterală și niciun text tăiat (în afară de un nume lung de echipă, cu numele întreg la trecerea mouse-ului), bara laterală încape în fereastră, primele meciuri se văd la deschidere la ambele dimensiuni.
+
+## 23. Setul de date și perioadele
 
 Sursa datelor este Football-Data.co.uk: cinci ligi (Premier League, La Liga, Serie A, Bundesliga, Ligue 1), fiecare cu 20 de sezoane încheiate, 2006/07–2025/26 (36.197 de meciuri). Perioadele sunt aceleași pentru toate ligile. Sezonul în desfășurare (2026/27) este descărcat separat și nu face parte din evaluare (secțiunea 15).
 
@@ -1258,7 +1284,7 @@ Sursa datelor este Football-Data.co.uk: cinci ligi (Premier League, La Liga, Ser
 | 2007/08–2009/10 | Calibrare: se aleg hiperparametrii; rezultatele nu sunt raportate. |
 | 2010/11–2025/26 | Evaluarea raportată: 16 sezoane; 6.080 de meciuri în fiecare ligă cu 20 de echipe, 4.896 în Bundesliga, 5.757 în Ligue 1; 28.893 în total. |
 
-## 23. Tehnologii
+## 24. Tehnologii
 
 | Componentă | Versiune | Rol |
 |---|---|---|
@@ -1282,7 +1308,7 @@ Sursa datelor este Football-Data.co.uk: cinci ligi (Premier League, La Liga, Ser
 | Vitest, Testing Library, jsdom | 5.0.5, 16.3.3, 30.1.3 | testele interfeței web |
 | Rust / Tauri | 1.99 / 2.12.4 | fereastra de desktop a interfeței web |
 
-## 24. Decizii tehnice
+## 25. Decizii tehnice
 
 | Decizie | Motiv |
 |---|---|
@@ -1376,3 +1402,5 @@ Sursa datelor este Football-Data.co.uk: cinci ligi (Premier League, La Liga, Ser
 | Nimerit și ratat prin formă (disc deschis cu bifă, disc închis cu X), nu prin verde și roșu | Verdele și roșul sunt și accentele a trei ligi; forma se citește pe orice accent și și de daltoniști. |
 | Proiecția finalului joacă doar rezultatele meciurilor rămase, din predicțiile modelului, de 10.000 de ori, cu sămânța fixă | Folosește predicțiile deja evaluate, fără un model nou; răspunsul este același la fiecare cerere, iar marja unei șanse este de cel mult un punct procentual. |
 | Zonele clasamentului doar în sezonul în desfășurare | Numărul locurilor de Liga Campionilor și de retrogradare s-a schimbat de-a lungul celor 20 de sezoane; marcate cu regulile de azi, sezoanele vechi ar fi greșite. |
+| O singură paletă pentru toate ligile; liga se recunoaște după steag, nume și imagine (Faza 26) | Alegerea echipei, după a doua rundă `/impeccable`: culorile ligilor pe probabilități atrăgeau prea mult atenția și schimbau sensul aceleiași căsuțe de la o ligă la alta. |
+| Căutarea și simularea au o singură intrare, câmpul de deasupra ecranelor | Aceeași acțiune în două locuri îl făcea pe utilizator să se întrebe dacă sunt lucruri diferite. |

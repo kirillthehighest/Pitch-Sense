@@ -1,6 +1,7 @@
 // A card lit by the league's image: the image on the right at the screen's resolution, its strip
 // starting at ``top`` (a share of its height, above the highest head), its left edge running into a
 // fill made of its own edge colour mixed with the league's deep colour, so the seam disappears.
+// Since Phase 26 the change of league is this image sliding in, not a repainted interface.
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { imageUrl } from "../api";
 
@@ -76,7 +77,7 @@ export function LeagueImageCard({ code, top, credit, brand, share = 0.58, maxWid
   return (
     <div ref={card} className={`image-card ${className ?? ""}`} style={{ background: fill }}>
       {url && (
-        <div className="image-box" style={{ width }}>
+        <div className="image-box" key={code} style={{ width }}>
           <img
             src={url}
             alt=""

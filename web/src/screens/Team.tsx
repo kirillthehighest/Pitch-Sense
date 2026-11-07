@@ -6,6 +6,7 @@
 // the last finished one, and the Elo chart shades the seasons that only start the models.
 import { lazy, Suspense, useEffect, useState } from "react";
 import { api } from "../api";
+import { useChosenModel } from "../chosenModel";
 import { Crest } from "../components/Crest";
 import { FormSquares } from "../components/FormSquares";
 import { StarIcon } from "../components/Icons";
@@ -13,10 +14,10 @@ import { ColumnsHead, MatchRow } from "../components/MatchRow";
 import { Problem } from "../components/Problem";
 import { SkeletonCard } from "../components/Skeleton";
 import { StadiumPhoto } from "../components/StadiumPhoto";
-import { number, seasonText, teamName } from "../format";
-import { themeFor } from "../theme";
+import { integer, number, seasonText, stadiumName, teamName } from "../format";
+import { HIGHLIGHT } from "../theme";
 import type { Favourite, Forecast, League, TeamPage, TeamRecord } from "../types";
-import { MODELS } from "../types";
+import { MODEL_LABELS } from "../types";
 
 const LAST_RESULTS = 5;
 // The charts (and Recharts with them) load when a team page first shows them
@@ -79,7 +80,7 @@ export function Team({ league, season, team, favourite, ready, onChoice, onOpenM
     };
   }, [league.code, league.prepared, page?.team, page?.season, ready]);
 
-  const accent = themeFor(league.code).accent;
+  const accent = HIGHLIGHT;
   const isFavourite = !!page && favourite?.competition === league.code && favourite.team === page.team;
   return (
     <div className="team-screen">
@@ -98,7 +99,7 @@ export function Team({ league, season, team, favourite, ready, onChoice, onOpenM
           Echipă
         </label>
         <select id="team-name" value={page?.team ?? ""} onChange={(event) => onChoice(event.target.value, season)}>
-          {teams.map((item) => (
+          {[...teams].sort((a, b) => teamName(a).localeCompare(teamName(b), "ro")).map((item) => (
             <option key={item} value={item}>
               {teamName(item)}
             </option>
@@ -126,7 +127,13 @@ export function Team({ league, season, team, favourite, ready, onChoice, onOpenM
                 {league.name} {seasonText(page.season)} · locul {page.position} din {page.teams} ·{" "}
                 {page.in_progress ? "sezon în desfășurare" : "sezon încheiat"}
               </span>
-              {page.stadium && <span className="stadium-name">Stadion: {page.stadium}</span>}
+              <span className="team-facts">
+                {page.record.points} puncte din {page.record.played} meciuri · golaveraj{" "}
+                {page.record.goal_difference > 0 ? "+" : ""}
+                {page.record.goal_difference}
+                {latestRating(page) !== null && ` · rating Elo ${integer(Math.round(latestRating(page) as number))}`}
+              </span>
+              {page.stadium && <span className="stadium-name">{stadiumName(page.stadium).startsWith("Stadionul ") ? stadiumName(page.stadium) : `Stadion: ${page.stadium}`}</span>}
             </div>
             <button
               className={`button${isFavourite ? "" : " primary"}`}
@@ -138,23 +145,6 @@ export function Team({ league, season, team, favourite, ready, onChoice, onOpenM
             </button>
             {page.stadium && <span className="credit">Foto: Wikimedia Commons</span>}
           </section>
-          <div className="tiles">
-            {(
-              [
-                ["Loc", page.position],
-                ["Meciuri", page.record.played],
-                ["Victorii", page.record.wins],
-                ["Goluri marcate", page.record.goals_for],
-                ["Goluri primite", page.record.goals_against],
-                ["Puncte", page.record.points],
-              ] as [string, number][]
-            ).map(([name, value]) => (
-              <div key={name} className="tile">
-                <strong>{value}</strong>
-                <span>{name}</span>
-              </div>
-            ))}
-          </div>
           <div className="team-grid">
             <div className="team-column">
               <FormCard page={page} />
@@ -230,6 +220,13 @@ export function Team({ league, season, team, favourite, ready, onChoice, onOpenM
   );
 }
 
+/** The club's latest Elo rating in the page's season, if it played. */
+export function latestRating(page: TeamPage): number | null {
+  const season = page.elo.find((item) => item.season === page.season);
+  const points = season?.points ?? [];
+  return points.length ? points[points.length - 1].rating : null;
+}
+
 /** The season before ``season`` in the league's list, if any. */
 export function previousSeason(seasons: string[], season: string): string | null {
   const index = seasons.indexOf(season);
@@ -247,7 +244,7 @@ function FormCard({ page }: { page: TeamPage }) {
     <section className="card form-card">
       <h2>Forma</h2>
       <div className="form-line">
-        <span className="caption">Ultimele 5 meciuri</span>
+        <span className="caption">Ultimele 5 meciuri, cel mai recent în dreapta</span>
         <FormSquares results={page.form} />
       </div>
       <div className="record-table" role="table">
@@ -318,6 +315,7 @@ function MatchesCard({
   onOpenMatch: (forecast: Forecast) => void;
 }) {
   const [all, setAll] = useState(false);
+  const [model] = useChosenModel(); // the model chosen on Meciuri or Predicții
   useEffect(() => setAll(false), [page.team, page.season]);
   if (!prepared || matches === null) {
     return (
@@ -339,7 +337,7 @@ function MatchesCard({
           <MatchRow
             key={`${forecast.date}-${forecast.home_team}`}
             forecast={forecast}
-            model={MODELS[0]}
+            model={model}
             favourite={favourite}
             stacked
             showDate
@@ -348,7 +346,9 @@ function MatchesCard({
         ))}
       </div>
       <div className="card-foot">
-        <span className="caption">Probabilitățile sunt ale regresiei logistice; apasă pe un meci pentru toate modelele.</span>
+        <span className="caption">
+          Probabilitățile sunt ale modelului ales ({MODEL_LABELS[model] ?? model}); apasă pe un meci pentru toate modelele.
+        </span>
         <button className="link" onClick={() => setAll(!all)}>
           {all ? "Mai puține ‹" : `Toate cele ${matches.length} ›`}
         </button>

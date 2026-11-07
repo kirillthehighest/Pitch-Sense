@@ -1,9 +1,13 @@
 // One match of a list, as in the score apps the team chose: the kickoff (or "Final"), the home
 // team on the left and the away team on the right of the score, and the chosen model's three
-// probabilities; the most likely is filled with the match's league accent and, once the match is
+// probabilities; the most likely is filled with PitchSense's accent and, once the match is
 // played, carries a drawn mark: a light disc with a tick (it happened) or a dark one with a cross
 // (it did not), so the marks never borrow a league's green or red. The chip of the result that
 // happened is ringed. A match whose day is past but has no result yet says so (Phase 25).
+// Since Phase 26 the most likely chip is always PitchSense's accent (hatched when the model gives
+// it under UNSURE), and a coming match shows, outlined between the teams, the score of the pick:
+// the likeliest score, on the Poisson score grid, of the result the chosen model finds most likely,
+// so the score and the chips beside it always tell one story; the real score replaces it.
 import type { ReactNode } from "react";
 import { isoDay, percent, teamName } from "../format";
 import type { Forecast, Outcome, Prediction } from "../types";
@@ -11,6 +15,12 @@ import { Crest } from "./Crest";
 import { CheckIcon, CrossIcon } from "./Icons";
 
 const OUTCOMES: Outcome[] = ["H", "D", "A"];
+export const UNSURE = 45; // a favourite shown under 45% is hatched: the model is far from sure
+
+/** Whether a chance is "unsure", judged on the rounded percent the chip shows (45% is not). */
+export function isUnsure(value: number): boolean {
+  return Math.round(value * 100) < UNSURE;
+}
 const OUTCOME_NAMES: Record<Outcome, string> = { H: "Gazde", D: "Egal", A: "Oaspeți" };
 
 export function chance(prediction: Prediction, outcome: Outcome): number {
@@ -36,7 +46,7 @@ export function statusText(forecast: Forecast, showDate = false, today?: string)
 export function chipLabel(prediction: Prediction, outcome: Outcome, result: Outcome | null): string {
   const parts = [`${OUTCOME_NAMES[outcome]} ${percent(chance(prediction, outcome), 0)}`];
   if (prediction.most_likely === outcome) {
-    parts.push("cel mai probabil");
+    parts.push(isUnsure(chance(prediction, outcome)) ? "cel mai probabil, dar nesigur" : "cel mai probabil");
     if (prediction.hit !== null) parts.push(prediction.hit ? "nimerit" : "ratat");
   }
   if (result === outcome) parts.push("rezultatul meciului");
@@ -55,7 +65,9 @@ function Team({ team, favourite, won, side }: { team: string; favourite: boolean
   return (
     <span className={`team ${side}${favourite ? " favourite" : ""}${won ? " won" : ""}`}>
       <Crest team={team} size={26} ring={favourite} />
-      <span className="name">{teamName(team)}</span>
+      <span className="name" title={teamName(team)}>
+        {teamName(team)}
+      </span>
     </span>
   );
 }
@@ -66,10 +78,11 @@ export function Chips({ prediction, result = null }: { prediction: Prediction | 
     <span className="chips" aria-hidden="true">
       {OUTCOMES.map((outcome) => {
         const chosen = prediction.most_likely === outcome;
+        const unsure = chosen && isUnsure(chance(prediction, outcome));
         return (
           <span
             key={outcome}
-            className={`chip${chosen ? " chosen" : ""}${result === outcome ? " actual" : ""}`}
+            className={`chip${chosen ? " chosen" : ""}${unsure ? " unsure" : ""}${result === outcome ? " actual" : ""}`}
             title={chipLabel(prediction, outcome, result)}
           >
             {percent(chance(prediction, outcome), 0)}
@@ -81,17 +94,41 @@ export function Chips({ prediction, result = null }: { prediction: Prediction | 
   );
 }
 
-/** The names over the chips of a list: Gazde, Egal, Oaspeți. */
-export function ColumnsHead({ stacked = false, extra = false }: { stacked?: boolean; extra?: boolean }) {
+/** The names over a list's columns: the likely score between the teams (when the list has coming
+ * matches), then Gazde, Egal, Oaspeți over the chips. */
+export function ColumnsHead({ stacked = false, extra = false, likely = false }: { stacked?: boolean; extra?: boolean; likely?: boolean }) {
+  if (stacked) {
+    return (
+      <div className="columns-head stacked" aria-hidden="true">
+        <span />
+        <span>Gazde</span>
+        <span>Egal</span>
+        <span>Oaspeți</span>
+      </div>
+    );
+  }
   return (
-    <div className={`columns-head${stacked ? " stacked" : ""}${extra ? " with-extra" : ""}`} aria-hidden="true">
-      {stacked && <span />}
-      <span>Gazde</span>
-      <span>Egal</span>
-      <span>Oaspeți</span>
+    <div className={`columns-head${extra ? " with-extra" : ""}`} aria-hidden="true">
+      <span />
+      <span className="columns-teams">
+        {likely && <span title="Cel mai probabil scor dacă se confirmă rezultatul ales de model (din grila de scoruri Poisson)">scorul favoritei</span>}
+      </span>
+      <span className="columns-chips">
+        <span>Gazde</span>
+        <span>Egal</span>
+        <span>Oaspeți</span>
+      </span>
       {extra && <span />}
     </div>
   );
+}
+
+/** The score of a model's pick (the likeliest score of its most likely result), for a match still
+ * to come (never for a played match, nor for one past its day without a result: it would read as
+ * the result). */
+export function likelyScore(forecast: Forecast, model: string): [number, number] | null {
+  if (forecast.result !== null || forecast.postponed || isPending(forecast)) return null;
+  return forecast.predictions.find((p) => p.model === model)?.likely_score ?? null;
 }
 
 interface Props {
@@ -119,11 +156,24 @@ function StackedTeam({ team, goals, favourite, won }: { team: string; goals: num
 export function rowName(forecast: Forecast, prediction: Prediction | undefined): string {
   const score = forecast.result !== null ? ` ${forecast.home_goals}–${forecast.away_goals}` : "";
   const day = `${forecast.date.slice(8, 10)}.${forecast.date.slice(5, 7)}`;
-  const state = forecast.result !== null ? "" : `, ${statusText(forecast)}`;
+  const likely = prediction ? likelyScore(forecast, prediction.model) : null;
+  const state = forecast.result !== null ? "" : `, ${statusText(forecast)}${likely ? `, scorul favoritei ${likely[0]}–${likely[1]}` : ""}`;
   const chances = prediction
     ? OUTCOMES.map((outcome) => chipLabel(prediction, outcome, forecast.result)).join("; ")
     : "fără predicție";
   return `${teamName(forecast.home_team)}${score} ${teamName(forecast.away_team)}, ${day}${state}. ${prediction?.label ?? ""}: ${chances}`;
+}
+
+/** Between the teams: the real score once played, else the score of the model's pick, outlined. */
+function CentreScore({ forecast, model }: { forecast: Forecast; model: string }) {
+  if (forecast.result !== null) return <span className="score">{`${forecast.home_goals}–${forecast.away_goals}`}</span>;
+  const likely = likelyScore(forecast, model);
+  if (!likely) return <span className="score empty">–</span>;
+  return (
+    <span className="score ghost" title={`Scorul favoritei: cel mai probabil scor dacă se confirmă rezultatul ales de model, ${likely[0]}–${likely[1]}`}>
+      {likely[0]}–{likely[1]}
+    </span>
+  );
 }
 
 export function MatchRow({ forecast, model, favourite, stacked = false, showDate = false, extra, onOpen }: Props) {
@@ -159,11 +209,37 @@ export function MatchRow({ forecast, model, favourite, stacked = false, showDate
       {status}
       <span className="teams">
         <Team team={forecast.home_team} side="home" favourite={favourite === forecast.home_team} won={forecast.result === "H"} />
-        <span className={`score${played ? "" : " empty"}`}>{played ? `${forecast.home_goals} : ${forecast.away_goals}` : "–"}</span>
+        <CentreScore forecast={forecast} model={model} />
         <Team team={forecast.away_team} side="away" favourite={favourite === forecast.away_team} won={forecast.result === "A"} />
       </span>
       <Chips prediction={prediction} result={forecast.result} />
       {extra}
     </button>
+  );
+}
+
+/** What the marks of a list mean, once per screen (the chips carry no words of their own). */
+export function ChipLegend() {
+  return (
+    <p className="chip-legend" id="chip-legend">
+      <span>
+        <i className="legend-chip chosen" /> cel mai probabil
+      </span>
+      <span>
+        <i className="legend-chip chosen unsure" /> nesigur (sub 45%)
+      </span>
+      <span>
+        <i className="legend-chip actual" /> rezultatul meciului
+      </span>
+      <span>
+        <HitMark hit /> nimerit
+      </span>
+      <span>
+        <HitMark hit={false} /> ratat
+      </span>
+      <span>
+        <i className="legend-ghost">2–1</i> scorul favoritei: cel mai probabil scor dacă se confirmă rezultatul ales
+      </span>
+    </p>
   );
 }

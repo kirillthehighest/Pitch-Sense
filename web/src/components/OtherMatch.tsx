@@ -11,11 +11,13 @@ import { Problem } from "./Problem";
 interface Props {
   leagues: League[];
   league: League;
+  home?: string | null; // a team picked in the search, home side of the simulation
+  away?: string | null; // and, when two were typed ("Arsenal Chelsea"), the away side
   onClose: () => void;
   onOpen: (key: MatchKey) => void;
 }
 
-export function OtherMatch({ leagues, league, onClose, onOpen }: Props) {
+export function OtherMatch({ leagues, league, home: chosenHome = null, away: chosenAway = null, onClose, onOpen }: Props) {
   const [code, setCode] = useState(league.code);
   const chosen = leagues.find((item) => item.code === code) ?? league;
   const [season, setSeason] = useState(chosen.seasons[chosen.seasons.length - 1]);
@@ -33,9 +35,13 @@ export function OtherMatch({ leagues, league, onClose, onOpen }: Props) {
       .season(code, season)
       .then((found) => {
         if (!live) return;
+        // listed by the names shown (Football-Data's short names would put "Real Betis" under B)
+        found = { ...found, teams: [...found.teams].sort((a, b) => teamName(a).localeCompare(teamName(b), "ro")) };
         setSeasonDays(found);
-        setHome(found.teams[0]);
-        setAway(found.teams[1] ?? found.teams[0]);
+        const first = chosenHome && found.teams.includes(chosenHome) ? chosenHome : found.teams[0];
+        setHome(first);
+        const second = chosenAway && chosenAway !== first && found.teams.includes(chosenAway) ? chosenAway : null;
+        setAway(second ?? found.teams.find((team) => team !== first) ?? first);
         setDay(found.suggested_day);
       })
       .catch((reason: Error) => {

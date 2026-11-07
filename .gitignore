@@ -34,3 +34,7 @@ report/
 # Local instructions for the coding assistant
 AGENTS.md
 CLAUDE.md
+
+# Local design notes of the impeccable skill
+.impeccable/
+PRODUCT.md
