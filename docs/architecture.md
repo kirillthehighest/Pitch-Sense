@@ -1274,6 +1274,14 @@ Rulări din 2026-11-07:
 - Nouă analize `/impeccable critique` (fiecare cu un evaluator nou, separat de detector) au dat, în ordine, 24, 29, 29, 30, 29, 28, 28, 29 și 28 din 40 de puncte. Fiecare evaluator găsește alte lucruri și câteva cereri s-au contrazis între rulări (scorul dintre echipe, legenda deschisă sau închisă, ordinea modelelor în Analiză), așa că scorul s-a stabilizat între 28 și 30. Ce au găsit a fost corectat în aceeași fază, în afară de: fontul interfeței (decizia echipei), ordinea modelelor în Analiză (după scorul Brier, cerută de o rulare anterioară), titlul ascuns al ecranului Meciuri în ferestrele mici (ca să încapă meciurile) și numerele 1–5, care schimbă și liga reținută (ca un clic în bara laterală).
 - În interfață, la 1440 × 900 și 1024 × 700: nicio derulare laterală și niciun text tăiat (în afară de un nume lung de echipă, cu numele întreg la trecerea mouse-ului), bara laterală încape în fereastră, primele meciuri se văd la deschidere la ambele dimensiuni.
 
+### 22.3. Versiunea 0.8.0
+
+La acceptarea fazei (2026-11-07), echipa a cerut versiunea 0.8.0, publicată pe GitHub (`v0.8.0`), cu capturi noi în README:
+
+- macOS: `.dmg` de 91 MB, cu baza de date reconstruită (100 de sezoane valide) și sezonul în desfășurare descărcat pe 2026-11-07; semnătura aplicației trece `codesign --verify --deep --strict`; autoverificarea serverului trece din `dist/` și din imaginea `.dmg`.
+- Windows (GitHub Actions): trec toate cele 805 teste Python și cele 57 ale interfeței web; programul de instalare are 72 MB; autoverificarea trece în pachet și după instalare; serverul instalat are toate ligile gata la 4,2 s după pornire, iar cel pornit de fereastra instalată la 7,7 s după deschiderea ei. Ecranele nu au putut fi privite pe mașina de construire.
+- Capturile din `docs/images/` sunt făcute din aplicația construită pentru macOS, cu datele din 2026-11-07.
+
 ## 23. Setul de date și perioadele
 
 Sursa datelor este Football-Data.co.uk: cinci ligi (Premier League, La Liga, Serie A, Bundesliga, Ligue 1), fiecare cu 20 de sezoane încheiate, 2006/07–2025/26 (36.197 de meciuri). Perioadele sunt aceleași pentru toate ligile. Sezonul în desfășurare (2026/27) este descărcat separat și nu face parte din evaluare (secțiunea 15).

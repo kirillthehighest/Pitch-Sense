@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/kirillthehighest/Pitch-Sense/releases/latest"><img alt="Versiunea 0.7.0" src="https://img.shields.io/badge/versiunea-0.7.0-E8622A"></a>
+  <a href="https://github.com/kirillthehighest/Pitch-Sense/releases/latest"><img alt="Versiunea 0.8.0" src="https://img.shields.io/badge/versiunea-0.8.0-E8622A"></a>
   <img alt="macOS și Windows" src="https://img.shields.io/badge/macOS%20%7C%20Windows-desktop-555">
   <img alt="Python 3.14" src="https://img.shields.io/badge/Python-3.14-3776AB?logo=python&logoColor=white">
   <img alt="React și Tauri" src="https://img.shields.io/badge/React%20%2B%20Tauri-interfa%C8%9Ba-24C8DB?logo=tauri&logoColor=white">
@@ -25,8 +25,8 @@ Proiect de an la disciplina *Analiza și Proiectarea Algoritmilor*, Universitate
 ## Ce face aplicația
 
 - arată meciurile fiecărei zile din **Premier League, La Liga, Serie A, Bundesliga și Ligue 1**, cu șansele fiecărui rezultat și cât au nimerit modelele în sezonul curent;
-- deschide pagina unui meci: pe ce rezultat mizează fiecare model, scorurile cele mai probabile și cum vin echipele;
-- simulează orice meci dintre două echipe ale aceluiași sezon, la o dată aleasă;
+- deschide pagina unui meci: pe ce rezultat mizează fiecare model și de ce, scorurile cele mai probabile și cum vin echipele;
+- găsește orice echipă și simulează orice meci dintre două echipe ale aceluiași sezon, la o dată aleasă, dintr-un singur câmp de căutare;
 - arată clasamente, inclusiv „înainte de o zi”, și **proiecția finalului de sezon**: meciurile rămase jucate de 10.000 de ori din predicțiile modelelor;
 - arată pagina fiecărei echipe, cu ratingul Elo și tipul ei de joc;
 - verifică un sezon întreg, săptămână cu săptămână: ce predicții s-au adeverit, care au fost surprizele și cât de des are dreptate un model când e sigur;
@@ -63,7 +63,7 @@ Când regresia logistică dă peste 65% unui rezultat, are dreptate în **76,0%*
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/images/pagina-meci.jpg" alt="Pagina unui meci"><br><sub><b>Pagina unui meci:</b> pe ce mizează fiecare model și cum vin echipele</sub></td>
+    <td width="50%"><img src="docs/images/pagina-meci.jpg" alt="Pagina unui meci"><br><sub><b>Pagina unui meci:</b> pe ce mizează fiecare model și de ce</sub></td>
     <td width="50%"><img src="docs/images/scoruri.jpg" alt="Scorurile probabile"><br><sub><b>Scorurile probabile</b> ale modelului Poisson, cu scorul final încercuit</sub></td>
   </tr>
   <tr>
@@ -71,8 +71,8 @@ Când regresia logistică dă peste 65% unui rezultat, are dreptate în **76,0%*
     <td><img src="docs/images/clasament.jpg" alt="Proiecția clasamentului final"><br><sub><b>Proiecția finalului de sezon:</b> meciurile rămase jucate de 10.000 de ori</sub></td>
   </tr>
   <tr>
-    <td><img src="docs/images/predictii.jpg" alt="Predicțiile unui sezon"><br><sub><b>Predicții:</b> ce a nimerit un model, săptămână cu săptămână</sub></td>
-    <td><img src="docs/images/analiza.jpg" alt="Cum funcționează algoritmii"><br><sub><b>Analiză:</b> schema fiecărui algoritm, apoi compararea modelelor</sub></td>
+    <td><img src="docs/images/predictii.jpg" alt="Predicțiile unui sezon"><br><sub><b>Predicții:</b> ce a nimerit un model și cât de des are dreptate când e sigur</sub></td>
+    <td><img src="docs/images/analiza.jpg" alt="Compararea modelelor"><br><sub><b>Analiză:</b> care model prezice cel mai bine, apoi cum funcționează fiecare</sub></td>
   </tr>
 </table>
 
