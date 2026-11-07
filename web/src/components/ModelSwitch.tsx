@@ -4,7 +4,7 @@
 // chances fill the lists; M moves to the next model.
 import { useEffect, useState } from "react";
 import { api } from "../api";
-import { integer, percent, seasonText } from "../format";
+import { capitalised, integer, percent, seasonText } from "../format";
 import { MODEL_COLOURS } from "../theme";
 import type { League, ModelRecord, TrackRecord } from "../types";
 import { MODEL_LABELS, MODELS } from "../types";
@@ -19,7 +19,7 @@ interface Props {
 
 /** Why logistic regression is chosen by default: the lowest Brier score over all the evaluation
  * seasons of the five leagues together (docs/leagues.md). */
-export const DEFAULT_REASON = "implicit: regresia logistică, cel mai mic scor Brier pe 16 sezoane";
+export const DEFAULT_REASON = "implicit: regresia logistică, cele mai bune probabilități pe 16 sezoane";
 
 /** "55,0%" of a model's hits, or nothing before its first reviewed match. */
 export function recordText(record: ModelRecord | undefined): string {
@@ -42,6 +42,7 @@ export function ModelSwitch({ league, model, ready, onModel, showRecord = true }
 
   const shown = record?.competition === league.code ? record : null;
   const of = (name: string) => shown?.models.find((item) => item.model === name);
+  const hasRecord = !!shown && shown.models.some((item) => item.matches > 0);
   // a radio group moves with the arrows, as the platform's own
   const step = (direction: number) => {
     const index = MODELS.indexOf(model as (typeof MODELS)[number]);
@@ -88,13 +89,13 @@ export function ModelSwitch({ league, model, ready, onModel, showRecord = true }
         })}
       </div>
       <span className="model-scope">
-        {shown && shown.models.some((item) => item.matches > 0) && (
+        {hasRecord ? (
           <>
-            nimerite în {league.name} {seasonText(shown.season)}
-            {" · "}
+            Procentele: nimerite în {seasonText(shown?.season ?? "")} · {DEFAULT_REASON}
           </>
+        ) : (
+          capitalised(DEFAULT_REASON)
         )}
-        {DEFAULT_REASON}
       </span>
     </div>
   );

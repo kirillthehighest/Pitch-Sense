@@ -8,6 +8,7 @@
 // learn from (the teams side by side) and the likely scores.
 import { useEffect, useState } from "react";
 import { api } from "../api";
+import { useChosenModel } from "../chosenModel";
 import { Crest } from "../components/Crest";
 import { Flag } from "../components/Flag";
 import { FormSquares } from "../components/FormSquares";
@@ -95,6 +96,9 @@ function MatchHead({
   const { forecast } = page;
   const played = forecast.result !== null;
   const pending = isPending(forecast);
+  const [model] = useChosenModel();
+  const pick = forecast.predictions.find((p) => p.model === model);
+  const pickScore = !played && !pending ? pick?.likely_score : null;
   const when = withKickoff(
     capitalised(longDateText(parseDay(forecast.date))),
     forecast.kickoff,
@@ -133,11 +137,10 @@ function MatchHead({
           <span className={`state ${played ? "final" : forecast.hypothetical ? "hypothetical" : pending ? "pending" : "upcoming"}`}>
             {pending ? "Fără rezultat" : page.status}
           </span>
-          {!played && !pending && page.poisson?.top_scores[0] && (
-            // the same outlined score as in the lists, with its chance
-            <span className="head-likely" title="Cel mai probabil scor după modelul Poisson">
-              scor probabil <b>{page.poisson.top_scores[0].home}–{page.poisson.top_scores[0].away}</b>{" "}
-              {percent(page.poisson.top_scores[0].probability)} · Poisson
+          {pick && pickScore && (
+            // the same outlined score as in the lists: the score of the chosen model's pick
+            <span className="head-likely" title="Cel mai probabil scor al rezultatului ales de model, din grila de scoruri Poisson">
+              scorul alegerii <b>{pickScore[0]}–{pickScore[1]}</b> · {pick.label}
             </span>
           )}
         </div>

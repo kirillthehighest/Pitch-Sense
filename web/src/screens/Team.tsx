@@ -6,6 +6,7 @@
 // the last finished one, and the Elo chart shades the seasons that only start the models.
 import { lazy, Suspense, useEffect, useState } from "react";
 import { api } from "../api";
+import { useChosenModel } from "../chosenModel";
 import { Crest } from "../components/Crest";
 import { FormSquares } from "../components/FormSquares";
 import { StarIcon } from "../components/Icons";
@@ -16,7 +17,7 @@ import { StadiumPhoto } from "../components/StadiumPhoto";
 import { integer, number, seasonText, stadiumName, teamName } from "../format";
 import { HIGHLIGHT } from "../theme";
 import type { Favourite, Forecast, League, TeamPage, TeamRecord } from "../types";
-import { MODELS } from "../types";
+import { MODEL_LABELS } from "../types";
 
 const LAST_RESULTS = 5;
 // The charts (and Recharts with them) load when a team page first shows them
@@ -314,6 +315,7 @@ function MatchesCard({
   onOpenMatch: (forecast: Forecast) => void;
 }) {
   const [all, setAll] = useState(false);
+  const [model] = useChosenModel(); // the model chosen on Meciuri or Predicții
   useEffect(() => setAll(false), [page.team, page.season]);
   if (!prepared || matches === null) {
     return (
@@ -335,7 +337,7 @@ function MatchesCard({
           <MatchRow
             key={`${forecast.date}-${forecast.home_team}`}
             forecast={forecast}
-            model={MODELS[0]}
+            model={model}
             favourite={favourite}
             stacked
             showDate
@@ -344,7 +346,9 @@ function MatchesCard({
         ))}
       </div>
       <div className="card-foot">
-        <span className="caption">Probabilitățile sunt ale regresiei logistice; apasă pe un meci pentru toate modelele.</span>
+        <span className="caption">
+          Probabilitățile sunt ale modelului ales ({MODEL_LABELS[model] ?? model}); apasă pe un meci pentru toate modelele.
+        </span>
         <button className="link" onClick={() => setAll(!all)}>
           {all ? "Mai puține ‹" : `Toate cele ${matches.length} ›`}
         </button>

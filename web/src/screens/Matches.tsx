@@ -213,7 +213,7 @@ export function Matches({ leagues, league, preferences, ready, onOpenMatch, onSt
             {group.prepared ? (
               <>
                 {/* every league's group names its columns, so a group scrolled to alone is still read */}
-                <ColumnsHead likely={group.forecasts.some((forecast) => likelyScore(forecast) !== null)} />
+                <ColumnsHead likely={group.forecasts.some((forecast) => likelyScore(forecast, model) !== null)} />
                 <div className="match-list">
                   {group.forecasts.map((forecast) => (
                     <MatchRow

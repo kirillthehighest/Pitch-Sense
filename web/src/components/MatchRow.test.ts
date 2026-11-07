@@ -63,18 +63,20 @@ describe("a match of a list", () => {
   });
 });
 
-describe("the likely score between the teams", () => {
-  const poisson: Prediction = { ...prediction, model: "Poisson", most_likely: "A", likely_score: [1, 1] };
-  const coming = match({ date: "2099-01-01", predictions: [prediction, poisson] });
+describe("the score of the pick between the teams", () => {
+  const poisson: Prediction = { ...prediction, model: "Poisson", most_likely: "A", likely_score: [0, 1] };
+  const elo: Prediction = { ...prediction, likely_score: [1, 0] };
+  const coming = match({ date: "2099-01-01", predictions: [elo, poisson] });
 
-  it("is Poisson's, whichever model fills the chips, a draw included", () => {
-    expect(likelyScore(coming)).toEqual([1, 1]);
+  it("is the chosen model's, so it tells the same story as the chips beside it", () => {
+    expect(likelyScore(coming, "Elo")).toEqual([1, 0]);
+    expect(likelyScore(coming, "Poisson")).toEqual([0, 1]);
   });
 
   it("is shown only for a match still to come", () => {
-    expect(likelyScore({ ...coming, result: "H", home_goals: 2, away_goals: 0 })).toBeNull();
-    expect(likelyScore({ ...coming, date: "2020-01-01" })).toBeNull(); // past, no result
-    expect(likelyScore({ ...coming, postponed: true })).toBeNull();
+    expect(likelyScore({ ...coming, result: "H", home_goals: 2, away_goals: 0 }, "Elo")).toBeNull();
+    expect(likelyScore({ ...coming, date: "2020-01-01" }, "Elo")).toBeNull(); // past, no result
+    expect(likelyScore({ ...coming, postponed: true }, "Elo")).toBeNull();
   });
 });
 
