@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Forecast, Outcome, Prediction } from "../types";
-import { consensusText, modelReason } from "./MatchPage";
+import { consensusText, logisticVerdict, modelReason } from "./MatchPage";
 
 function prediction(model: string, most_likely: Outcome): Prediction {
   return { model, label: model, home: 0.4, draw: 0.3, away: 0.3, most_likely, hit: null, expected_goals: null, likely_score: null };
@@ -75,6 +75,16 @@ describe("why a model sees a match as it does", () => {
   it("states the differences the logistic regression weighs", () => {
     expect(modelReason("Logistic regression", page)).toContain("Napoli 2,20 puncte pe meci, Lazio 1,40");
     expect(modelReason("Logistic regression", page)).toContain("forma, 10 față de 5 puncte");
-    expect(modelReason("Logistic regression", page)).toContain("cât valorează terenul propriu");
+    expect(modelReason("Logistic regression", page)).toContain("ratingul Elo, 1.650 față de 1.580.");
+  });
+
+  it("never contradicts the logistic regression's favourite", () => {
+    // every listed value favours the away side, yet the model favours the home side
+    expect(logisticVerdict(-3, "H", "Leeds", "Tottenham")).toBe(
+      "Aceste cifre o avantajează pe Tottenham; modelul o vede totuși favorită pe Leeds, din avantajul terenului propriu, învățat din meciurile trecute, și din celelalte valori pe care le cântărește (golaverajul și șuturile pe poartă din ultimele meciuri acasă și în deplasare).",
+    );
+    expect(logisticVerdict(2, "A", "Leeds", "Tottenham")).toContain("o vede totuși favorită pe Tottenham");
+    expect(logisticVerdict(3, "H", "Leeds", "Tottenham")).toContain("o arată favorită pe Leeds");
+    expect(logisticVerdict(0, "D", "Leeds", "Tottenham")).toContain("egalul cel mai probabil");
   });
 });

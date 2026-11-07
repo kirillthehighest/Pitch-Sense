@@ -3,7 +3,10 @@
 // chronological evaluation of the league's models, the comparison of the five leagues, and the
 // sources. Tables have measured columns; each card ends with its content. Since Phase 25 each tab
 // opens with its finding in one sentence (written from the numbers on screen), "Cum funcționează"
-// draws each algorithm, and the statistical tables wait behind "Detalii statistice".
+// draws each algorithm, and the statistical tables wait behind "Detalii statistice". Since Phase 26
+// Modele opens on the verdict and the plain measures (hits, Brier), how often the model is right
+// when sure and the bookmakers; calibration, the confusion matrix and the other measures wait
+// behind "Detalii statistice", and the tabs start with Modele.
 import { lazy, type ReactNode, Suspense, useEffect, useState } from "react";
 import { api } from "../api";
 import { ConfusionGrid, HomeAdvantage } from "../components/AnalysisGrids";
@@ -356,10 +359,8 @@ function Models({ league }: { league: League }) {
         <DataTable
           columns={[
             { label: "Model", width: "minmax(150px, 1.6fr)" },
-            { label: "Acuratețe", width: EVEN },
+            { label: "Nimerite", width: EVEN },
             { label: "Scor Brier", width: EVEN },
-            { label: "Pierdere logaritmică", width: EVEN },
-            { label: "Eroare de calibrare", width: EVEN },
             { label: "Eroarea golurilor", width: EVEN },
           ]}
           rows={[...evaluation.models]
@@ -368,16 +369,23 @@ function Models({ league }: { league: League }) {
             model.label,
             percent(model.accuracy),
             model.brier === lowestBrier ? <strong className="best">{number(model.brier)}</strong> : number(model.brier),
-            number(model.log_loss),
-            number(model.calibration_error),
             number(model.goals_error, 3),
           ])}
         />
         <p className="caption table-note">
-          Acuratețea: mai mare e mai bine. Scorul Brier, pierderea logaritmică și erorile: mai mic e mai bine; cel mai
-          mic scor Brier este evidențiat. Eroarea golurilor (doar Poisson): cât greșesc în medie golurile așteptate.
+          Nimerite: cât de des s-a întâmplat rezultatul socotit cel mai probabil. Scorul Brier: cât de departe au fost
+          șansele de ce s-a întâmplat (0 ar fi perfect; mai mic e mai bine, cel mai mic e evidențiat). Eroarea golurilor
+          (doar Poisson): cu cât greșesc în medie golurile așteptate. Alte măsuri, în „Detalii statistice”.
         </p>
       </section>
+      <WhenSure models={evaluation.models.filter((m) => m.confident.length > 0)} />
+      {evaluation.bookmakers && <Bookmakers comparison={evaluation.bookmakers} />}
+      <details className="more-details">
+        <summary>
+          <span>Detalii statistice</span>
+          <span className="caption">Calibrarea, matricea de confuzie, alte măsuri, diferențele meci cu meci, unde se descurcă fiecare model</span>
+        </summary>
+        <div className="analysis-stack">
       <div className="analysis-pair">
         <section className="card">
           <h2>Calibrarea</h2>
@@ -405,14 +413,23 @@ function Models({ league }: { league: League }) {
           </p>
         </section>
       </div>
-      <WhenSure models={evaluation.models.filter((m) => m.confident.length > 0)} />
-      {evaluation.bookmakers && <Bookmakers comparison={evaluation.bookmakers} />}
-      <details className="more-details">
-        <summary>
-          <span>Detalii statistice</span>
-          <span className="caption">Diferențele meci cu meci, unde se descurcă fiecare model, cât de des sunt de acord</span>
-        </summary>
-        <div className="analysis-stack">
+      <section className="card">
+        <h2>Alte măsuri ale șanselor</h2>
+        <DataTable
+          columns={[
+            { label: "Model", width: "minmax(150px, 1.6fr)" },
+            { label: "Pierdere logaritmică", width: EVEN },
+            { label: "Eroare de calibrare", width: EVEN },
+          ]}
+          rows={[...evaluation.models]
+            .sort((a, b) => (a.brier ?? Infinity) - (b.brier ?? Infinity))
+            .map((model) => [model.label, number(model.log_loss), number(model.calibration_error)])}
+        />
+        <p className="caption table-note">
+          Pierderea logaritmică pedepsește mai tare o predicție sigură și greșită; eroarea de calibrare spune cât se
+          abat șansele de cât de des s-au întâmplat rezultatele. La amândouă, mai mic e mai bine.
+        </p>
+      </section>
       <section className="card">
         <h2>Diferențele meci cu meci</h2>
         <DataTable

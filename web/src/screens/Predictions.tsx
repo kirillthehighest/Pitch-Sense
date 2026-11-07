@@ -6,6 +6,7 @@
 // a badge (the chip's mark already says hit or miss).
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api";
+import { useChosenModel } from "../chosenModel";
 import { ColumnsHead, MatchRow } from "../components/MatchRow";
 import { ModelSwitch } from "../components/ModelSwitch";
 import { Problem } from "../components/Problem";
@@ -14,7 +15,6 @@ import { SkeletonCard, SkeletonRows } from "../components/Skeleton";
 import { capitalised, integer, isoDay, MONTHS, parseDay, percent, quantity, seasonText } from "../format";
 import { nextModel } from "./Matches";
 import type { Forecast, League, Review, ReviewedMatch } from "../types";
-import { MODELS } from "../types";
 
 type Kind = "all" | "hits" | "misses" | "surprises" | "sure";
 type Order = "recent" | "surprising" | "confident";
@@ -82,7 +82,7 @@ interface Props {
 }
 
 export function Predictions({ league, season, favourite, ready, onSeason, onOpenMatch }: Props) {
-  const [model, setModel] = useState<string>(MODELS[0]);
+  const [model, setModel] = useChosenModel();
   const [kind, setKind] = useState<Kind>("all");
   const [order, setOrder] = useState<Order>("recent");
   const [review, setReview] = useState<Review | null>(null);

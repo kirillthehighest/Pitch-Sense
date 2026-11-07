@@ -125,7 +125,7 @@ export const DISPLAY_NAMES: Record<string, string> = {
   "Greuther Furth": "Greuther Fürth",
   Hercules: "Hércules",
   Hertha: "Hertha BSC",
-  "La Coruna": "Deportivo La Coruña",
+  "La Coruna": "Deportivo",
   Leganes: "Leganés",
   Leverkusen: "Bayer Leverkusen",
   "M'gladbach": "Mönchengladbach",

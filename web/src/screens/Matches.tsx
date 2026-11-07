@@ -4,6 +4,7 @@
 // PitchSense's one palette and the model switch carries each model's record of the season.
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api";
+import { useChosenModel } from "../chosenModel";
 import { Crest } from "../components/Crest";
 import { DayStrip } from "../components/DayStrip";
 import { FeaturedMatch } from "../components/FeaturedMatch";
@@ -30,6 +31,26 @@ function seasonStart(season: string): string {
   return `${season.slice(0, 4)}-07-01`;
 }
 
+const LEGEND_KEY = "pitchsense.legend";
+
+/** Whether the list's legend is open: open until the viewer closes it once (this browser only). */
+function legendShown(): boolean {
+  try {
+    return window.localStorage.getItem(LEGEND_KEY) !== "closed";
+  } catch {
+    return true; // no storage (a private window): the legend stays open
+  }
+}
+
+function rememberLegend(open: boolean): boolean {
+  try {
+    window.localStorage.setItem(LEGEND_KEY, open ? "open" : "closed");
+  } catch {
+    // nothing to remember without storage
+  }
+  return open;
+}
+
 /** The next model of the list, after the last the first: the M key. */
 export function nextModel(model: string): string {
   const index = MODELS.indexOf(model as (typeof MODELS)[number]);
@@ -47,9 +68,9 @@ export function Matches({ leagues, league, preferences, ready, onOpenMatch, onSt
   const [days, setDays] = useState<Days | null>(null);
   const [day, setDay] = useState<string | null>(null);
   const [answer, setAnswer] = useState<Day | null>(null);
-  const [model, setModel] = useState<string>(MODELS[0]);
+  const [model, setModel] = useChosenModel();
   const [onlyLeague, setOnlyLeague] = useState(false);
-  const [legend, setLegend] = useState(false);
+  const [legend, setLegend] = useState(legendShown);
   const favourite = preferences?.favourite?.team ?? null;
 
   useEffect(() => {
@@ -144,7 +165,7 @@ export function Matches({ leagues, league, preferences, ready, onOpenMatch, onSt
             </select>
           </div>
           <div className="control-row switch-row">
-            <button className="legend-toggle" aria-expanded={legend} aria-controls="chip-legend" onClick={() => setLegend(!legend)}>
+            <button className="legend-toggle" aria-expanded={legend} aria-controls="chip-legend" onClick={() => setLegend(rememberLegend(!legend))}>
               Ce înseamnă semnele din listă
             </button>
             <ModelSwitch league={league} model={model} ready={ready} onModel={setModel} />
@@ -159,7 +180,7 @@ export function Matches({ leagues, league, preferences, ready, onOpenMatch, onSt
             <SkeletonRows rows={4} />
           </section>
         )}
-        {groups.map((group, index) => (
+        {groups.map((group) => (
           <section key={group.code} className="card league-day">
             <header>
               <Flag code={group.code} size={34} />
@@ -176,9 +197,8 @@ export function Matches({ leagues, league, preferences, ready, onOpenMatch, onSt
             </header>
             {group.prepared ? (
               <>
-                {index === 0 && (
-                  <ColumnsHead likely={group.forecasts.some((forecast) => likelyScore(forecast, model) !== null)} />
-                )}
+                {/* every league's group names its columns, so a group scrolled to alone is still read */}
+                <ColumnsHead likely={group.forecasts.some((forecast) => likelyScore(forecast, model) !== null)} />
                 <div className="match-list">
                   {group.forecasts.map((forecast) => (
                     <MatchRow

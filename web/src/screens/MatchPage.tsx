@@ -28,9 +28,10 @@ interface Props {
   favourite: string | null;
   onBack: () => void;
   onTeam: (code: string, team: string, season: string) => void;
+  onSimulate?: (code: string, home: string) => void; // a simulated match: change it in the dialog
 }
 
-export function MatchPage({ matchKey, leagues, favourite, onBack, onTeam }: Props) {
+export function MatchPage({ matchKey, leagues, favourite, onBack, onTeam, onSimulate }: Props) {
   const [page, setPage] = useState<Page | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { code, season, day, home, away } = matchKey;
@@ -56,6 +57,11 @@ export function MatchPage({ matchKey, leagues, favourite, onBack, onTeam }: Prop
         <button className="link back" onClick={onBack}>
           ‹ Înapoi
         </button>
+        {page?.forecast.hypothetical && onSimulate && (
+          <button className="button" onClick={() => onSimulate(code, home)}>
+            Schimbă meciul simulat
+          </button>
+        )}
       </div>
       {error && (
         <Problem detail={error}>Meciul nu a putut fi deschis. Întoarce-te la listă și încearcă din nou.</Problem>
@@ -165,6 +171,23 @@ export function consensusText(forecast: Forecast): string {
 
 const FORM_POINTS: Record<string, number> = { W: 3, D: 1, L: 0 };
 
+/** Whether the values listed for logistic regression (points per match, form, Elo; `lead` is
+ * how many favour the home side minus how many favour the away side) agree with its favourite,
+ * and, when they do not, what else it weighs: home advantage, learnt from past matches as its
+ * intercept, and the goal difference and shots on target of the latest home and away matches. */
+export function logisticVerdict(lead: number, favourite: string | undefined, home: string, away: string): string {
+  const others = "golaverajul și șuturile pe poartă din ultimele meciuri acasă și în deplasare";
+  if (favourite === "H" && lead < 0) {
+    return `Aceste cifre o avantajează pe ${away}; modelul o vede totuși favorită pe ${home}, din avantajul terenului propriu, învățat din meciurile trecute, și din celelalte valori pe care le cântărește (${others}).`;
+  }
+  if (favourite === "A" && lead > 0) {
+    return `Aceste cifre o avantajează pe ${home}; modelul o vede totuși favorită pe ${away}, din celelalte valori pe care le cântărește (${others}), chiar cu avantajul terenului de partea gazdelor.`;
+  }
+  if (favourite === "D") return "Diferențele aproape se anulează, așa că modelul socotește egalul cel mai probabil.";
+  if (favourite === undefined) return "";
+  return `Aceste cifre și avantajul terenului propriu, învățat din meciurile trecute, o arată favorită pe ${favourite === "H" ? home : away}.`;
+}
+
 /** Why one model sees this match as it does, from the numbers it starts from (the server's):
  * Elo's ratings and home advantage, Poisson's expected goals, the differences the logistic
  * regression weighs. Each sentence is about this match, not the model in general. */
@@ -197,7 +220,12 @@ export function modelReason(model: string, page: Page): string {
   }
   const perMatch = (points: number, played: number) => (played ? number(points / played, 2) : "–");
   const form = (results: string[]) => results.reduce((sum, result) => sum + (FORM_POINTS[result] ?? 0), 0);
-  return `Cântărește diferențele dintre echipe. În acest sezon: ${homeName} ${perMatch(home.record.points, home.record.played)} puncte pe meci, ${awayName} ${perMatch(away.record.points, away.record.played)}; forma, ${form(home.form)} față de ${form(away.form)} puncte din ultimele 5 meciuri; ratingul Elo, ${integer(Math.round(home.rating))} față de ${integer(Math.round(away.rating))}. Pe lângă ele, a învățat din meciurile trecute cât valorează terenul propriu.`;
+  const listed = `În acest sezon: ${homeName} ${perMatch(home.record.points, home.record.played)} puncte pe meci, ${awayName} ${perMatch(away.record.points, away.record.played)}; forma, ${form(home.form)} față de ${form(away.form)} puncte din ultimele 5 meciuri; ratingul Elo, ${integer(Math.round(home.rating))} față de ${integer(Math.round(away.rating))}.`;
+  const rate = (record: { points: number; played: number }) => (record.played ? record.points / record.played : 0);
+  const lead =
+    Math.sign(rate(home.record) - rate(away.record)) + Math.sign(form(home.form) - form(away.form)) + Math.sign(home.rating - away.rating);
+  const favourite = forecast.predictions.find((p) => p.model === model)?.most_likely;
+  return `Cântărește diferențele dintre echipe. ${listed} ${logisticVerdict(lead, favourite, homeName, awayName)}`;
 }
 
 /** The three models' bars, one under the other, under the score of the head: the most likely
@@ -375,7 +403,7 @@ function PoissonCard({ page }: { page: Page }) {
           <div
             key={`${score.home}-${score.away}`}
             className={`top-score${likelyOf(forecast)?.[0] === score.home && likelyOf(forecast)?.[1] === score.away ? " favourite" : ""}`}
-            title={likelyOf(forecast)?.[0] === score.home && likelyOf(forecast)?.[1] === score.away ? "Cel mai probabil scor al favoritei: cel din lista meciurilor" : undefined}
+            title={likelyOf(forecast)?.[0] === score.home && likelyOf(forecast)?.[1] === score.away ? "Cel mai probabil scor al rezultatului pe care Poisson îl vede favorit" : undefined}
           >
             <strong>
               {score.home}–{score.away}

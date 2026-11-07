@@ -283,6 +283,10 @@ export default function App() {
               favourite={favourite}
               onBack={() => setMatch(null)}
               onTeam={openTeam}
+              onSimulate={(code, home) => {
+                setSimulateFrom({ code, home });
+                setOtherMatch(true);
+              }}
             />
           )}
           <div className="screen-page" hidden={match !== null}>

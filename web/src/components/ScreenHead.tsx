@@ -70,7 +70,12 @@ export function StadiumHead({ league, team, title, description }: Props & { team
           <p>{description}</p>
         </div>
       </div>
-      {team && <span className="credit">Stadionul liderului, {teamName(team)} · Foto: Wikimedia Commons</span>}
+      {team && (
+        <span className="credit">
+          {/* in a narrow window only the photo's credit stays */}
+          <span className="credit-what">Stadionul liderului, {teamName(team)} · </span>Foto: Wikimedia Commons
+        </span>
+      )}
     </section>
   );
 }

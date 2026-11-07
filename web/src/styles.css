@@ -92,7 +92,7 @@ img { display: block; }
 }
 .side-item:hover { background: var(--surface-high); color: var(--text); }
 /* Selection is light on a raised surface; orange means only the model's pick (Phase 26) */
-.side-item.chosen { background: var(--surface-top); color: var(--text); font-weight: 700; box-shadow: inset 3px 0 0 var(--text); }
+.side-item.chosen { background: var(--surface-top); color: var(--text); font-weight: 700; }
 .side-item svg { flex: none; }
 .league-item { height: 52px; color: var(--text); }
 .league-item .country { color: var(--muted); font-size: 12px; font-weight: 500; }
@@ -244,7 +244,7 @@ select, input[type="date"] {
   display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 0 0 2px var(--surface);
 }
 .mark.hit { background: var(--hit); color: var(--night); }
-.mark.miss { background: var(--miss); color: var(--text); }
+.mark.miss { background: var(--night); color: var(--text); box-shadow: 0 0 0 2px var(--surface), inset 0 0 0 1.5px #8e8e98; } /* a dark disc, ringed so it shows on any card */
 
 /* Cards lit by a league's image */
 .image-card { position: relative; overflow: hidden; border-radius: var(--radius-card); isolation: isolate; transition: background-color 500ms ease-out; }
@@ -418,7 +418,7 @@ button.standings-row:hover { background: var(--surface-high); }
 .data-row.head::before { display: none; }
 .data-row > span:first-child { font-weight: 600; }
 .data-row.highlighted { background: var(--surface-top); }
-.best { color: var(--text); font-weight: 800; text-decoration: underline 2px; text-underline-offset: 4px; text-decoration-color: var(--faint); }
+.best { color: var(--text); font-weight: 800; background: var(--surface-top); border-radius: 6px; padding: 1px 6px; } /* a raised tag, not an underline that reads as a link */
 .league-cell { display: inline-flex; align-items: center; gap: 8px; }
 .confusion { display: grid; grid-template-columns: 128px repeat(3, minmax(0, 1fr)); gap: 4px; }
 .confusion-corner { display: flex; align-items: flex-end; padding-bottom: 6px; font-size: 11px; }
@@ -827,7 +827,7 @@ main.screen:focus { outline: none; }
 .day-line { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
 .model-switch { display: inline-flex; gap: 2px; padding: 3px; border-radius: 14px; background: var(--surface); border: 1px solid var(--edge); }
 .model-switch button {
-  display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 12px; border-radius: 11px;
+  white-space: nowrap; display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 12px; border-radius: 11px;
   color: var(--muted); font-weight: 600; font-size: 13px; transition: background 140ms, color 140ms;
 }
 .model-switch button:hover { color: var(--text); background: var(--surface-high); }
@@ -849,8 +849,11 @@ main.screen:focus { outline: none; }
 /* Phase 26, after the third critique */
 p, .caption, h2, h3 { text-wrap: pretty; }
 input::placeholder { color: #8a8a94; opacity: 1; }
-.model-choice { position: relative; display: flex; flex-direction: column; align-items: flex-end; margin-left: auto; padding-bottom: 20px; }
-.model-scope { position: absolute; right: 0; bottom: 0; white-space: nowrap; color: var(--muted); font-size: 12px; font-weight: 600; } /* one line under the switch, reaching left over the free space; never widens the row */
+.model-choice { position: relative; display: flex; flex-direction: column; align-items: flex-end; gap: 3px; margin-left: auto; }
+.model-scope { width: 0; min-width: 100%; text-align: right; color: var(--muted); font-size: 12px; font-weight: 600; } /* wraps within the switch's width, never widens its row */
+/* On Meciuri the row's left holds only the legend toggle: the caption takes one line there */
+.switch-row .model-choice { padding-bottom: 20px; gap: 0; }
+.switch-row .model-scope { position: absolute; right: 0; bottom: 0; width: auto; min-width: 0; white-space: nowrap; }
 .consensus-bar .likely.unsure { background: repeating-linear-gradient(135deg, var(--accent) 0 7px, color-mix(in srgb, var(--accent) 80%, #000) 7px 11px); }
 .consensus-reason p { margin: 0; }
 .consensus-reason .consensus-general { margin-top: 4px; color: rgba(255, 255, 255, 0.62); font-size: 12px; }
@@ -873,7 +876,7 @@ input::placeholder { color: #8a8a94; opacity: 1; }
 .top-score.favourite { position: relative; }
 @media (max-width: 1100px) {
   .screen-head p { max-width: 420px; }
-  .stadium-head .credit { max-width: 240px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .stadium-head .credit-what { display: none; }
 }
 
 /* Phase 26, after the fifth critique: a short window still opens on the day's matches. The intro
@@ -895,3 +898,4 @@ input::placeholder { color: #8a8a94; opacity: 1; }
   .controls .pill { padding: 0 13px; }
   .model-switch button { padding: 0 9px; gap: 6px; }
 }
+.consensus-mark .mark.miss, .chip-legend .mark.miss { box-shadow: inset 0 0 0 1.5px #8e8e98; }

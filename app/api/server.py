@@ -151,7 +151,7 @@ def create_app(backend: Backend) -> FastAPI:
                 favourite = backend.preferences.favourite
                 followed = favourite.team if favourite and favourite.competition == chosen else None
                 featured = featured_match(
-                    chosen_predictions.on_day(featured_day), strength, followed
+                    chosen_predictions.on_day(featured_day), strength, followed, backend.today()
                 )
         return schemas.Day(
             day=day,

@@ -6,6 +6,7 @@
 // from a model's predictions.
 import { useEffect, useState } from "react";
 import { api } from "../api";
+import { useChosenModel } from "../chosenModel";
 import { Crest } from "../components/Crest";
 import { FormSquares } from "../components/FormSquares";
 import { ModelSwitch } from "../components/ModelSwitch";
@@ -14,7 +15,6 @@ import { StadiumHead } from "../components/ScreenHead";
 import { SkeletonTable } from "../components/Skeleton";
 import { dateText, integer, isoDay, number, parseDay, percent, quantity, seasonText, signed, teamName } from "../format";
 import type { League, Projection, SeasonDays, Standings as Table } from "../types";
-import { MODELS } from "../types";
 
 interface Props {
   title: string;
@@ -239,7 +239,7 @@ function ZoneLegend({ code }: { code: string }) {
 
 /** The season in progress played to its end, from one model's predictions (server side). */
 function ProjectedTable({ league, favourite, onTeam }: { league: League; favourite: string | null; onTeam: (team: string) => void }) {
-  const [model, setModel] = useState<string>(MODELS[0]);
+  const [model, setModel] = useChosenModel();
   const [projection, setProjection] = useState<Projection | null>(null);
   const [error, setError] = useState<string | null>(null);
 
