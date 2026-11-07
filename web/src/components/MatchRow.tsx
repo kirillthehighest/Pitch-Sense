@@ -1,6 +1,6 @@
 // One match of a list, as in the score apps the team chose: the kickoff (or "Final"), the home
 // team on the left and the away team on the right of the score, and the chosen model's three
-// probabilities; the most likely is filled with the match's league accent and, once the match is
+// probabilities; the most likely is filled with PitchSense's accent and, once the match is
 // played, carries a drawn mark: a light disc with a tick (it happened) or a dark one with a cross
 // (it did not), so the marks never borrow a league's green or red. The chip of the result that
 // happened is ringed. A match whose day is past but has no result yet says so (Phase 25).
@@ -111,7 +111,7 @@ export function ColumnsHead({ stacked = false, extra = false, likely = false }: 
     <div className={`columns-head${extra ? " with-extra" : ""}`} aria-hidden="true">
       <span />
       <span className="columns-teams">
-        {likely && <span title="Cel mai probabil scor al rezultatului ales de model, din grila de scoruri Poisson">scorul alegerii</span>}
+        {likely && <span title="Cel mai probabil scor dacă se confirmă rezultatul ales de model (din grila de scoruri Poisson)">scorul favoritei</span>}
       </span>
       <span className="columns-chips">
         <span>Gazde</span>
@@ -157,7 +157,7 @@ export function rowName(forecast: Forecast, prediction: Prediction | undefined):
   const score = forecast.result !== null ? ` ${forecast.home_goals}–${forecast.away_goals}` : "";
   const day = `${forecast.date.slice(8, 10)}.${forecast.date.slice(5, 7)}`;
   const likely = prediction ? likelyScore(forecast, prediction.model) : null;
-  const state = forecast.result !== null ? "" : `, ${statusText(forecast)}${likely ? `, scorul alegerii ${likely[0]}–${likely[1]}` : ""}`;
+  const state = forecast.result !== null ? "" : `, ${statusText(forecast)}${likely ? `, scorul favoritei ${likely[0]}–${likely[1]}` : ""}`;
   const chances = prediction
     ? OUTCOMES.map((outcome) => chipLabel(prediction, outcome, forecast.result)).join("; ")
     : "fără predicție";
@@ -170,7 +170,7 @@ function CentreScore({ forecast, model }: { forecast: Forecast; model: string })
   const likely = likelyScore(forecast, model);
   if (!likely) return <span className="score empty">–</span>;
   return (
-    <span className="score ghost" title={`Scorul alegerii: cel mai probabil scor al rezultatului ales de model, ${likely[0]}–${likely[1]}`}>
+    <span className="score ghost" title={`Scorul favoritei: cel mai probabil scor dacă se confirmă rezultatul ales de model, ${likely[0]}–${likely[1]}`}>
       {likely[0]}–{likely[1]}
     </span>
   );
@@ -238,7 +238,7 @@ export function ChipLegend() {
         <HitMark hit={false} /> ratat
       </span>
       <span>
-        <i className="legend-ghost">2–1</i> scorul alegerii: cel mai probabil scor al rezultatului ales
+        <i className="legend-ghost">2–1</i> scorul favoritei: cel mai probabil scor dacă se confirmă rezultatul ales
       </span>
     </p>
   );

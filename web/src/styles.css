@@ -906,4 +906,4 @@ input::placeholder { color: #8a8a94; opacity: 1; }
   .sidebar-label { padding-top: 10px; padding-bottom: 6px; }
 }
 /* Long notes keep a readable measure (Analiză → Surse) */
-.source p { max-width: 75ch; }
+.source p { max-width: 600px; } /* about 90 characters a line */

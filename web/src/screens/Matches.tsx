@@ -14,6 +14,7 @@ import { ChipLegend, ColumnsHead, isPending, likelyScore, MatchRow } from "../co
 import { usePageKeys } from "../components/Shortcuts";
 import { SkeletonCard, SkeletonRows } from "../components/Skeleton";
 import { ModelSwitch } from "../components/ModelSwitch";
+import { Problem } from "../components/Problem";
 import { capitalised, dayName, isoDay, parseDay, quantity, seasonText, shortDateText, teamName } from "../format";
 import type { Day, Days, Forecast, League, Preferences, Standings } from "../types";
 import { MODELS } from "../types";
@@ -78,18 +79,29 @@ export function Matches({ leagues, league, preferences, ready, onOpenMatch, onSt
   const [model, setModel] = useChosenModel();
   const [onlyLeague, setOnlyLeague] = useState(false);
   const [legend, setLegend] = useState(legendShown);
+  const [problem, setProblem] = useState<string | null>(null); // a failed request: said, never an endless skeleton
+  const [attempt, setAttempt] = useState(0);
   const favourite = preferences?.favourite?.team ?? null;
 
   useEffect(() => {
-    api.days().then((found) => {
-      setDays(found);
-      setDay((current) => current ?? found.next_day);
-    });
-  }, [ready]);
+    setProblem(null);
+    api
+      .days()
+      .then((found) => {
+        setDays(found);
+        setDay((current) => current ?? found.next_day);
+      })
+      .catch((reason: Error) => setProblem(reason.message));
+  }, [ready, attempt]);
 
   useEffect(() => {
-    if (day) api.day(day, league.code).then(setAnswer);
-  }, [day, league.code, ready]);
+    if (!day) return;
+    setProblem(null);
+    api
+      .day(day, league.code)
+      .then(setAnswer)
+      .catch((reason: Error) => setProblem(reason.message));
+  }, [day, league.code, ready, attempt]);
 
   const matchDays = useMemo(() => new Set(days?.days ?? []), [days]);
   const seasonOfDay = useMemo(() => {
@@ -107,6 +119,12 @@ export function Matches({ leagues, league, preferences, ready, onOpenMatch, onSt
     return true;
   });
 
+  const retry = (
+    <Problem detail={problem} onRetry={() => setAttempt((count) => count + 1)}>
+      Meciurile nu au putut fi citite de la serverul aplicației.
+    </Problem>
+  );
+  if (problem && (!days || !day || !answer)) return retry;
   if (!days || !day) {
     return (
       <div className="matches-layout">

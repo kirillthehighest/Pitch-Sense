@@ -61,13 +61,30 @@ export function searchTeams(teams: Found[], query: string, limit = 8): Found[] {
   return [...matching].sort((a, b) => starts(a) - starts(b) || a.team.localeCompare(b.team)).slice(0, limit);
 }
 
+/** Two clubs of one league typed together ("arsenal chelsea", "Real Madrid - Barcelona"): the
+ * first words name the home side, the rest the away side; null when no split names two clubs. */
+export function searchPair(teams: Found[], query: string): { home: Found; away: Found } | null {
+  const words = query.replace(/\s+(-|–|vs\.?)\s+/gi, " ").trim().split(/\s+/);
+  for (let split = 1; split < words.length; split += 1) {
+    const home = searchTeams(teams, words.slice(0, split).join(" "), 1)[0];
+    if (!home) continue;
+    const away = searchTeams(
+      teams.filter((item) => item.code === home.code && item.team !== home.team),
+      words.slice(split).join(" "),
+      1,
+    )[0];
+    if (away) return { home, away };
+  }
+  return null;
+}
+
 interface Props {
   leagues: League[];
   current?: string | null; // the league on screen: its clubs come first
   favourite?: string | null; // "your team": first of all
   onClose: () => void;
   onOpen: (code: string, team: string, season: string) => void;
-  onSimulate: (code: string | null, home: string | null) => void; // a match from scratch, or with this team at home
+  onSimulate: (code: string | null, home: string | null, away?: string | null) => void; // from scratch, with this team at home, or these two
 }
 
 /** The command field's one dialog (Phase 26): find a club and open its page, or simulate a match,
@@ -98,12 +115,14 @@ export function TeamSearch({ leagues, current = null, favourite = null, onClose,
   }, [leagues, current, favourite]);
 
   const shown = useMemo(() => searchTeams(teams, query, 7), [teams, query]);
+  // two clubs typed together, only when the words name no single club ("real madrid" is one)
+  const pair = useMemo(() => (shown.length === 0 ? searchPair(teams, query) : null), [teams, query, shown.length]);
   // typing a name points Enter at the first club found; an empty field, at the simulation
-  useEffect(() => setChosen(query.trim() && shown.length ? 1 : 0), [query, shown.length]);
+  useEffect(() => setChosen(query.trim() && shown.length && !pair ? 1 : 0), [query, shown.length, pair]);
   const rows = shown.length + 1; // the simulation first, then the clubs
 
   const choose = (index: number, simulate: boolean) => {
-    if (index === 0) return onSimulate(null, null);
+    if (index === 0) return pair ? onSimulate(pair.home.code, pair.home.team, pair.away.team) : onSimulate(null, null);
     const item = shown[index - 1];
     if (!item) return;
     if (simulate) onSimulate(item.code, item.team);
@@ -154,8 +173,8 @@ export function TeamSearch({ leagues, current = null, favourite = null, onClose,
               <SimulateIcon />
             </span>
             <span className="search-team">
-              Simulează un meci
-              <small>Oricare două echipe ale unui sezon, la o zi aleasă</small>
+              {pair ? `Simulează ${teamName(pair.home.team)} – ${teamName(pair.away.team)}` : "Simulează un meci"}
+              <small>{pair ? `${pair.home.league}: alegi apoi ziua` : "Oricare două echipe ale unui sezon, la o zi aleasă"}</small>
             </span>
             <kbd>S</kbd>
           </li>
@@ -193,7 +212,7 @@ export function TeamSearch({ leagues, current = null, favourite = null, onClose,
               </button>
             </li>
           ))}
-          {teams.length > 0 && shown.length === 0 && <li className="search-empty">Nicio echipă cu acest nume.</li>}
+          {teams.length > 0 && shown.length === 0 && !pair && <li className="search-empty">Nicio echipă cu acest nume.</li>}
           {teams.length === 0 && <li className="search-empty">Se încarcă echipele…</li>}
         </ul>
         <p className="caption search-hint">

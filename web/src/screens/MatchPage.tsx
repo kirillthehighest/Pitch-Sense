@@ -99,6 +99,7 @@ function MatchHead({
   const [model] = useChosenModel();
   const pick = forecast.predictions.find((p) => p.model === model);
   const pickScore = !played && !pending ? pick?.likely_score : null;
+  const top = page.poisson?.top_scores[0];
   const when = withKickoff(
     capitalised(longDateText(parseDay(forecast.date))),
     forecast.kickoff,
@@ -138,9 +139,20 @@ function MatchHead({
             {pending ? "Fără rezultat" : page.status}
           </span>
           {pick && pickScore && (
-            // the same outlined score as in the lists: the score of the chosen model's pick
-            <span className="head-likely" title="Cel mai probabil scor al rezultatului ales de model, din grila de scoruri Poisson">
-              scorul alegerii <b>{pickScore[0]}–{pickScore[1]}</b> · {pick.label}
+            // both scores in one line: Poisson's likeliest overall, then the outlined one of the
+            // lists, the likeliest if the chosen model's pick comes true
+            <span className="head-likely">
+              {top && top.home === pickScore[0] && top.away === pickScore[1] ? (
+                "cel mai probabil scor"
+              ) : (
+                <>
+                  {top && `cel mai probabil scor ${top.home}–${top.away} · `}
+                  {pick.most_likely === "D" ? "la egal" : `dacă câștigă ${teamName(pick.most_likely === "H" ? forecast.home_team : forecast.away_team)}`}
+                </>
+              )}{" "}
+              <b>
+                {pickScore[0]}–{pickScore[1]}
+              </b>
             </span>
           )}
         </div>

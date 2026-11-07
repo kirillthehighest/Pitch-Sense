@@ -50,7 +50,7 @@ export default function App() {
   const seenVersion = useRef<number | null>(null); // the server's data the screens show
   const [notice, setNotice] = useState<{ text: string; problem: boolean; detail?: string } | null>(null);
   const [search, setSearch] = useState(false);
-  const [simulateFrom, setSimulateFrom] = useState<{ code: string; home: string } | null>(null); // a team picked in the search
+  const [simulateFrom, setSimulateFrom] = useState<{ code: string; home: string; away?: string } | null>(null); // a team picked in the search
   const [shortcuts, setShortcuts] = useState(false);
   const [generation, setGeneration] = useState(0); // a new one after each update of the data
   const scroller = useRef<HTMLElement>(null);
@@ -422,6 +422,7 @@ export default function App() {
           leagues={leagues}
           league={leagues.find((item) => item.code === simulateFrom?.code) ?? current}
           home={simulateFrom?.home ?? null}
+          away={simulateFrom?.away ?? null}
           onClose={() => {
             setOtherMatch(false);
             setSimulateFrom(null);
@@ -437,9 +438,9 @@ export default function App() {
           leagues={leagues}
           current={league}
           favourite={favourite}
-          onSimulate={(code, home) => {
+          onSimulate={(code, home, away) => {
             setSearch(false);
-            setSimulateFrom(code && home ? { code, home } : null);
+            setSimulateFrom(code && home ? { code, home, away: away ?? undefined } : null);
             setOtherMatch(true);
           }}
           onClose={() => setSearch(false)}
