@@ -6,15 +6,14 @@
 // from a model's predictions.
 import { useEffect, useState } from "react";
 import { api } from "../api";
-import { useChosenModel } from "../chosenModel";
 import { Crest } from "../components/Crest";
 import { FormSquares } from "../components/FormSquares";
-import { ModelSwitch } from "../components/ModelSwitch";
 import { Problem } from "../components/Problem";
 import { StadiumHead } from "../components/ScreenHead";
 import { SkeletonTable } from "../components/Skeleton";
-import { dateText, integer, isoDay, number, parseDay, percent, quantity, seasonText, signed, teamName } from "../format";
+import { dateText, integer, isoDay, number, parseDay, percent, seasonText, signed, teamName } from "../format";
 import type { League, Projection, SeasonDays, Standings as Table } from "../types";
+import { MODEL_LABELS, MODELS } from "../types";
 
 interface Props {
   title: string;
@@ -207,7 +206,7 @@ export function Standings({ title, description, league, season, favourite, onSea
                   );
                 })}
               </div>
-              {current.in_progress && <ZoneLegend code={league.code} />}
+              {current.in_progress && <ZoneLegend />}
               <p className="caption">
                 M meciuri, V victorii, E egaluri, Î înfrângeri, GM goluri marcate, GP goluri primite. La egalitate de
                 puncte decid golaverajul, apoi golurile marcate; deducerile de puncte nu sunt incluse.
@@ -220,18 +219,15 @@ export function Standings({ title, description, league, season, favourite, onSea
   );
 }
 
-/** The leagues whose third-from-bottom club plays a relegation play-off. */
-const PLAY_OFF_LEAGUES = ["D1", "F1"];
-
-function ZoneLegend({ code }: { code: string }) {
+function ZoneLegend() {
   return (
     <div className="zone-legend">
       <span>
         <i className="zone-key top" /> Locurile 1–{TOP_PLACES}: Liga Campionilor
       </span>
       <span>
-        <i className="zone-key bottom" /> Ultimele {BOTTOM_PLACES}: retrogradare
-        {PLAY_OFF_LEAGUES.includes(code) && " (a treia de la coadă joacă barajul)"}
+        <i className="zone-key bottom" /> Ultimele {BOTTOM_PLACES}: retrogradare (în Bundesliga și Ligue 1, a treia de la
+        coadă joacă barajul)
       </span>
     </div>
   );
@@ -239,7 +235,7 @@ function ZoneLegend({ code }: { code: string }) {
 
 /** The season in progress played to its end, from one model's predictions (server side). */
 function ProjectedTable({ league, favourite, onTeam }: { league: League; favourite: string | null; onTeam: (team: string) => void }) {
-  const [model, setModel] = useChosenModel();
+  const [model, setModel] = useState<string>(MODELS[0]);
   const [projection, setProjection] = useState<Projection | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -268,11 +264,20 @@ function ProjectedTable({ league, favourite, onTeam }: { league: League; favouri
         <div>
           <h2>Cum s-ar putea termina {league.name} {seasonText(projection.season)}</h2>
           <p className="caption">
-            Cele {quantity(projection.fixtures, "meci rămas", "meciuri rămase")}, jucate de {integer(projection.simulations)} de ori cu
+            Cele {integer(projection.fixtures)} meciuri rămase, jucate de {integer(projection.simulations)} de ori cu
             probabilitățile modelului. Ordinea: punctele așteptate la final.
           </p>
         </div>
-        <ModelSwitch league={league} model={model} ready="" onModel={setModel} />
+        <label className="caption" htmlFor="projection-model">
+          Model
+        </label>
+        <select id="projection-model" value={model} onChange={(event) => setModel(event.target.value)}>
+          {MODELS.map((item) => (
+            <option key={item} value={item}>
+              {MODEL_LABELS[item]}
+            </option>
+          ))}
+        </select>
       </div>
       <div className="projection">
         <div className="projection-row head" aria-hidden="true">
@@ -324,7 +329,7 @@ function ProjectedTable({ league, favourite, onTeam }: { league: League; favouri
           </button>
         ))}
       </div>
-      <ZoneLegend code={league.code} />
+      <ZoneLegend />
       <p className="caption">
         Fiecare meci rămas se termină cu victoria gazdelor, egal sau victoria oaspeților, cu șansele date de{" "}
         {projection.label}. Sunt simulate doar rezultatele, nu și golurile, așa că la egalitate de puncte rămâne ordinea

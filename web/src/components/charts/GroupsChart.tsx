@@ -21,29 +21,15 @@ function GroupTooltip({ active, payload, names }: { active?: boolean; payload?: 
   );
 }
 
-/** A group's centre: a cross in the group's colour, named beside it (Phase 26). */
-function Centre({ cx = 0, cy = 0, fill, name }: { cx?: number; cy?: number; fill?: string; name?: string }) {
+function Cross({ cx = 0, cy = 0, fill }: { cx?: number; cy?: number; fill?: string }) {
   const size = 7;
   return (
-    <g>
-      <path
-        d={`M${cx - size},${cy - size}L${cx + size},${cy + size}M${cx + size},${cy - size}L${cx - size},${cy + size}`}
-        stroke={SURFACE}
-        strokeWidth={6}
-        strokeLinecap="round"
-      />
-      <path
-        d={`M${cx - size},${cy - size}L${cx + size},${cy + size}M${cx + size},${cy - size}L${cx - size},${cy + size}`}
-        stroke={fill}
-        strokeWidth={3}
-        strokeLinecap="round"
-      />
-      {name && (
-        <text x={cx + 12} y={cy - 10} fill={fill} fontSize={12} fontWeight={700} stroke={SURFACE} strokeWidth={3} paintOrder="stroke">
-          {name}
-        </text>
-      )}
-    </g>
+    <path
+      d={`M${cx - size},${cy - size}L${cx + size},${cy + size}M${cx + size},${cy - size}L${cx - size},${cy + size}`}
+      stroke={fill}
+      strokeWidth={3}
+      strokeLinecap="round"
+    />
   );
 }
 
@@ -130,7 +116,7 @@ export function GroupsChart({ groups, team, accent }: Props) {
             key={`centre-${group}`}
             data={groups.centres.filter((centre) => centre.group === group)}
             fill={GROUP_COLOURS[group]}
-            shape={<Centre name={groups.names[String(group)]} />}
+            shape={<Cross />}
             isAnimationActive={false}
           />
         ))}

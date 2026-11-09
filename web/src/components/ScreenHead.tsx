@@ -1,9 +1,9 @@
 // The head of a screen other than Meciuri (layout A, the team's choice). Since Phase 25 each
-// screen has its own: Predicții a slim strip lit by the league's image; Analiză a plain head
-// naming the three models in their identity colours, the screen's subject; Clasament the stadium
-// of the league's leader (in Standings); Echipe the club's own head (in Team).
+// screen has its own: Predicții a slim strip lit by the league's image; Analiză the league's deep
+// colour with the three models in their identity colours, the screen's subject; Clasament the
+// stadium of the league's leader (in Standings); Echipe the club's own head (in Team).
 import { teamName } from "../format";
-import { IMAGE_FILL, MODEL_COLOURS } from "../theme";
+import { MODEL_COLOURS, themeFor } from "../theme";
 import type { League } from "../types";
 import { MODEL_LABELS, MODELS } from "../types";
 import { Flag } from "./Flag";
@@ -45,7 +45,7 @@ export function ScreenHead({ league, title, description, variant = "league" }: P
       code={league.code}
       top={league.photo_top}
       credit={league.photo_credit}
-      brand={IMAGE_FILL}
+      brand={themeFor(league.code).brand}
       share={0.5}
       maxWidth={640}
       className="screen-head"
@@ -70,12 +70,7 @@ export function StadiumHead({ league, team, title, description }: Props & { team
           <p>{description}</p>
         </div>
       </div>
-      {team && (
-        <span className="credit">
-          {/* in a narrow window only the photo's credit stays */}
-          <span className="credit-what">Stadionul liderului, {teamName(team)} · </span>Foto: Wikimedia Commons
-        </span>
-      )}
+      {team && <span className="credit">Stadionul liderului, {teamName(team)} · Foto: Wikimedia Commons</span>}
     </section>
   );
 }

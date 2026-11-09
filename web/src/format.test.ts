@@ -71,12 +71,3 @@ describe("the clubs' names on screen", () => {
     expect(teamName("Barcelona")).toBe("Barcelona");
   });
 });
-
-describe("the stadiums' names on screen", () => {
-  it("puts English stadium names in Romanian and leaves the others", async () => {
-    const { stadiumName } = await import("./format");
-    expect(stadiumName("Mestalla Stadium")).toBe("Stadionul Mestalla");
-    expect(stadiumName("Old Trafford")).toBe("Old Trafford");
-    expect(stadiumName("Stade Vélodrome")).toBe("Stade Vélodrome");
-  });
-});

@@ -1,13 +1,13 @@
-// The side bar (layout A, chosen by the team): the logo, the screens, the leagues, and at the
-// bottom "your team", the update of the season in progress and the sources. Searching a team and
-// simulating a match have one entry, the command field over the screen (Phase 26). In the narrow rail every item keeps its name as a tooltip.
+// The side bar (layout A, chosen by the team): the logo, the screens, the leagues, the tools
+// (Phase 25: simulate a match, find a team), and at the bottom "your team", the update of the
+// season in progress and the sources. In the narrow rail every item keeps its name as a tooltip.
 import type { ReactNode } from "react";
 import { teamName } from "../format";
 import type { League, Preferences } from "../types";
 import { Crest } from "./Crest";
 import { Flag } from "./Flag";
 import {
-  AnalysisIcon, MatchesIcon, PredictionsIcon, RefreshIcon, StandingsIcon, TeamIcon,
+  AnalysisIcon, MatchesIcon, PredictionsIcon, RefreshIcon, SearchIcon, SimulateIcon, StandingsIcon, TeamIcon,
 } from "./Icons";
 import { Lockup } from "./Logo";
 
@@ -58,6 +58,8 @@ interface Props {
   updating: boolean;
   updatedAt: string | null; // when the season in progress was downloaded (UTC, ISO)
   compact: boolean; // the narrow rail: names only as tooltips
+  onSimulate: () => void;
+  onSearch: () => void;
   onShortcuts: () => void;
 }
 
@@ -110,6 +112,22 @@ export function Sidebar(props: Props) {
           </button>
         ))}
       </nav>
+      <div className="sidebar-label">Unelte</div>
+      <button className="side-item" onClick={props.onSimulate} aria-label={props.compact ? "Simulează un meci" : undefined} title={tip("Simulează un meci")}>
+        <SimulateIcon />
+        <span className="side-text">Simulează un meci</span>
+      </button>
+      <button
+        className="side-item"
+        onClick={props.onSearch}
+        aria-label={props.compact ? "Caută o echipă" : undefined}
+        aria-keyshortcuts="/"
+        title={props.compact ? "Caută o echipă (/)" : "Tasta /"}
+      >
+        <SearchIcon />
+        <span className="side-text">Caută o echipă</span>
+        <kbd className="side-text">/</kbd>
+      </button>
       <div className="spacer" />
       <button
         className="side-item"

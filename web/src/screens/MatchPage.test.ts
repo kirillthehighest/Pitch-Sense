@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import type { Forecast, Outcome, Prediction } from "../types";
-import { consensusText, favouriteScore, logisticVerdict, modelReason } from "./MatchPage";
+import { consensusText } from "./MatchPage";
 
 function prediction(model: string, most_likely: Outcome): Prediction {
-  return { model, label: model, home: 0.4, draw: 0.3, away: 0.3, most_likely, hit: null, expected_goals: null, likely_score: null };
+  return { model, label: model, home: 0.4, draw: 0.3, away: 0.3, most_likely, hit: null, expected_goals: null };
 }
 
 function match(predictions: Prediction[]): Forecast {
@@ -27,76 +27,27 @@ function match(predictions: Prediction[]): Forecast {
 describe("the models' consensus in the match head", () => {
   it("names the club all models favour", () => {
     const all = [prediction("Elo", "H"), prediction("Poisson", "H"), prediction("Logistic regression", "H")];
-    expect(consensusText(match(all))).toBe("Toate cele trei modele o văd favorită pe Napoli");
+    expect(consensusText(match(all))).toBe("Toate cele trei modele mizează pe Napoli");
   });
 
   it("counts a majority, a draw included", () => {
     const two = [prediction("Elo", "D"), prediction("Poisson", "D"), prediction("Logistic regression", "A")];
-    expect(consensusText(match(two))).toBe("2 din 3 modele văd egalul cel mai probabil");
+    expect(consensusText(match(two))).toBe("2 din 3 modele mizează pe egal");
   });
 
   it("says when the favourite leads by a hair", () => {
     const close = [{ ...prediction("Elo", "A"), home: 0.36, draw: 0.27, away: 0.37 }];
-    expect(consensusText(match(close))).toBe("Singurul model o vede favorită pe Lazio, la limită");
+    expect(consensusText(match(close))).toBe("Singurul model mizează pe Lazio, la limită");
   });
 
   it("writes the clubs' full names", () => {
     const forecast = { ...match([prediction("Elo", "H")]), home_team: "Ath Madrid" };
-    expect(consensusText(forecast)).toBe("Singurul model o vede favorită pe Atlético Madrid");
+    expect(consensusText(forecast)).toBe("Singurul model mizează pe Atlético Madrid");
   });
 
   it("says when the models disagree or none could predict", () => {
     const split = [prediction("Elo", "H"), prediction("Poisson", "D"), prediction("Logistic regression", "A")];
     expect(consensusText(match(split))).toBe("Modelele nu cad de acord");
     expect(consensusText(match([]))).toBe("Niciun model nu are destule meciuri anterioare");
-  });
-});
-
-describe("why a model sees a match as it does", () => {
-  const page = {
-    forecast: match([{ ...prediction("Poisson", "H"), likely_score: [1, 0] as [number, number] }]),
-    home: { team: "Napoli", position: 2, record: { played: 10, points: 22 }, form: ["W", "D", "L", "W", "W"], rating: 1650 },
-    away: { team: "Lazio", position: 8, record: { played: 10, points: 14 }, form: ["L", "L", "D", "W", "D"], rating: 1580 },
-    poisson: { expected_goals: [1.62, 0.94], top_scores: [{ home: 1, away: 1, probability: 0.12 }], grid: [[0.08, 0.06], [0.11, 0.12]] },
-    elo_home_advantage: 100,
-  } as unknown as Parameters<typeof modelReason>[1];
-
-  it("states Elo's ratings and the home advantage", () => {
-    expect(modelReason("Elo", page)).toBe(
-      "Ratingul Elo: Napoli 1.650, Lazio 1.580. Terenul propriu valorează 100 de puncte, deci Napoli pornește cu 170 de puncte înainte.",
-    );
-  });
-
-  it("states Poisson's expected goals and its favourite's likeliest score", () => {
-    expect(modelReason("Poisson", page)).toContain("Goluri așteptate: Napoli 1,62, Lazio 0,94.");
-    expect(modelReason("Poisson", page)).toContain("Îl vede favorit pe Napoli; dintre victoriile gazdelor, cel mai probabil e 1–0");
-  });
-
-  it("states the differences the logistic regression weighs", () => {
-    expect(modelReason("Logistic regression", page)).toContain("Napoli 2,20 puncte pe meci, Lazio 1,40");
-    expect(modelReason("Logistic regression", page)).toContain("forma, 10 față de 5 puncte");
-    expect(modelReason("Logistic regression", page)).toContain("ratingul Elo, 1.650 față de 1.580.");
-  });
-
-  it("never contradicts the logistic regression's favourite", () => {
-    // every listed value favours the away side, yet the model favours the home side
-    expect(logisticVerdict(-3, "H", "Leeds", "Tottenham")).toBe(
-      "Aceste cifre o avantajează pe Tottenham; modelul o vede totuși favorită pe Leeds, din avantajul terenului propriu, învățat din meciurile trecute, și din celelalte valori pe care le cântărește (golaverajul și șuturile pe poartă din ultimele meciuri acasă și în deplasare).",
-    );
-    expect(logisticVerdict(2, "A", "Leeds", "Tottenham")).toContain("o vede totuși favorită pe Tottenham");
-    expect(logisticVerdict(3, "H", "Leeds", "Tottenham")).toContain("o arată favorită pe Leeds");
-    expect(logisticVerdict(0, "D", "Leeds", "Tottenham")).toContain("egalul cel mai probabil");
-  });
-});
-
-describe("Poisson's favourite result told as a score", () => {
-  it("is the likeliest cell of that result on the grid", () => {
-    const grid = [
-      [0.1, 0.08],
-      [0.11, 0.13],
-    ];
-    expect(favouriteScore(grid, "H")).toEqual([1, 0]);
-    expect(favouriteScore(grid, "D")).toEqual([1, 1]);
-    expect(favouriteScore(grid, "A")).toEqual([0, 1]);
   });
 });

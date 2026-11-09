@@ -639,27 +639,6 @@ def test_the_match_of_the_day_is_your_teams_else_the_strongest(two_seasons):
     assert featured_match([], strength) is None
 
 
-def test_the_match_of_the_day_is_never_one_still_waiting_for_its_result(two_seasons):
-    service = PredictionService(two_seasons, min_training_matches=3)
-    days = service.match_days()
-    first = service.on_day(days[5])[0]
-    second = replace(service.on_day(days[6])[0], match_date=first.match_date)  # the same day
-    power = {"Alpha": 4, "Bravo": 3, "Charlie": 2, "Delta": 1}
-
-    def strength(forecast):
-        return power[forecast.home_team] + power[forecast.away_team]
-
-    strongest = featured_match([first, second], strength)
-    waiting = [replace(f, played=None) if f is strongest else f for f in (first, second)]
-    later = strongest.match_date + timedelta(days=1)
-
-    chosen = featured_match(waiting, strength, today=later)
-    assert chosen.played is not None  # another match of the day is shown
-    assert featured_match(waiting, strength, today=strongest.match_date).played is None  # today
-    only = [replace(strongest, played=None)]
-    assert featured_match(only, strength, today=later) is only[0]  # nothing else to show
-
-
 def test_the_nearest_match_day_is_this_one_else_the_next_else_the_last(two_seasons):
     service = PredictionService(two_seasons, min_training_matches=3)
     days = service.match_days()

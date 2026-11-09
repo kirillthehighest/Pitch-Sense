@@ -11,7 +11,7 @@ export const SHORTCUTS: [string[], string][] = [
   [["/"], "Caută o echipă"],
   [["S"], "Simulează un meci"],
   [["?"], "Scurtăturile"],
-  [["Esc"], "Închide fereastra deschisă sau întoarce de pe pagina meciului"],
+  [["Esc"], "Închide fereastra deschisă"],
 ];
 
 /** A key press meant for the page: no modifier, not in a field, no modal dialog open. */
@@ -22,15 +22,13 @@ export function isPageKey(event: KeyboardEvent): boolean {
   return !document.querySelector("dialog[open]");
 }
 
-/** Calls ``onKey`` with every page key while the component is shown; the latest callback wins.
- * A key the callback handles (it returns true) goes no further: "/" or "S" must not type
- * themselves into the dialog they open. */
-export function usePageKeys(onKey: (key: string, event: KeyboardEvent) => boolean): void {
+/** Calls ``onKey`` with every page key while the component is shown; the latest callback wins. */
+export function usePageKeys(onKey: (key: string, event: KeyboardEvent) => void): void {
   const latest = useRef(onKey);
   latest.current = onKey;
   useEffect(() => {
     const listen = (event: KeyboardEvent) => {
-      if (isPageKey(event) && latest.current(event.key, event)) event.preventDefault();
+      if (isPageKey(event)) latest.current(event.key, event);
     };
     document.addEventListener("keydown", listen);
     return () => document.removeEventListener("keydown", listen);

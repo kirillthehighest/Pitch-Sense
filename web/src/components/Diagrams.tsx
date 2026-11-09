@@ -7,7 +7,7 @@ const INK = "#F5F5F7";
 const MUTED = "#9C9CA6";
 const LINE = "#2A2A30";
 const RAISED = "#1E1E23";
-const label = { fill: MUTED, fontSize: 12, fontFamily: "inherit", fontWeight: 600 } as const;
+const label = { fill: MUTED, fontSize: 11, fontFamily: "inherit", fontWeight: 600 } as const;
 
 /** Elo: the winner takes points from the loser, more after beating a stronger side. */
 export function EloDiagram() {
@@ -126,7 +126,7 @@ export function LogisticDiagram() {
 
 /** K-Means: clubs as points, four centres, each club joining its nearest. */
 export function KMeansDiagram() {
-  const groups = ["#FFD166", "#5CC8FF", "#B794F6", "#8A94A6"]; // the colours of the groups chart
+  const groups = ["#D2E2FF", "#8EB4FF", "#5585F0", "#3A63C9"];
   const centres: [number, number][] = [
     [262, 26],
     [196, 52],
