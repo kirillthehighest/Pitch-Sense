@@ -2,7 +2,7 @@
 // before that day (the hypothetical match of Phase 19). The answer opens on the match page.
 import { type FormEvent, useEffect, useState } from "react";
 import { api } from "../api";
-import { seasonText, teamName } from "../format";
+import { byShownName, seasonText, teamName } from "../format";
 import type { League, MatchKey, SeasonDays } from "../types";
 import { Flag } from "./Flag";
 import { Modal } from "./Modal";
@@ -33,9 +33,10 @@ export function OtherMatch({ leagues, league, onClose, onOpen }: Props) {
       .season(code, season)
       .then((found) => {
         if (!live) return;
-        setSeasonDays(found);
-        setHome(found.teams[0]);
-        setAway(found.teams[1] ?? found.teams[0]);
+        const teams = byShownName(found.teams);
+        setSeasonDays({ ...found, teams });
+        setHome(teams[0]);
+        setAway(teams[1] ?? teams[0]);
         setDay(found.suggested_day);
       })
       .catch((reason: Error) => {

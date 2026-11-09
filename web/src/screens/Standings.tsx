@@ -6,6 +6,7 @@
 // from a model's predictions.
 import { useEffect, useState } from "react";
 import { api } from "../api";
+import { useChosenModel } from "../chosenModel";
 import { Crest } from "../components/Crest";
 import { FormSquares } from "../components/FormSquares";
 import { Problem } from "../components/Problem";
@@ -206,7 +207,7 @@ export function Standings({ title, description, league, season, favourite, onSea
                   );
                 })}
               </div>
-              {current.in_progress && <ZoneLegend />}
+              {current.in_progress && <ZoneLegend code={league.code} />}
               <p className="caption">
                 M meciuri, V victorii, E egaluri, Î înfrângeri, GM goluri marcate, GP goluri primite. La egalitate de
                 puncte decid golaverajul, apoi golurile marcate; deducerile de puncte nu sunt incluse.
@@ -219,15 +220,18 @@ export function Standings({ title, description, league, season, favourite, onSea
   );
 }
 
-function ZoneLegend() {
+/** The leagues whose third-from-bottom club plays a relegation play-off. */
+const PLAY_OFF_LEAGUES = ["D1", "F1"];
+
+function ZoneLegend({ code }: { code: string }) {
   return (
     <div className="zone-legend">
       <span>
         <i className="zone-key top" /> Locurile 1–{TOP_PLACES}: Liga Campionilor
       </span>
       <span>
-        <i className="zone-key bottom" /> Ultimele {BOTTOM_PLACES}: retrogradare (în Bundesliga și Ligue 1, a treia de la
-        coadă joacă barajul)
+        <i className="zone-key bottom" /> Ultimele {BOTTOM_PLACES}: retrogradare
+        {PLAY_OFF_LEAGUES.includes(code) && " (a treia de la coadă joacă barajul)"}
       </span>
     </div>
   );
@@ -235,7 +239,7 @@ function ZoneLegend() {
 
 /** The season in progress played to its end, from one model's predictions (server side). */
 function ProjectedTable({ league, favourite, onTeam }: { league: League; favourite: string | null; onTeam: (team: string) => void }) {
-  const [model, setModel] = useState<string>(MODELS[0]);
+  const [model, setModel] = useChosenModel(); // one choice for every screen
   const [projection, setProjection] = useState<Projection | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -329,7 +333,7 @@ function ProjectedTable({ league, favourite, onTeam }: { league: League; favouri
           </button>
         ))}
       </div>
-      <ZoneLegend />
+      <ZoneLegend code={league.code} />
       <p className="caption">
         Fiecare meci rămas se termină cu victoria gazdelor, egal sau victoria oaspeților, cu șansele date de{" "}
         {projection.label}. Sunt simulate doar rezultatele, nu și golurile, așa că la egalitate de puncte rămâne ordinea

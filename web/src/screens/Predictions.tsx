@@ -6,6 +6,7 @@
 // a badge (the chip's mark already says hit or miss).
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api";
+import { useChosenModel } from "../chosenModel";
 import { ColumnsHead, MatchRow } from "../components/MatchRow";
 import { Problem } from "../components/Problem";
 import { usePageKeys } from "../components/Shortcuts";
@@ -81,7 +82,7 @@ interface Props {
 }
 
 export function Predictions({ league, season, favourite, ready, onSeason, onOpenMatch }: Props) {
-  const [model, setModel] = useState<string>(MODELS[0]);
+  const [model, setModel] = useChosenModel(); // one choice for every screen
   const [kind, setKind] = useState<Kind>("all");
   const [order, setOrder] = useState<Order>("recent");
   const [review, setReview] = useState<Review | null>(null);
@@ -268,6 +269,8 @@ function WhenSure({ review }: { review: Review }) {
       <p className="caption">
         Meciurile în care modelul dădea rezultatului socotit cel mai probabil cel puțin pragul și cât din ele a nimerit.
         Când e mai sigur, modelul greșește mai rar, dar asemenea meciuri sunt mai puține.
+        {review.sure.some((sure) => sure.matches > 0 && sure.matches < 30) &&
+          " Sub 30 de meciuri, procentul se poate schimba mult de la o săptămână la alta."}
       </p>
     </section>
   );

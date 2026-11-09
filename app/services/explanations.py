@@ -77,9 +77,9 @@ def elo_reason(home: Side, away: Side, home_advantage: float) -> str:
     )
 
 
-def poisson_reason(expected_goals: tuple[float, float], grid: np.ndarray, pick: str) -> str:
-    """Poisson: the expected goals, the likeliest score of its pick and, when it differs, the
-    likeliest score overall (``grid``: home goals x away goals)."""
+def poisson_reason(grid: np.ndarray, pick: str) -> str:
+    """Poisson: the likeliest score of its pick and, when it differs, the likeliest score overall
+    (``grid``: home goals x away goals). The expected goals stand beside it, on the Poisson card."""
     home_goals, away_goals = np.indices(grid.shape)
     allowed = {
         "H": home_goals > away_goals,
@@ -88,13 +88,14 @@ def poisson_reason(expected_goals: tuple[float, float], grid: np.ndarray, pick: 
     }
     best = np.unravel_index(np.argmax(np.where(allowed[pick], grid, -1.0)), grid.shape)
     top = np.unravel_index(np.argmax(grid), grid.shape)
+    when = {"H": "Dacă câștigă gazdele", "D": "Dacă e egal", "A": "Dacă câștigă oaspeții"}[pick]
     text = (
-        f"Goluri așteptate: gazdele {number(expected_goals[0], 2)}, oaspeții "
-        f"{number(expected_goals[1], 2)}. Dacă iese rezultatul ales ({side_name(pick)}), cel mai "
-        f"probabil scor e {best[0]}–{best[1]} ({percent(float(grid[best]))})."
+        f"Din golurile pe care le așteaptă de la fiecare echipă: {when.lower()}, cel mai probabil "
+        f"scor e {best[0]}–{best[1]} ({percent(float(grid[best]))})."
     )
     if top != best:
-        text += f" În general, cel mai probabil e {top[0]}–{top[1]} ({percent(float(grid[top]))})."
+        chance = percent(float(grid[top]))
+        text += f" Luat singur, cel mai probabil scor e {top[0]}–{top[1]} ({chance})."
     return text
 
 
@@ -142,9 +143,7 @@ def match_explanations(
         if model is ModelName.ELO:
             found[model] = elo_reason(home, away, home_advantage)
         elif model is ModelName.POISSON and prediction.score_distribution is not None:
-            expected = prediction.expected_goals or (0.0, 0.0)
-            grid = prediction.score_distribution.probabilities
-            found[model] = poisson_reason(expected, grid, pick)
+            found[model] = poisson_reason(prediction.score_distribution.probabilities, pick)
         elif model is ModelName.LOGISTIC_REGRESSION:
             found[model] = logistic_reason(home, away, pick)
     return found
@@ -200,17 +199,21 @@ def knowledge_text(forecast: MatchForecast) -> str:
     return text
 
 
+SHOWN_ORDER = (ModelName.LOGISTIC_REGRESSION, ModelName.ELO, ModelName.POISSON)  # as the page
+
+
 def verdict_text(forecast: MatchForecast) -> str:
-    """For a played match: the result and which models expected it."""
+    """For a played match: the result and which models expected it, in the page's order."""
     played = forecast.played
+    shown = [(m, forecast.predictions[m]) for m in SHOWN_ORDER if m in forecast.predictions]
     right = [
         model_label(str(model))
-        for model, prediction in forecast.predictions.items()
+        for model, prediction in shown
         if prediction.probabilities.most_likely == played.result
     ]
     wrong = [
         model_label(str(model))
-        for model, prediction in forecast.predictions.items()
+        for model, prediction in shown
         if prediction.probabilities.most_likely != played.result
     ]
     text = (

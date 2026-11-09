@@ -97,8 +97,9 @@ def create_app(backend: Backend) -> FastAPI:
         )
 
     @app.get("/api/days", response_model=schemas.Days)
-    def days() -> schemas.Days:
-        """Every day with a match in a league whose predictions are ready."""
+    def days(league: str | None = None) -> schemas.Days:
+        """Every day with a match in a league whose predictions are ready; the next of them is
+        the given league's next match day when it has one (the day of its match of the day)."""
         found = sorted(
             {
                 day
@@ -108,7 +109,12 @@ def create_app(backend: Backend) -> FastAPI:
             }
         )
         today = backend.today()
-        next_day = next((day for day in found if day >= today), found[-1] if found else None)
+        own = (
+            league_of(league).predictions.match_days()
+            if league in backend.competitions and backend.is_prepared(league)
+            else found
+        )
+        next_day = next((day for day in own if day >= today), own[-1] if own else None)
         return schemas.Days(days=found, today=today, next_day=next_day)
 
     @app.get("/api/day/{day}", response_model=schemas.Day)

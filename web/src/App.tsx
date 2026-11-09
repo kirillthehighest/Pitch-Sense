@@ -11,7 +11,7 @@ import { Problem } from "./components/Problem";
 import { ScreenHead } from "./components/ScreenHead";
 import { ShortcutsDialog, usePageKeys } from "./components/Shortcuts";
 import { TeamSearch } from "./components/TeamSearch";
-import { type ScreenName, SCREENS, Sidebar, updatedText } from "./components/Sidebar";
+import { type ScreenName, SCREENS, Sidebar } from "./components/Sidebar";
 import { Analysis } from "./screens/Analysis";
 import { MatchPage } from "./screens/MatchPage";
 import { Matches } from "./screens/Matches";
@@ -262,6 +262,7 @@ export default function App() {
         onUpdate={update}
         updating={updating || serverUpdating}
         updatedAt={current?.updated_at ?? null}
+        stale={!!current && isStale(current.updated_at) && !serverUpdating}
         compact={compact}
         onSimulate={() => setOtherMatch(true)}
         onSearch={() => setSearch(true)}
@@ -311,17 +312,6 @@ export default function App() {
                 PitchSense.
               </Problem>
             )}
-            {current && screen === "matches" && isStale(current.updated_at) && !serverUpdating && (
-              <div className="stale-note" role="status">
-                <p>
-                  Datele sezonului în desfășurare sunt din {updatedText(current.updated_at as string)}. Meciurile jucate de
-                  atunci apar „Fără rezultat” până la actualizare.
-                </p>
-                <button className="button" onClick={update} disabled={updating}>
-                  Actualizează acum
-                </button>
-              </div>
-            )}
             {current && screen === "matches" && (
               <Matches
                 leagues={leagues}
@@ -329,7 +319,6 @@ export default function App() {
                 preferences={preferences}
                 ready={ready}
                 onOpenMatch={openMatch}
-                onPredictions={() => chooseScreen("predictions")}
                 onStandings={(code) => {
                   chooseLeague(code);
                   chooseScreen("standings");

@@ -17,7 +17,7 @@ export function cellColours(probability: number, largest: number, accent: string
 /** 12%, 8,7%, or <0,1% for a score too rare to write with one decimal. */
 export function cellText(probability: number): string {
   if (probability < 0.0005) return "<0,1%";
-  return percent(probability, probability >= 0.1 ? 0 : 1);
+  return percent(probability, 1); // one decimal, as the list of likely scores beside the grid
 }
 
 interface Props {

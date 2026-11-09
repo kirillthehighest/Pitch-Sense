@@ -150,3 +150,8 @@ export const DISPLAY_NAMES: Record<string, string> = {
 export function teamName(team: string): string {
   return DISPLAY_NAMES[team] ?? team;
 }
+
+/** Clubs in the order of the names shown: "Real Betis" under R, not under B as "Betis". */
+export function byShownName(teams: string[]): string[] {
+  return [...teams].sort((a, b) => teamName(a).localeCompare(teamName(b), "ro"));
+}

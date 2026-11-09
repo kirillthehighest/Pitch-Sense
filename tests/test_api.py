@@ -45,6 +45,16 @@ def test_the_days_and_the_next_day_with_matches(api_client):
     assert days["days"] == sorted(days["days"])
 
 
+def test_the_next_day_is_the_chosen_leagues_next_match_day(api_client, api_backend):
+    days = api_client.get("/api/days", params={"league": "SP1"}).json()
+    own = api_backend.league("SP1").predictions.match_days()
+    today = date.fromisoformat(days["today"])
+
+    assert days["next_day"] == next(day for day in own if day >= today).isoformat()
+    unknown = api_client.get("/api/days", params={"league": "XX"}).json()
+    assert unknown["next_day"] == api_client.get("/api/days").json()["next_day"]  # all leagues
+
+
 def test_a_day_lists_every_league_the_chosen_first_with_predictions(api_client, api_backend):
     day = api_client.get("/api/days").json()["next_day"]
     answer = api_client.get(f"/api/day/{day}", params={"league": "SP1"}).json()

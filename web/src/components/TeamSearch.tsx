@@ -58,7 +58,7 @@ export function searchTeams(teams: Found[], query: string, limit = 8): Found[] {
     if (plain(item.team).startsWith(wanted) || plain(teamName(item.team)).startsWith(wanted)) return 0;
     return names(item).split(" ").some((word) => word.startsWith(wanted)) ? 1 : 2;
   };
-  return [...matching].sort((a, b) => starts(a) - starts(b) || a.team.localeCompare(b.team)).slice(0, limit);
+  return [...matching].sort((a, b) => starts(a) - starts(b) || teamName(a.team).localeCompare(teamName(b.team), "ro")).slice(0, limit);
 }
 
 interface Props {

@@ -71,3 +71,11 @@ describe("the clubs' names on screen", () => {
     expect(teamName("Barcelona")).toBe("Barcelona");
   });
 });
+
+describe("clubs in the order of their shown names", () => {
+  it("sorts by the name on screen, not the data's short name", async () => {
+    const { byShownName } = await import("./format");
+    // "Atlético Madrid", "Barcelona", "Real Betis", "Real Sociedad" on screen
+    expect(byShownName(["Betis", "Barcelona", "Ath Madrid", "Sociedad"])).toEqual(["Ath Madrid", "Barcelona", "Betis", "Sociedad"]);
+  });
+});

@@ -95,7 +95,7 @@ export async function imageUrl(path: string): Promise<string> {
 export const api = {
   leagues: () => request<League[]>("/api/leagues"),
   status: () => request<Status>("/api/status"),
-  days: () => request<Days>("/api/days"),
+  days: (league: string) => request<Days>(`/api/days?league=${encodeURIComponent(league)}`),
   day: (day: string, league: string) =>
     request<Day>(`/api/day/${day}?league=${encodeURIComponent(league)}`),
   standings: (code: string, season?: string, before?: string) => {

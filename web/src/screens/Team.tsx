@@ -6,6 +6,7 @@
 // the last finished one, and the Elo chart shades the seasons that only start the models.
 import { lazy, Suspense, useEffect, useState } from "react";
 import { api } from "../api";
+import { useChosenModel } from "../chosenModel";
 import { Crest } from "../components/Crest";
 import { FormSquares } from "../components/FormSquares";
 import { StarIcon } from "../components/Icons";
@@ -13,10 +14,10 @@ import { ColumnsHead, MatchRow } from "../components/MatchRow";
 import { Problem } from "../components/Problem";
 import { SkeletonCard } from "../components/Skeleton";
 import { StadiumPhoto } from "../components/StadiumPhoto";
-import { number, seasonText, teamName } from "../format";
+import { byShownName, number, seasonText, teamName } from "../format";
 import { themeFor } from "../theme";
 import type { Favourite, Forecast, League, TeamPage, TeamRecord } from "../types";
-import { MODELS } from "../types";
+import { MODEL_LABELS } from "../types";
 
 const LAST_RESULTS = 5;
 // The charts (and Recharts with them) load when a team page first shows them
@@ -48,7 +49,7 @@ export function Team({ league, season, team, favourite, ready, onChoice, onOpenM
 
   useEffect(() => {
     let live = true;
-    api.season(league.code, season).then((found) => live && setTeams(found.teams));
+    api.season(league.code, season).then((found) => live && setTeams(byShownName(found.teams)));
     return () => {
       live = false;
     };
@@ -126,6 +127,11 @@ export function Team({ league, season, team, favourite, ready, onChoice, onOpenM
                 {league.name} {seasonText(page.season)} · locul {page.position} din {page.teams} ·{" "}
                 {page.in_progress ? "sezon în desfășurare" : "sezon încheiat"}
               </span>
+              <span className="team-facts">
+                {page.record.points} puncte din {page.record.played} meciuri · golaveraj{" "}
+                {page.record.goals_for - page.record.goals_against > 0 ? "+" : ""}
+                {page.record.goals_for - page.record.goals_against}
+              </span>
               {page.stadium && <span className="stadium-name">Stadion: {page.stadium}</span>}
             </div>
             <button
@@ -138,23 +144,6 @@ export function Team({ league, season, team, favourite, ready, onChoice, onOpenM
             </button>
             {page.stadium && <span className="credit">Foto: Wikimedia Commons</span>}
           </section>
-          <div className="tiles">
-            {(
-              [
-                ["Loc", page.position],
-                ["Meciuri", page.record.played],
-                ["Victorii", page.record.wins],
-                ["Goluri marcate", page.record.goals_for],
-                ["Goluri primite", page.record.goals_against],
-                ["Puncte", page.record.points],
-              ] as [string, number][]
-            ).map(([name, value]) => (
-              <div key={name} className="tile">
-                <strong>{value}</strong>
-                <span>{name}</span>
-              </div>
-            ))}
-          </div>
           <div className="team-grid">
             <div className="team-column">
               <FormCard page={page} />
@@ -247,7 +236,7 @@ function FormCard({ page }: { page: TeamPage }) {
     <section className="card form-card">
       <h2>Forma</h2>
       <div className="form-line">
-        <span className="caption">Ultimele 5 meciuri</span>
+        <span className="caption">Ultimele 5 meciuri, cel mai recent în dreapta</span>
         <FormSquares results={page.form} />
       </div>
       <div className="record-table" role="table">
@@ -318,6 +307,7 @@ function MatchesCard({
   onOpenMatch: (forecast: Forecast) => void;
 }) {
   const [all, setAll] = useState(false);
+  const [model] = useChosenModel(); // the model chosen on Meciuri, Clasament or Predicții
   useEffect(() => setAll(false), [page.team, page.season]);
   if (!prepared || matches === null) {
     return (
@@ -339,7 +329,7 @@ function MatchesCard({
           <MatchRow
             key={`${forecast.date}-${forecast.home_team}`}
             forecast={forecast}
-            model={MODELS[0]}
+            model={model}
             favourite={favourite}
             stacked
             showDate
@@ -348,7 +338,9 @@ function MatchesCard({
         ))}
       </div>
       <div className="card-foot">
-        <span className="caption">Probabilitățile sunt ale regresiei logistice; apasă pe un meci pentru toate modelele.</span>
+        <span className="caption">
+          Probabilitățile sunt ale modelului ales ({MODEL_LABELS[model] ?? model}); apasă pe un meci pentru toate modelele.
+        </span>
         <button className="link" onClick={() => setAll(!all)}>
           {all ? "Mai puține ‹" : `Toate cele ${matches.length} ›`}
         </button>

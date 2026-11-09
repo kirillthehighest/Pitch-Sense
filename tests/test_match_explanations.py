@@ -19,12 +19,11 @@ def test_elo_says_both_ratings_and_who_starts_ahead():
 def test_poisson_gives_the_score_of_its_pick_and_the_likeliest_overall():
     grid = np.array([[0.10, 0.08], [0.11, 0.13]])  # home goals x away goals
 
-    text = poisson_reason((1.62, 0.94), grid, "H")
+    text = poisson_reason(grid, "H")
 
-    assert text.startswith("Goluri așteptate: gazdele 1,62, oaspeții 0,94.")
-    assert "cel mai probabil scor e 1–0 (11,0%)" in text
-    assert text.endswith("În general, cel mai probabil e 1–1 (13,0%).")
-    assert "În general" not in poisson_reason((1.0, 1.0), grid, "D")  # the same score: said once
+    assert "dacă câștigă gazdele, cel mai probabil scor e 1–0 (11,0%)" in text
+    assert text.endswith("Luat singur, cel mai probabil scor e 1–1 (13,0%).")
+    assert "Luat singur" not in poisson_reason(grid, "D")  # the same score: said once
 
 
 def test_logistic_regression_never_contradicts_its_pick():

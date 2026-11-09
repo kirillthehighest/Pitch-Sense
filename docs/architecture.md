@@ -1297,6 +1297,10 @@ După versiunea 0.8.0, echipa a hotărât (2026-11-09) să renunțe la tot ce ad
 
 Verificat pe 2026-11-09: trec cele 801 teste Python și cele 51 ale interfeței web (trei teste noi pentru raționamentele pe meci, cu exemple verificabile de mână) (testul scorului probabil: pe server, că fiecare scor dă rezultatul ales de modelul lui și e cel mai probabil dintre acestea; în interfață, că apare doar la meciurile care urmează); ecranele Meciuri și pagina meciului privite la 1440 × 900 și 1024 × 700, fără derulare laterală.
 
+### 23.1. A doua trecere (2026-11-09)
+
+La cererea echipei, după ce a privit interfața: cardul „Ce spun modelele” a revenit pe pagina meciului (barele din antet și propoziția „Toate cele trei modele mizează pe…” au fost scoase, cu testul ei), fiecare model având sub bare raționamentul lui despre acest meci; rândul cu bilanțul modelului a ieșit de pe Meciuri; vechimea datelor stă acum la Unelte, sub „Actualizează datele” (un punct pe iconiță când datele sunt vechi). Corecturile rămase din critică: lista de pe Meciuri pornește din ziua cu meciuri a ligii alese (`/api/days?league=`), modelul ales e același pe toate ecranele (`web/src/chosenModel.ts`), echipele din simulare și de pe Echipe sunt în ordinea numelor afișate (`byShownName`), plăcuțele de pe Echipe (care repetau tabelul Forma) și dublurile din Analiză (tabelul caselor de pariuri, K-Means descris de două ori) au fost scoase, grila de scoruri are o zecimală ca lista de scoruri, nota barajului apare doar la Bundesliga și Ligue 1, iar Predicții avertizează când sunt sub 30 de meciuri.
+
 ## 24. Setul de date și perioadele
 
 Sursa datelor este Football-Data.co.uk: cinci ligi (Premier League, La Liga, Serie A, Bundesliga, Ligue 1), fiecare cu 20 de sezoane încheiate, 2006/07–2025/26 (36.197 de meciuri). Perioadele sunt aceleași pentru toate ligile. Sezonul în desfășurare (2026/27) este descărcat separat și nu face parte din evaluare (secțiunea 15).

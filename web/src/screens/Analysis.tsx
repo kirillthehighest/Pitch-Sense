@@ -152,8 +152,8 @@ function HowItWorks() {
                 <Diagram />
               </figure>
               <h2>{item.title}</h2>
-              <p>{item.text}</p>
-              {item.title === "K‑Means" && <p>{about.groups}</p>}
+              {/* K-Means once: the detailed text of the team pages' groups, not a second summary */}
+              <p>{item.title === "K‑Means" ? about.groups : item.text}</p>
             </section>
           );
         })}
@@ -532,7 +532,7 @@ function Bookmakers({ comparison }: { comparison: BookmakerComparison }) {
           { label: "Pierdere logaritmică", width: EVEN },
           { label: `Peste ${percent(SURE, 0)}`, width: EVEN },
         ]}
-        rows={comparison.models.map((model) => [
+        rows={comparison.models.filter((model) => model.model === "Bookmakers").map((model) => [
           model.label,
           percent(model.accuracy),
           model.brier === lowestBrier ? <strong className="best">{number(model.brier)}</strong> : number(model.brier),
