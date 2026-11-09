@@ -402,7 +402,7 @@ button.standings-row:hover { background: var(--surface-high); }
 .sure-cell small { color: var(--muted); font-size: 12px; }
 .backtest { display: flex; align-items: center; gap: 18px; }
 .backtest p { margin: 0; flex: 1; line-height: 1.5; }
-.analysis-pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.analysis-pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: stretch; }
 .segmented.wrap { flex-wrap: wrap; margin-bottom: 14px; }
 .data-table { overflow-x: auto; }
 .data-row {
@@ -465,7 +465,7 @@ button.standings-row:hover { background: var(--surface-high); }
 .team-head h1 {
   margin: 0; font-family: var(--display); font-weight: 800; font-size: 44px; line-height: 1; text-transform: uppercase; color: #fff;
 }
-.team-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.team-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: stretch; }
 .team-column { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .team-grid h3 { margin: 18px 0 10px; font-size: 14px; font-weight: 700; }
 .form-line { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
@@ -845,3 +845,10 @@ main.screen:focus { outline: none; }
 .poisson-row { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); gap: 18px; align-items: stretch; }
 @media (max-width: 1100px) { .poisson-row { grid-template-columns: minmax(0, 1fr); } }
 .loading-note { margin: 0; text-align: center; }
+/* No empty corners (Phase 27): cards side by side share their height. On a team page the match
+   list takes the height of the column beside it and scrolls inside, instead of running past it. */
+.review-summary { align-items: stretch; }
+.team-column > .card:last-child { flex: 1; }
+.team-grid > .matches-card { height: 0; min-height: 100%; display: flex; flex-direction: column; }
+.team-grid > .matches-card .match-list { flex: 1; min-height: 0; overflow-y: auto; }
+.team-grid > .matches-card .match-list > * { flex-shrink: 0; } /* rows keep their height and scroll */
