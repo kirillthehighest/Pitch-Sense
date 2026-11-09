@@ -822,7 +822,7 @@ main.screen:focus { outline: none; }
   .side-item { height: 38px; }
   .league-item { height: 42px; }
   .sidebar .lockup { padding-bottom: 12px; }
-  .sidebar-label { padding-top: 10px; padding-bottom: 6px; }
+  .sidebar-label { padding-top: 7px; padding-bottom: 5px; }
   .sidebar-note .sources { display: none; }
 }
 @media (max-height: 800px) {
