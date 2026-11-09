@@ -239,7 +239,8 @@ export default function App() {
   // The page's keys: 1–5 choose a league, / finds a team, S simulates a match, ? lists them all
   usePageKeys((key) => {
     const index = Number(key) - 1;
-    if (Number.isInteger(index) && index >= 0 && index < leagues.length) chooseLeague(leagues[index].code);
+    if (key === "Escape" && match) setMatch(null); // Esc leaves a match page (a dialog's Esc closes the dialog first)
+    else if (Number.isInteger(index) && index >= 0 && index < leagues.length) chooseLeague(leagues[index].code);
     else if (key === "/") setSearch(true);
     else if (key === "s" || key === "S") setOtherMatch(true);
     else if (key === "?") setShortcuts(true);
@@ -319,6 +320,7 @@ export default function App() {
                 preferences={preferences}
                 ready={ready}
                 onOpenMatch={openMatch}
+                active={match === null}
                 onStandings={(code) => {
                   chooseLeague(code);
                   chooseScreen("standings");
@@ -352,6 +354,7 @@ export default function App() {
                 ready={ready}
                 onSeason={(chosen) => setSeasons((shown) => ({ ...shown, [current.code]: chosen }))}
                 onOpenMatch={openMatch}
+                active={match === null}
               />
             )}
             {current && screen === "standings" && about && (

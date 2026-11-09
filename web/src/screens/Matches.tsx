@@ -24,6 +24,7 @@ interface Props {
   ready: string; // changes when a league's predictions become ready
   onOpenMatch: (forecast: Forecast) => void;
   onStandings: (code: string) => void;
+  active: boolean; // false under a match page: its keys must not move this hidden list
 }
 
 function seasonStart(season: string): string {
@@ -43,7 +44,7 @@ function shifted(day: string, days: number): string {
   return isoDay(moved);
 }
 
-export function Matches({ leagues, league, preferences, ready, onOpenMatch, onStandings }: Props) {
+export function Matches({ leagues, league, preferences, ready, onOpenMatch, onStandings, active }: Props) {
   const [days, setDays] = useState<Days | null>(null);
   const [day, setDay] = useState<string | null>(null);
   const [answer, setAnswer] = useState<Day | null>(null);
@@ -70,7 +71,7 @@ export function Matches({ leagues, league, preferences, ready, onOpenMatch, onSt
 
 
   usePageKeys((key) => {
-    if (!day) return;
+    if (!day || !active) return;
     if (key === "ArrowLeft") setDay(shifted(day, -1));
     else if (key === "ArrowRight") setDay(shifted(day, 1));
     else if (key === "m" || key === "M") setModel(nextModel);

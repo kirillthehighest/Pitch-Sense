@@ -558,7 +558,7 @@ function Bookmakers({ comparison }: { comparison: BookmakerComparison }) {
         Cotele medii ale caselor de pariuri, luate înainte de fiecare meci (Football-Data.co.uk), transformate în
         probabilități fără marja lor. Sunt doar o referință: nu intră în niciun model. Comparația folosește{" "}
         {quantity(comparison.matches, "meci", "meciuri")} cu cote
-        {comparison.missing > 0 ? ` (${quantity(comparison.missing, "meci", "meciuri")} nu au)` : ""}; o diferență pozitivă
+        {comparison.missing > 0 ? ` (${comparison.missing === 1 ? "un meci nu are" : `${quantity(comparison.missing, "meci", "meciuri")} nu au`})` : ""}; o diferență pozitivă
         înseamnă că modelul greșește mai mult decât casele de pariuri.
       </p>
     </section>

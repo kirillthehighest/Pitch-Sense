@@ -79,9 +79,10 @@ interface Props {
   ready: string;
   onSeason: (season: string) => void;
   onOpenMatch: (forecast: Forecast) => void;
+  active: boolean; // false under a match page
 }
 
-export function Predictions({ league, season, favourite, ready, onSeason, onOpenMatch }: Props) {
+export function Predictions({ league, season, favourite, ready, onSeason, onOpenMatch, active }: Props) {
   const [model, setModel] = useChosenModel(); // one choice for every screen
   const [kind, setKind] = useState<Kind>("all");
   const [order, setOrder] = useState<Order>("recent");
@@ -89,7 +90,7 @@ export function Predictions({ league, season, favourite, ready, onSeason, onOpen
   const [error, setError] = useState<string | null>(null);
   const [shown, setShown] = useState(PAGE);
   usePageKeys((key) => {
-    if (key === "m" || key === "M") setModel(nextModel);
+    if (active && (key === "m" || key === "M")) setModel(nextModel); // not under a match page
   });
 
   useEffect(() => {

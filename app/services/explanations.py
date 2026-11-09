@@ -63,7 +63,8 @@ def side_name(outcome: str) -> str:
 
 def elo_reason(home: Side, away: Side, home_advantage: float) -> str:
     """Elo: both ratings and what the home ground is worth, so the reader sees who starts ahead."""
-    lead = home.rating + home_advantage - away.rating
+    # from the rounded values the sentence shows, so its arithmetic checks out on screen
+    lead = round(home.rating) + round(home_advantage) - round(away.rating)
     points = quantity(round(abs(lead)), "punct", "puncte")
     ahead = (
         f"gazdele pornesc cu {points} înainte"
@@ -105,7 +106,7 @@ def logistic_reason(home: Side, away: Side, pick: str) -> str:
     listed = (
         f"Cântărește diferențele dintre echipe: {number(home.per_match, 2)} față de "
         f"{number(away.per_match, 2)} puncte pe meci în sezon, {home.form_points} față de "
-        f"{away.form_points} puncte în ultimele 5 meciuri, rating Elo "
+        f"{quantity(away.form_points, 'punct', 'puncte')} în ultimele 5 meciuri, rating Elo "
         f"{integer(round(home.rating))} față de {integer(round(away.rating))}."
     )
     lead = (

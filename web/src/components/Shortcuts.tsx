@@ -11,7 +11,7 @@ export const SHORTCUTS: [string[], string][] = [
   [["/"], "Caută o echipă"],
   [["S"], "Simulează un meci"],
   [["?"], "Scurtăturile"],
-  [["Esc"], "Închide fereastra deschisă"],
+  [["Esc"], "Închide fereastra deschisă sau întoarce de pe pagina meciului"],
 ];
 
 /** A key press meant for the page: no modifier, not in a field, no modal dialog open. */
