@@ -561,27 +561,13 @@ button.standings-row:hover { background: var(--surface-high); }
 }
 .state.upcoming { background: var(--accent); color: var(--accent-ink); }
 
-.match-grid { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 18px; align-items: start; }
-.bar-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: -4px 0 14px; color: var(--muted); font-size: 12px; font-weight: 600; }
-.bar-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.match-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; align-items: stretch; }
 .key { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
 .key.home, .segment.home { background: var(--accent); color: var(--accent-ink); }
 .key.draw, .segment.draw { background: #3a3a42; color: #fff; }
 .key.away, .segment.away { background: #e6e6eb; color: var(--night); }
-.model-block { padding: 14px 0; border-top: 1px solid rgba(255, 255, 255, 0.055); display: flex; flex-direction: column; gap: 9px; }
-.model-block p { margin: 0; line-height: 1.5; }
-.model-head { display: flex; align-items: center; gap: 9px; }
-.model-head strong { font-size: 15px; }
-.model-dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
-.verdict-pill { margin-left: auto; height: 24px; padding: 0 10px; border-radius: 12px; font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; color: #fff; }
-.verdict-pill { gap: 5px; }
-.verdict-pill.hit { background: var(--hit); color: var(--night); }
-.verdict-pill.miss { background: transparent; color: var(--muted); box-shadow: inset 0 0 0 1.5px var(--line); }
-.probability-bar { display: flex; height: 30px; border-radius: 9px; overflow: hidden; gap: 2px; background: var(--surface); }
 .segment { display: inline-flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; min-width: 0; flex-basis: 0; }
 .segment.likely { font-weight: 800; }
-.verdict { margin: 14px 0 6px; font-weight: 700; line-height: 1.5; }
-.models-card > .caption:last-child { margin: 8px 0 0; line-height: 1.5; }
 
 .compare-head { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
 .compare-team { display: flex; align-items: center; gap: 10px; min-width: 0; font-weight: 700; }
@@ -601,7 +587,6 @@ button.standings-row:hover { background: var(--surface-high); }
 .compare .form-square { width: 20px; height: 20px; border-radius: 6px; font-size: 10px; }
 .teams-card > .caption { margin: 12px 0 0; line-height: 1.5; }
 
-.poisson-layout { display: grid; grid-template-columns: minmax(240px, 2fr) minmax(0, 3fr); gap: 28px; align-items: start; }
 .poisson-side h3 { margin: 20px 0 10px; font-size: 14px; font-weight: 700; }
 .poisson-side > .caption { margin: 10px 0 0; line-height: 1.5; }
 .expected-goals { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -627,14 +612,29 @@ button.standings-row:hover { background: var(--surface-high); }
 }
 
 /* The models' verdict in the match head (Phase 25) */
-.consensus { margin: 22px auto 0; width: min(560px, 100%); display: flex; flex-direction: column; gap: 7px; }
+.consensus { margin: 22px auto 0; width: min(640px, 100%); display: flex; flex-direction: column; gap: 2px; }
 .consensus-verdict { margin: 0 0 4px; text-align: center; color: #fff; font-weight: 700; font-size: 15px; }
-.consensus-row { display: grid; grid-template-columns: 150px minmax(0, 1fr) 22px; align-items: center; gap: 12px; }
-.consensus-name { display: flex; align-items: center; gap: 8px; color: rgba(255, 255, 255, 0.86); font-size: 13px; font-weight: 600; }
+/* Each model is a row that opens its reasoning (Phase 27): name, bar, hit mark, chevron */
+.consensus-row {
+  display: grid; grid-template-columns: 150px minmax(0, 1fr) 22px 16px; align-items: center; gap: 12px;
+  width: 100%; padding: 6px 8px; border-radius: 10px; text-align: left; transition: background 120ms;
+}
+.consensus-row:hover, .consensus-item.open .consensus-row { background: rgba(255, 255, 255, 0.07); }
+.consensus-sides { display: grid; grid-template-columns: 150px minmax(0, 1fr) 22px 16px; gap: 12px; padding: 0 8px; }
+.consensus-sides::before { content: ""; }
+.consensus-sides span { color: rgba(255, 255, 255, 0.72); font-size: 12px; font-weight: 600; }
+.consensus-sides span:nth-child(1) { grid-column: 2; grid-row: 1; justify-self: start; }
+.consensus-sides span:nth-child(2) { grid-column: 2; grid-row: 1; justify-self: center; }
+.consensus-sides span:nth-child(3) { grid-column: 2; grid-row: 1; justify-self: end; }
+.consensus-why-icon { display: inline-flex; color: rgba(255, 255, 255, 0.6); transition: transform 160ms ease-out; }
+.consensus-item.open .consensus-why-icon { transform: rotate(90deg); color: #fff; }
+.consensus-why { margin: 4px 8px 10px 178px; color: rgba(255, 255, 255, 0.9); font-size: 13px; line-height: 1.55; max-width: 62ch; }
+.consensus-note { margin: 12px auto 0; max-width: 60ch; text-align: center; color: rgba(255, 255, 255, 0.72); font-size: 12px; line-height: 1.5; }
+.consensus-name { display: flex; align-items: center; gap: 8px; white-space: nowrap; color: rgba(255, 255, 255, 0.86); font-size: 13px; font-weight: 600; }
 .consensus-name i { width: 9px; height: 9px; border-radius: 50%; flex: none; }
 .consensus-bar { display: flex; height: 22px; gap: 2px; border-radius: 7px; overflow: hidden; }
 .consensus-bar .part {
-  display: inline-flex; align-items: center; justify-content: center; flex-basis: 0; min-width: 0;
+  display: inline-flex; align-items: center; justify-content: center; flex-basis: 0; min-width: 34px; /* every chance printed */
   font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums;
 }
 .consensus-bar .home { background: var(--accent); color: var(--accent-ink); }
@@ -649,9 +649,6 @@ button.standings-row:hover { background: var(--surface-high); }
 .actual-score { margin: 14px 0 0; padding: 10px 12px; border-radius: 12px; background: var(--surface-high); line-height: 1.5; }
 
 /* The models' record of the season on Meciuri */
-.track-record { display: flex; flex-direction: column; gap: 12px; }
-.track-record header { display: flex; align-items: baseline; gap: 12px; }
-.track-record h2 { margin: 0; font-size: 17px; font-weight: 700; flex: 1; }
 .track-models { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 .track-model {
   display: flex; flex-direction: column; gap: 6px; padding: 14px 16px; border-radius: 16px; text-align: left;
@@ -816,7 +813,6 @@ dialog.modal[open] { animation: rise 180ms cubic-bezier(0.2, 0.8, 0.2, 1); }
   .matches-layout { grid-template-columns: minmax(0, 1fr); }
   .matches-side { position: static; }
   .match-grid { grid-template-columns: minmax(0, 1fr); }
-  .poisson-layout { grid-template-columns: minmax(0, 1fr); }
   .track-models { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .projection-row { grid-template-columns: 30px minmax(140px, 1.2fr) 46px 58px 76px 62px 88px minmax(120px, 1.2fr); }
   .head-models { display: none; }
@@ -832,3 +828,17 @@ main.screen:focus { outline: none; }
 .chart-note { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
 .pill.today { flex: none; height: 38px; }
 .state.pending { background: rgba(255, 255, 255, 0.14); color: #fff; }
+
+/* Phase 27: Poisson's likely score between the teams of a coming match, outlined, never filled */
+.score.likely { background: transparent; box-shadow: inset 0 0 0 1.5px #3c3c45; color: var(--muted); font-size: 16px; }
+.columns-head.with-likely { grid-template-columns: 58px minmax(0, 1fr) auto; gap: 14px; justify-content: stretch; }
+.columns-likely { text-align: center; }
+.columns-chips { display: grid; grid-template-columns: repeat(3, 56px); gap: 6px; }
+/* The match page under its head: the teams beside Poisson's summary, then every score */
+.scores-card .score-grid-box { max-width: 760px; margin: 0 auto; width: 100%; }
+.head-likely { color: rgba(255, 255, 255, 0.78); font-size: 12px; font-weight: 600; }
+.head-likely b { margin-left: 6px; padding: 2px 8px; border-radius: 8px; box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.4); font-family: var(--display); font-size: 15px; color: #fff; }
+@media (max-width: 1100px) {
+  .consensus-row, .consensus-sides { grid-template-columns: 142px minmax(0, 1fr) 22px 16px; gap: 10px; }
+  .consensus-why { margin-left: 160px; }
+}

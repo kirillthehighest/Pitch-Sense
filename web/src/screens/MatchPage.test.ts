@@ -3,7 +3,7 @@ import type { Forecast, Outcome, Prediction } from "../types";
 import { consensusText } from "./MatchPage";
 
 function prediction(model: string, most_likely: Outcome): Prediction {
-  return { model, label: model, home: 0.4, draw: 0.3, away: 0.3, most_likely, hit: null, expected_goals: null };
+  return { model, label: model, home: 0.4, draw: 0.3, away: 0.3, most_likely, hit: null, expected_goals: null, likely_score: null };
 }
 
 function match(predictions: Prediction[]): Forecast {

@@ -18,7 +18,6 @@ import type {
   Standings,
   Status,
   TeamPage,
-  TrackRecord,
 } from "./types";
 
 declare global {
@@ -124,7 +123,6 @@ export const api = {
   },
   review: (code: string, season: string, model: string) =>
     request<Review>(`/api/review/${code}?${new URLSearchParams({ season, model })}`),
-  trackRecord: (code: string) => request<TrackRecord>(`/api/track-record/${code}`),
   projection: (code: string, model: string) =>
     request<Projection>(`/api/projection/${code}?${new URLSearchParams({ model })}`),
   about: () => request<About>("/api/about"),

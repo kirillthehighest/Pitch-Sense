@@ -1,8 +1,6 @@
-"""The season at a glance (Phase 25): how often each model has been right so far, and where the
-table is heading.
+"""The season at a glance (Phase 25): where the table is heading.
 
-``track_record`` sums a season's reviews: every model's hits over the whole season and over its
-latest week of matches. ``project_table`` plays the rest of the season many times from the
+``project_table`` plays the rest of the season many times from the
 predictions already made for its fixtures: each match ends as a home win, a draw or an away win
 with the model's own probabilities, independently of the others. Counting where each club
 finishes gives its expected points and its chance of every place. Only results are simulated,
@@ -11,63 +9,17 @@ Nothing here predicts: the probabilities come from the models, and the projectio
 they are.
 """
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import date, timedelta
 
 import numpy as np
 
-from app.prediction.outputs import ModelName
-from app.services.predictions import SeasonReview
 from app.services.teams import StandingRow
 
-RECENT_DAYS = 7  # "the latest week": the matches of the seven days up to the last one played
 SIMULATIONS = 10_000  # enough for every chance to be within about one point of its value
 SEED = 2025  # the projection is the same every time it is asked
 TOP_PLACES = 4  # the Champions League places (with its qualifying round in Ligue 1)
 BOTTOM_PLACES = 3  # relegation (in Bundesliga and Ligue 1 the third from last plays a play-off)
-
-
-@dataclass(frozen=True, slots=True)
-class ModelRecord:
-    """One model's hits so far: over the season and over its latest week."""
-
-    model: ModelName
-    hits: int
-    matches: int
-    recent_hits: int
-    recent_matches: int
-
-
-@dataclass(frozen=True, slots=True)
-class TrackRecord:
-    season: str
-    last_day: date | None  # the last day with a reviewed match
-    recent_from: date | None  # the first day of the latest week
-    models: tuple[ModelRecord, ...]
-
-
-def track_record(
-    season: str, reviews: Mapping[ModelName, SeasonReview], recent_days: int = RECENT_DAYS
-) -> TrackRecord:
-    """Every model's hits in ``reviews`` (one review per model, of the same season), in all and
-    over the ``recent_days`` up to the season's last reviewed match."""
-    days = [match.forecast.match_date for review in reviews.values() for match in review.matches]
-    last_day = max(days) if days else None
-    recent_from = last_day - timedelta(days=recent_days - 1) if last_day else None
-    records = []
-    for model, review in reviews.items():
-        recent = [m for m in review.matches if recent_from and m.forecast.match_date >= recent_from]
-        records.append(
-            ModelRecord(
-                model=model,
-                hits=review.hits,
-                matches=len(review.matches),
-                recent_hits=sum(match.hit for match in recent),
-                recent_matches=len(recent),
-            )
-        )
-    return TrackRecord(season, last_day, recent_from, tuple(records))
 
 
 @dataclass(frozen=True, slots=True)

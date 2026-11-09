@@ -32,6 +32,7 @@ export interface Prediction {
   most_likely: Outcome;
   hit: boolean | null;
   expected_goals: [number, number] | null;
+  likely_score: [number, number] | null; // Poisson's most likely score (Phase 27)
 }
 
 export interface Forecast {
@@ -237,24 +238,6 @@ export interface Review {
 }
 
 // --- The season at a glance (Phase 25) ---
-
-export interface ModelRecord {
-  model: string;
-  label: string;
-  hits: number;
-  matches: number;
-  recent_hits: number;
-  recent_matches: number;
-}
-
-export interface TrackRecord {
-  competition: string;
-  season: string;
-  in_progress: boolean;
-  last_day: string | null;
-  recent_from: string | null;
-  models: ModelRecord[];
-}
 
 export interface ProjectedTeam {
   team: string;

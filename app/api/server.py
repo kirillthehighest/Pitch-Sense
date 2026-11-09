@@ -33,7 +33,7 @@ from app.services.images import (
     stadium_path,
 )
 from app.services.labels import country_label, model_label, outcome_label
-from app.services.outlook import BOTTOM_PLACES, TOP_PLACES, Fixture, project_table, track_record
+from app.services.outlook import BOTTOM_PLACES, TOP_PLACES, Fixture, project_table
 from app.services.predictions import (
     SURPRISE_CHANCE,
     MatchForecast,
@@ -380,35 +380,6 @@ def create_app(backend: Backend) -> FastAPI:
     def prepared(services, code: str) -> None:
         if not services.predictions.is_prepared:
             raise HTTPException(409, f"the predictions of {code} are being prepared")
-
-    @app.get("/api/track-record/{code}", response_model=schemas.TrackRecord)
-    def season_record(code: str) -> schemas.TrackRecord:
-        """How often each model has been right in the season in progress (else the latest)."""
-        services = league_of(code)
-        prepared(services, code)
-        season = services.catalog.current_season or services.catalog.seasons()[-1]
-        order = (ModelName.LOGISTIC_REGRESSION, ModelName.ELO, ModelName.POISSON)
-        found = track_record(
-            season, {model: services.predictions.review(season, model) for model in order}
-        )
-        return schemas.TrackRecord(
-            competition=code,
-            season=season,
-            in_progress=season == services.catalog.current_season,
-            last_day=found.last_day,
-            recent_from=found.recent_from,
-            models=[
-                schemas.ModelRecord(
-                    model=str(record.model),
-                    label=model_label(str(record.model)),
-                    hits=record.hits,
-                    matches=record.matches,
-                    recent_hits=record.recent_hits,
-                    recent_matches=record.recent_matches,
-                )
-                for record in found.models
-            ],
-        )
 
     @app.get("/api/projection/{code}", response_model=schemas.Projection)
     def projection(

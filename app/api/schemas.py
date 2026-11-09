@@ -50,6 +50,7 @@ class Prediction(Schema):
     most_likely: str  # H, D or A
     hit: bool | None  # whether the most likely outcome happened; None before the match
     expected_goals: tuple[float, float] | None
+    likely_score: tuple[int, int] | None = None  # Poisson's most likely score (Phase 27)
 
 
 class Forecast(Schema):
@@ -250,26 +251,6 @@ class Review(Schema):
     rows: list[ReviewedMatch]
 
 
-class ModelRecord(Schema):
-    model: str
-    label: str
-    hits: int
-    matches: int
-    recent_hits: int  # over the latest week of matches
-    recent_matches: int
-
-
-class TrackRecord(Schema):
-    """How often each model has been right this season, in all and over its latest week."""
-
-    competition: str
-    season: str
-    in_progress: bool
-    last_day: date | None
-    recent_from: date | None
-    models: list[ModelRecord]
-
-
 class ProjectedTeam(Schema):
     team: str
     position: int
@@ -348,7 +329,16 @@ def prediction_of(prediction: ModelPrediction, forecast: MatchForecast) -> Predi
         most_likely=most_likely.value,
         hit=None if played is None else most_likely == played.result,
         expected_goals=prediction.expected_goals,
+        likely_score=likely_score(prediction),
     )
+
+
+def likely_score(prediction: ModelPrediction) -> tuple[int, int] | None:
+    """The single most likely score of a model with a score distribution (Poisson), else None."""
+    if prediction.score_distribution is None:
+        return None
+    home_goals, away_goals, _ = prediction.score_distribution.most_likely_scores(1)[0]
+    return home_goals, away_goals
 
 
 def forecast_of(forecast: MatchForecast) -> Forecast:

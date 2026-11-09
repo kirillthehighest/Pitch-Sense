@@ -5,7 +5,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import { flushSync } from "react-dom";
 import { api, askUntilAnswered } from "./api";
 import { FavouriteDialog } from "./components/FavouriteDialog";
-import { CrossIcon, SimulateIcon } from "./components/Icons";
+import { CrossIcon } from "./components/Icons";
 import { OtherMatch } from "./components/OtherMatch";
 import { Problem } from "./components/Problem";
 import { ScreenHead } from "./components/ScreenHead";
@@ -282,7 +282,6 @@ export default function App() {
               favourite={favourite}
               onBack={() => setMatch(null)}
               onTeam={openTeam}
-              onOther={() => setOtherMatch(true)}
             />
           )}
           <div className="screen-page" hidden={match !== null}>
@@ -292,10 +291,6 @@ export default function App() {
                   <h1>{about?.title}</h1>
                   <p>{about?.description}</p>
                 </div>
-                <button className="button" onClick={() => setOtherMatch(true)} aria-keyshortcuts="S" title="Tasta S">
-                  <SimulateIcon />
-                  Simulează un meci
-                </button>
               </div>
             ) : (
               current &&
@@ -337,7 +332,6 @@ export default function App() {
                   chooseLeague(code);
                   chooseScreen("standings");
                 }}
-                onPredictions={() => chooseScreen("predictions")}
               />
             )}
             {current && screen === "team" && (

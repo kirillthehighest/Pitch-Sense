@@ -107,6 +107,9 @@ def test_a_played_matchs_page_has_every_model_the_scores_and_both_teams(api_clie
     top = page["poisson"]["top_scores"][0]
     assert grid[top["home"]][top["away"]] == pytest.approx(top["probability"])
     assert top["probability"] == max(max(row) for row in grid)
+    likely = {p["model"]: p["likely_score"] for p in forecast["predictions"]}
+    assert likely["Poisson"] == [top["home"], top["away"]]  # the list's score is the page's first
+    assert likely["Elo"] is None and likely["Logistic regression"] is None
     teams = api_backend.league("SP1").teams
     before = date.fromisoformat(forecast["date"])
     assert page["home"]["rating"] == teams.rating_before(forecast["home_team"], before)

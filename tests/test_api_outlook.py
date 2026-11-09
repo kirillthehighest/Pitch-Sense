@@ -1,28 +1,10 @@
-"""The server's season at a glance (Phase 25): the models' record and the projected table."""
+"""The server's season at a glance (Phase 25): the projected table."""
 
 import pytest
 from fastapi.testclient import TestClient
 
 from app.api.server import create_app
-from app.prediction.outputs import ModelName
 from app.services.outlook import SIMULATIONS
-
-
-def test_the_record_sums_each_models_review_of_the_latest_season(api_client, api_backend):
-    answer = api_client.get("/api/track-record/SP1")
-
-    assert answer.status_code == 200
-    found = answer.json()
-    assert found["season"] == "2007-08" and found["in_progress"] is False
-    assert [model["model"] for model in found["models"]] == [
-        "Logistic regression",
-        "Elo",
-        "Poisson",
-    ]
-    for model in found["models"]:
-        review = api_backend.league("SP1").predictions.review("2007-08", ModelName(model["model"]))
-        assert (model["hits"], model["matches"]) == (review.hits, len(review.matches))
-        assert 0 <= model["recent_hits"] <= model["recent_matches"] <= model["matches"]
 
 
 def test_a_league_without_a_season_in_progress_has_no_projection(api_client):
