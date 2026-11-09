@@ -38,3 +38,6 @@ CLAUDE.md
 # Local design notes of the impeccable skill
 .impeccable/
 PRODUCT.md
+
+# JetBrains IDE settings (local to each developer)
+.idea/
