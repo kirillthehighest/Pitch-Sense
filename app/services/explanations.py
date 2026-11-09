@@ -5,11 +5,14 @@ K-Means profiles are; in Analiză how the algorithms work and where the data and
 from."""
 
 import json
+from dataclasses import dataclass
 from datetime import timedelta
+
+import numpy as np
 
 from app.data.competitions import competition
 from app.prediction.outputs import ModelName
-from app.services.formatting import date_text
+from app.services.formatting import date_text, integer, number, percent, quantity
 from app.services.images import CRESTS_DIR, LEAGUE_PHOTOS_DIR, STADIUMS_DIR
 from app.services.labels import model_label, outcome_label
 from app.services.predictions import MatchForecast
@@ -30,6 +33,122 @@ MODEL_EXPLANATIONS = {
     ),
 }
 NO_POISSON = "Nu există o predicție Poisson pentru acest meci."
+
+FORM_POINTS = {"W": 3, "D": 1, "L": 0}
+# What else the logistic regression weighs besides the values its sentence lists
+LOGISTIC_OTHERS = "golaverajul și șuturile pe poartă din ultimele meciuri acasă și în deplasare"
+
+
+@dataclass(frozen=True, slots=True)
+class Side:
+    """How one team came into a match, as its sentences use it."""
+
+    rating: float  # Elo rating before the match
+    points: int  # league points so far this season
+    played: int
+    form: tuple[str, ...]  # the last five results, W, D or L, oldest first
+
+    @property
+    def per_match(self) -> float:
+        return self.points / self.played if self.played else 0.0
+
+    @property
+    def form_points(self) -> int:
+        return sum(FORM_POINTS[result] for result in self.form)
+
+
+def side_name(outcome: str) -> str:
+    return {"H": "gazde", "D": "egal", "A": "oaspeți"}[outcome]
+
+
+def elo_reason(home: Side, away: Side, home_advantage: float) -> str:
+    """Elo: both ratings and what the home ground is worth, so the reader sees who starts ahead."""
+    lead = home.rating + home_advantage - away.rating
+    points = quantity(round(abs(lead)), "punct", "puncte")
+    ahead = (
+        f"gazdele pornesc cu {points} înainte"
+        if lead >= 0
+        else f"oaspeții rămân cu {points} înainte"
+    )
+    return (
+        f"Ratingul Elo înaintea meciului: gazdele {integer(round(home.rating))}, oaspeții "
+        f"{integer(round(away.rating))}. Terenul propriu valorează "
+        f"{quantity(round(home_advantage), 'punct', 'puncte')}, deci {ahead}."
+    )
+
+
+def poisson_reason(expected_goals: tuple[float, float], grid: np.ndarray, pick: str) -> str:
+    """Poisson: the expected goals, the likeliest score of its pick and, when it differs, the
+    likeliest score overall (``grid``: home goals x away goals)."""
+    home_goals, away_goals = np.indices(grid.shape)
+    allowed = {
+        "H": home_goals > away_goals,
+        "D": home_goals == away_goals,
+        "A": home_goals < away_goals,
+    }
+    best = np.unravel_index(np.argmax(np.where(allowed[pick], grid, -1.0)), grid.shape)
+    top = np.unravel_index(np.argmax(grid), grid.shape)
+    text = (
+        f"Goluri așteptate: gazdele {number(expected_goals[0], 2)}, oaspeții "
+        f"{number(expected_goals[1], 2)}. Dacă iese rezultatul ales ({side_name(pick)}), cel mai "
+        f"probabil scor e {best[0]}–{best[1]} ({percent(float(grid[best]))})."
+    )
+    if top != best:
+        text += f" În general, cel mai probabil e {top[0]}–{top[1]} ({percent(float(grid[top]))})."
+    return text
+
+
+def logistic_reason(home: Side, away: Side, pick: str) -> str:
+    """Logistic regression: the differences it weighs and, when they favour the other side, what
+    tips it all the same (its learnt home advantage and the values the sentence does not list)."""
+    listed = (
+        f"Cântărește diferențele dintre echipe: {number(home.per_match, 2)} față de "
+        f"{number(away.per_match, 2)} puncte pe meci în sezon, {home.form_points} față de "
+        f"{away.form_points} puncte în ultimele 5 meciuri, rating Elo "
+        f"{integer(round(home.rating))} față de {integer(round(away.rating))}."
+    )
+    lead = (
+        np.sign(home.per_match - away.per_match)
+        + np.sign(home.form_points - away.form_points)
+        + np.sign(home.rating - away.rating)
+    )
+    if pick == "H" and lead < 0:
+        tip = (
+            "Aceste cifre îi avantajează pe oaspeți; modelul îi vede totuși favoriți pe gazde, din "
+            f"avantajul terenului propriu, învățat din meciurile trecute, și din {LOGISTIC_OTHERS}."
+        )
+    elif pick == "A" and lead > 0:
+        tip = (
+            "Aceste cifre îi avantajează pe gazde; modelul îi vede totuși favoriți pe oaspeți, din "
+            f"{LOGISTIC_OTHERS}."
+        )
+    elif pick == "D":
+        tip = "Diferențele aproape se anulează, așa că egalul iese cel mai probabil."
+    else:
+        tip = (
+            f"Împreună cu avantajul terenului propriu, ele îi arată favoriți pe {side_name(pick)}."
+        )
+    return f"{listed} {tip}"
+
+
+def match_explanations(
+    forecast: MatchForecast, home: Side, away: Side, home_advantage: float
+) -> dict[ModelName, str]:
+    """Each model's reasoning about this match; a model without a prediction keeps its general
+    sentence (``MODEL_EXPLANATIONS``)."""
+    found = dict(MODEL_EXPLANATIONS)
+    for model, prediction in forecast.predictions.items():
+        pick = prediction.probabilities.most_likely.value
+        if model is ModelName.ELO:
+            found[model] = elo_reason(home, away, home_advantage)
+        elif model is ModelName.POISSON and prediction.score_distribution is not None:
+            expected = prediction.expected_goals or (0.0, 0.0)
+            grid = prediction.score_distribution.probabilities
+            found[model] = poisson_reason(expected, grid, pick)
+        elif model is ModelName.LOGISTIC_REGRESSION:
+            found[model] = logistic_reason(home, away, pick)
+    return found
+
 
 # The K-Means profiles of a team page (the description itself is shown in Analiză)
 GROUPS_EXPLANATION = (

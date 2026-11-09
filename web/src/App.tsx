@@ -282,6 +282,7 @@ export default function App() {
               favourite={favourite}
               onBack={() => setMatch(null)}
               onTeam={openTeam}
+              chosen={current.code}
             />
           )}
           <div className="screen-page" hidden={match !== null}>
@@ -328,6 +329,7 @@ export default function App() {
                 preferences={preferences}
                 ready={ready}
                 onOpenMatch={openMatch}
+                onPredictions={() => chooseScreen("predictions")}
                 onStandings={(code) => {
                   chooseLeague(code);
                   chooseScreen("standings");

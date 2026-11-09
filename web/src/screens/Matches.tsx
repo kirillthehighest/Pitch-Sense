@@ -12,7 +12,7 @@ import { Flag } from "../components/Flag";
 import { ColumnsHead, likelyScore, MatchRow } from "../components/MatchRow";
 import { usePageKeys } from "../components/Shortcuts";
 import { SkeletonCard, SkeletonRows } from "../components/Skeleton";
-import { capitalised, dayName, isoDay, parseDay, quantity, seasonText, shortDateText, teamName } from "../format";
+import { capitalised, dayName, integer, isoDay, parseDay, percent, quantity, seasonText, shortDateText, teamName } from "../format";
 import type { Day, Days, Forecast, League, Preferences, Standings } from "../types";
 import { MODEL_LABELS, MODELS } from "../types";
 
@@ -23,6 +23,7 @@ interface Props {
   ready: string; // changes when a league's predictions become ready
   onOpenMatch: (forecast: Forecast) => void;
   onStandings: (code: string) => void;
+  onPredictions: () => void;
 }
 
 function seasonStart(season: string): string {
@@ -42,7 +43,7 @@ function shifted(day: string, days: number): string {
   return isoDay(moved);
 }
 
-export function Matches({ leagues, league, preferences, ready, onOpenMatch, onStandings }: Props) {
+export function Matches({ leagues, league, preferences, ready, onOpenMatch, onStandings, onPredictions }: Props) {
   const [days, setDays] = useState<Days | null>(null);
   const [day, setDay] = useState<string | null>(null);
   const [answer, setAnswer] = useState<Day | null>(null);
@@ -66,6 +67,21 @@ export function Matches({ leagues, league, preferences, ready, onOpenMatch, onSt
     if (!day) return league.seasons[league.seasons.length - 1];
     return [...league.seasons].reverse().find((season) => seasonStart(season) <= day) ?? league.seasons[0];
   }, [day, league.seasons]);
+
+  // the proof beside the model's choice: how often it was right in the season on screen
+  const [record, setRecord] = useState<{ key: string; hits: number; matches: number } | null>(null);
+  const recordKey = `${league.code} ${seasonOfDay} ${model}`;
+  useEffect(() => {
+    let live = true;
+    if (!league.prepared) return;
+    api
+      .review(league.code, seasonOfDay, model)
+      .then((found) => live && setRecord({ key: recordKey, hits: found.hits, matches: found.matches }))
+      .catch(() => live && setRecord(null)); // the line is left out, the list still works
+    return () => {
+      live = false;
+    };
+  }, [league.code, league.prepared, seasonOfDay, model, recordKey, ready]);
 
   usePageKeys((key) => {
     if (!day) return;
@@ -149,6 +165,15 @@ export function Matches({ leagues, league, preferences, ready, onOpenMatch, onSt
               ))}
             </select>
           </div>
+          {record?.key === recordKey && record.matches > 0 && (
+            <p className="model-record">
+              {MODEL_LABELS[model]} a nimerit {integer(record.hits)} din {quantity(record.matches, "meci jucat", "meciuri jucate")} în{" "}
+              {league.name} {seasonText(seasonOfDay)} ({percent(record.hits / record.matches)}).{" "}
+              <button className="link" onClick={onPredictions}>
+                Vezi predicțiile ›
+              </button>
+            </p>
+          )}
         </div>
         {answer && groups.length === 0 && (
           <EmptyDay day={day} days={days.days} onlyLeague={onlyLeague ? league.name : null} onDay={setDay} />

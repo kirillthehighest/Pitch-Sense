@@ -1,7 +1,8 @@
 // A match's page (Phase 19's, in the web interface): both clubs on a head lit by the deep colour
 // of the match's league, what each model expects and why, how both teams came into the match side
 // by side, and the likely scores of the Poisson model. A hypothetical match (two teams of a season
-// and a day chosen by the user) opens on the same page. The page takes its league's colours.
+// and a day chosen by the user) opens on the same page. Since Phase 27 the page wears the chosen
+// league's colours, as the list it was opened from.
 // Since Phase 25 the head carries the verdict: the three models' bars under the score, and which
 // club they favour; on the Poisson grid the score that happened is ringed. Since Phase 27 the bars
 // are shown once, in the head, and each opens its model's reasoning.
@@ -17,7 +18,7 @@ import { SkeletonCard } from "../components/Skeleton";
 import { ScoreGrid } from "../components/ScoreGrid";
 import { StadiumPhoto } from "../components/StadiumPhoto";
 import { capitalised, dateText, integer, longDateText, number, parseDay, percent, seasonText, teamName, withKickoff } from "../format";
-import { MODEL_COLOURS, themeFor, themeStyle } from "../theme";
+import { MODEL_COLOURS, themeFor } from "../theme";
 import type { Forecast, League, MatchKey, MatchPage as Page, Outcome, Prediction, TeamState } from "../types";
 import { MODELS } from "../types";
 
@@ -27,9 +28,10 @@ interface Props {
   favourite: string | null;
   onBack: () => void;
   onTeam: (code: string, team: string, season: string) => void;
+  chosen: string; // the chosen league, whose colours the page wears
 }
 
-export function MatchPage({ matchKey, leagues, favourite, onBack, onTeam }: Props) {
+export function MatchPage({ matchKey, leagues, favourite, onBack, onTeam, chosen }: Props) {
   const [page, setPage] = useState<Page | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { code, season, day, home, away } = matchKey;
@@ -50,7 +52,7 @@ export function MatchPage({ matchKey, leagues, favourite, onBack, onTeam }: Prop
   const league = leagues.find((item) => item.code === code);
   const openTeam = (team: string) => onTeam(code, team, season);
   return (
-    <div className="match-page" style={themeStyle(code)}>
+    <div className="match-page">
       <div className="page-actions">
         <button className="link back" onClick={onBack}>
           ‹ Înapoi
@@ -75,7 +77,7 @@ export function MatchPage({ matchKey, leagues, favourite, onBack, onTeam }: Prop
             <TeamsCard page={page} favourite={favourite} onTeam={openTeam} />
             <PoissonCard page={page} />
           </div>
-          {page.poisson && <ScoresCard page={page} />}
+          {page.poisson && <ScoresCard page={page} accent={themeFor(chosen).accent} />}
         </>
       )}
     </div>
@@ -225,7 +227,7 @@ function Consensus({ page }: { page: Page }) {
       })}
       <p className="consensus-note">
         {page.verdict && `${page.verdict} `}
-        {page.knowledge} Apasă pe un model ca să vezi cum lucrează.
+        {page.knowledge} Apasă pe un model ca să vezi de ce vede meciul așa.
       </p>
     </div>
   );
@@ -339,7 +341,7 @@ function PoissonCard({ page }: { page: Page }) {
 }
 
 /** Every score from 0–0 to 6–6, in its own card under the two above. */
-function ScoresCard({ page }: { page: Page }) {
+function ScoresCard({ page, accent }: { page: Page; accent: string }) {
   const { forecast, poisson } = page;
   if (!poisson) return null;
   return (
@@ -349,7 +351,7 @@ function ScoresCard({ page }: { page: Page }) {
         grid={poisson.grid}
         home={teamName(forecast.home_team)}
         away={teamName(forecast.away_team)}
-        accent={themeFor(forecast.competition).accent}
+        accent={accent}
         actual={forecast.result !== null ? [forecast.home_goals as number, forecast.away_goals as number] : null}
       />
     </section>
