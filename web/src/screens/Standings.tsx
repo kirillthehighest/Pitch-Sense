@@ -269,7 +269,7 @@ function ProjectedTable({ league, favourite, onTeam }: { league: League; favouri
           <h2>Cum s-ar putea termina {league.name} {seasonText(projection.season)}</h2>
           <p className="caption">
             Cele {quantity(projection.fixtures, "meci rămas", "meciuri rămase")}, jucate de {integer(projection.simulations)} de ori cu
-            probabilitățile modelului. Ordinea: punctele așteptate la final.
+            probabilitățile modelului. Ordinea: punctele așteptate la final. O echipă poate fi proiectată mai jos decât e acum când modelul o socotește mai slabă decât arată punctele de până acum sau când îi rămân meciuri mai grele.
           </p>
         </div>
         <label className="caption" htmlFor="projection-model">

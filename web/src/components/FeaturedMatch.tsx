@@ -10,7 +10,7 @@ import type { Forecast, League, Outcome } from "../types";
 import { MODEL_LABELS } from "../types";
 import { Crest } from "./Crest";
 import { LeagueImageCard } from "./LeagueImage";
-import { chance } from "./MatchRow";
+import { chance, HitMark, isPending } from "./MatchRow";
 
 const OUTCOMES: [Outcome, string][] = [["H", "Gazde"], ["D", "Egal"], ["A", "Oaspeți"]];
 
@@ -59,13 +59,19 @@ export function FeaturedMatch({ forecast, day, league, model, favourite, onOpen 
         ))}
       </div>
       <span className="featured-info">
-        {played ? `Final · ${when}` : when} · {prediction ? MODEL_LABELS[model] : "fără predicție"}
+        {played ? `Final · ${when}` : isPending(forecast) ? `Fără rezultat · ${when}` : when} ·{" "}
+        {prediction ? MODEL_LABELS[model] : "fără predicție"}
       </span>
       <div className="featured-actions">
         {prediction &&
           OUTCOMES.map(([outcome, name]) => (
-            <span key={outcome} className={`outcome${prediction.most_likely === outcome ? " chosen" : ""}`}>
+            <span
+              key={outcome}
+              className={`outcome${prediction.most_likely === outcome ? " chosen" : ""}${forecast.result === outcome ? " actual" : ""}`}
+            >
               {name} <b>{percent(chance(prediction, outcome), 0)}</b>
+              {/* as in every list: the pick's hit or miss, the result that happened ringed */}
+              {prediction.most_likely === outcome && prediction.hit !== null && <HitMark hit={prediction.hit} />}
             </span>
           ))}
         <button className="button primary" onClick={() => onOpen(forecast)}>

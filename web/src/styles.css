@@ -224,7 +224,7 @@ select, input[type="date"] {
   height: 28px; border-radius: 10px; background: var(--surface-high); display: inline-flex; align-items: center;
   justify-content: center; font-family: var(--display); font-weight: 700; font-size: 18px;
 }
-.score.empty { background: transparent; color: var(--faint); font-size: 16px; }
+.score.empty { background: transparent; color: var(--muted); font-size: 16px; }
 .chips { display: grid; grid-template-columns: repeat(3, 56px); gap: 6px; }
 .chip {
   position: relative; height: 30px; border-radius: 10px; background: var(--surface-high); color: var(--muted);
@@ -270,7 +270,10 @@ select, input[type="date"] {
   display: inline-flex; align-items: center; gap: 6px; font-weight: 600; backdrop-filter: blur(6px);
 }
 .outcome b { font-weight: 800; }
+.outcome { position: relative; }
+.outcome.actual { box-shadow: inset 0 0 0 2px #fff; }
 .outcome.chosen { background: var(--accent); color: var(--accent-ink); }
+.outcome.chosen.actual { box-shadow: inset 0 0 0 2px var(--accent-ink); }
 .featured-actions .button { margin-left: 6px; }
 
 /* The matches screen */
@@ -413,7 +416,7 @@ button.standings-row:hover { background: var(--surface-high); }
 .data-row.head::before { display: none; }
 .data-row > span:first-child { font-weight: 600; }
 .data-row.highlighted { background: color-mix(in srgb, var(--accent) 12%, transparent); }
-.best { color: var(--accent-text); font-weight: 800; }
+.best { color: var(--text); font-weight: 800; background: var(--surface-top); border-radius: 6px; padding: 1px 6px; } /* a raised tag: the accent stays the pick's */
 .league-cell { display: inline-flex; align-items: center; gap: 8px; }
 .confusion { display: grid; grid-template-columns: 128px repeat(3, minmax(0, 1fr)); gap: 4px; }
 .confusion-corner { display: flex; align-items: flex-end; padding-bottom: 6px; font-size: 11px; }
@@ -562,7 +565,7 @@ button.standings-row:hover { background: var(--surface-high); }
 .key.draw, .segment.draw { background: #3a3a42; color: #fff; }
 .key.away, .segment.away { background: #e6e6eb; color: var(--night); }
 .model-block { padding: 14px 0; border-top: 1px solid rgba(255, 255, 255, 0.055); display: flex; flex-direction: column; gap: 9px; }
-.model-block p { margin: 0; line-height: 1.5; }
+.model-block p { margin: 0; line-height: 1.55; font-size: 14px; color: #d9d9df; max-width: 70ch; } /* the reasoning: readable on a projector */
 .model-head { display: flex; align-items: center; gap: 9px; }
 .model-head strong { font-size: 15px; }
 .model-dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
@@ -587,7 +590,9 @@ button.standings-row:hover { background: var(--surface-high); }
 }
 .compare-row > span:first-child { font-weight: 600; }
 .compare-row > span:last-child { text-align: right; font-weight: 600; }
-.compare-row .best { color: var(--accent-text); font-weight: 800 !important; }
+.compare-row .best { color: var(--text); font-weight: 800 !important; background: var(--surface-top); border-radius: 6px; padding: 1px 6px; }
+.compare-row .best:first-child { justify-self: start; }
+.compare-row .best:last-child { justify-self: end; }
 .compare-label { color: var(--muted); font-size: 12px; font-weight: 600; text-align: center; }
 .form-right { display: flex; justify-content: flex-end; }
 .compare .form { gap: 3px; }
@@ -812,9 +817,9 @@ main.screen:focus { outline: none; }
 .columns-chips { display: grid; grid-template-columns: repeat(3, 56px); gap: 6px; }
 /* Phase 27: the data's age among the side bar's tools */
 .side-status { margin: -2px 8px 6px 44px; color: var(--muted); font-size: 12px; line-height: 1.45; }
-.side-status.stale { color: var(--accent-text); }
+.side-status.stale { color: var(--text); } /* a fact, not the pick: never in the league's accent */
 .side-item.has-dot { position: relative; }
-.side-item .stale-dot { position: absolute; left: 28px; top: 8px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+.side-item .stale-dot { position: absolute; left: 28px; top: 8px; width: 8px; height: 8px; border-radius: 50%; background: var(--text); box-shadow: 0 0 0 2px var(--night); }
 .app.compact .side-item .stale-dot { left: auto; right: 22px; }
 /* A short window: the side bar's rows tighten so it fits, and the featured card gives room to the
    day's matches (Phase 27) */
@@ -831,3 +836,12 @@ main.screen:focus { outline: none; }
   .featured-team span, .featured-team strong { font-size: 26px; }
 }
 .team-facts { color: rgba(255, 255, 255, 0.86); font-weight: 600; }
+/* Phase 27: the match page in two rows of two cards of equal height; the teams' rows spread over
+   their card's height, so no card ends in an empty corner */
+.match-grid { align-items: stretch; }
+.teams-card { display: flex; flex-direction: column; }
+.teams-card .compare { flex: 1; display: flex; flex-direction: column; justify-content: space-between; }
+.teams-card .compare-row { flex: 1; }
+.poisson-row { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); gap: 18px; align-items: stretch; }
+@media (max-width: 1100px) { .poisson-row { grid-template-columns: minmax(0, 1fr); } }
+.loading-note { margin: 0; text-align: center; }

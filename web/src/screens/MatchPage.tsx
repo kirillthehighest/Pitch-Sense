@@ -68,16 +68,21 @@ export function MatchPage({ matchKey, leagues, favourite, onBack, onTeam, chosen
             <SkeletonCard height={300} />
             <SkeletonCard height={300} />
           </div>
+          <p className="caption loading-note">Se calculează predicțiile meciului…</p>
         </>
       )}
       {page && league && (
         <>
           <MatchHead page={page} league={league} favourite={favourite} onTeam={openTeam} />
+          {/* two rows of two cards, each pair as tall as each other: no empty corner */}
           <div className="match-grid">
             <ModelsCard page={page} />
             <TeamsCard page={page} favourite={favourite} onTeam={openTeam} />
           </div>
-          <PoissonCard page={page} chosen={chosen} />
+          <div className="poisson-row">
+            <PoissonCard page={page} />
+            {page.poisson && <ScoresCard page={page} chosen={chosen} />}
+          </div>
         </>
       )}
     </div>
@@ -188,6 +193,13 @@ function better(home: number, away: number, higher = true): Better {
   return home > away === higher ? "home" : "away";
 }
 
+/** The last day whose matches the page uses: the day before ``before`` (ISO). */
+function dayBefore(before: string): Date {
+  const day = parseDay(before);
+  day.setDate(day.getDate() - 1);
+  return day;
+}
+
 function TeamsCard({ page, favourite, onTeam }: { page: Page; favourite: string | null; onTeam: (team: string) => void }) {
   const { home, away } = page;
   const difference = (state: TeamState) => state.record.goals_for - state.record.goals_against;
@@ -229,13 +241,13 @@ function TeamsCard({ page, favourite, onTeam }: { page: Page; favourite: string 
         </div>
       </div>
       <p className="caption">
-        Înainte de {dateText(parseDay(page.before))}. În evidență: valoarea mai bună a fiecărui rând.
+        Din meciurile jucate până pe {dateText(dayBefore(page.before))}. În evidență: valoarea mai bună a fiecărui rând.
       </p>
     </section>
   );
 }
 
-function PoissonCard({ page, chosen }: { page: Page; chosen: string }) {
+function PoissonCard({ page }: { page: Page }) {
   const { forecast, poisson } = page;
   if (!poisson) {
     return (
@@ -250,7 +262,6 @@ function PoissonCard({ page, chosen }: { page: Page; chosen: string }) {
   return (
     <section className="card poisson-card">
       <h2>Scoruri probabile · Poisson</h2>
-      <div className="poisson-layout">
         <div className="poisson-side">
           <div className="expected-goals">
             <div>
@@ -281,14 +292,24 @@ function PoissonCard({ page, chosen }: { page: Page; chosen: string }) {
             ))}
           </div>
         </div>
-        <ScoreGrid
-          grid={poisson.grid}
-          home={teamName(forecast.home_team)}
-          away={teamName(forecast.away_team)}
-          accent={themeFor(chosen).accent}
-          actual={forecast.result !== null ? [forecast.home_goals as number, forecast.away_goals as number] : null}
-        />
-      </div>
+    </section>
+  );
+}
+
+/** Every score from 0–0 to 6–6, under the cards above; the score that happened is ringed. */
+function ScoresCard({ page, chosen }: { page: Page; chosen: string }) {
+  const { forecast, poisson } = page;
+  if (!poisson) return null;
+  return (
+    <section className="card scores-card">
+      <h2>Șansa fiecărui scor, de la 0–0 la 6–6</h2>
+      <ScoreGrid
+        grid={poisson.grid}
+        home={teamName(forecast.home_team)}
+        away={teamName(forecast.away_team)}
+        accent={themeFor(chosen).accent}
+        actual={forecast.result !== null ? [forecast.home_goals as number, forecast.away_goals as number] : null}
+      />
     </section>
   );
 }

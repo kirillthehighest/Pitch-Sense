@@ -2,7 +2,7 @@
 // highlighted everywhere, its card leads Meciuri and the match of the day prefers it.
 import { type FormEvent, useEffect, useState } from "react";
 import { api } from "../api";
-import { teamName } from "../format";
+import { byShownName, teamName } from "../format";
 import type { Favourite, League } from "../types";
 import { Crest } from "./Crest";
 import { Modal } from "./Modal";
@@ -26,8 +26,9 @@ export function FavouriteDialog({ leagues, league, favourite, onClose, onChoose,
     let live = true;
     api.season(chosen.code, chosen.seasons[chosen.seasons.length - 1]).then((found) => {
       if (!live) return;
-      setTeams(found.teams);
-      setTeam((current) => (found.teams.includes(current) ? current : found.teams[0]));
+      const sorted = byShownName(found.teams);
+      setTeams(sorted);
+      setTeam((current) => (sorted.includes(current) ? current : sorted[0]));
     });
     return () => {
       live = false;

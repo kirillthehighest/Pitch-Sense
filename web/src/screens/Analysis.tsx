@@ -55,6 +55,12 @@ function differenceText(difference: Difference): string {
 
 const label = (model: string) => MODEL_LABELS[model] ?? model;
 const EVEN = "minmax(0, 1fr)"; // number columns that share a table's width evenly
+
+/** A paired difference as its measure reads: accuracy in percentage points, the others as numbers. */
+function difference(d: Difference, value: number): string {
+  if (d.measure !== "accuracy") return signed(value);
+  return `${signed(100 * value, 2)} p.p.`;
+}
 const SURE = 0.65; // the threshold of "when the model is sure" shown beside the bookmakers
 const chartFallback = <p className="caption chart-message">Se încarcă graficul…</p>;
 const loading = (
@@ -334,7 +340,13 @@ function Models({ league }: { league: League }) {
   return (
     <div className="analysis-stack">
       {first && (
-        <Finding title={`În ${league.name}, ${named(first.model, first.label)} prezice cel mai bine`}>
+        <Finding
+          title={
+            versus?.better || !second
+              ? `În ${league.name}, ${named(first.model, first.label)} prezice cel mai bine`
+              : `În ${league.name}, ${named(first.model, first.label)} are cel mai mic scor Brier, la limită`
+          }
+        >
           Cel mai mic scor Brier, {number(first.brier)}
           {reference?.brier
             ? `, cu ${percent(1 - (first.brier as number) / reference.brier, 0)} mai puțină eroare decât frecvențele trecute (${number(reference.brier)})`
@@ -376,6 +388,14 @@ function Models({ league }: { league: League }) {
           mic scor Brier este evidențiat. Eroarea golurilor (doar Poisson): cât greșesc în medie golurile așteptate.
         </p>
       </section>
+      <WhenSure models={evaluation.models.filter((m) => m.confident.length > 0)} />
+      {evaluation.bookmakers && <Bookmakers comparison={evaluation.bookmakers} />}
+      <details className="more-details">
+        <summary>
+          <span>Detalii statistice</span>
+          <span className="caption">Calibrarea, matricea de confuzie, diferențele meci cu meci, unde se descurcă fiecare model</span>
+        </summary>
+        <div className="analysis-stack">
       <div className="analysis-pair">
         <section className="card">
           <h2>Calibrarea</h2>
@@ -403,14 +423,6 @@ function Models({ league }: { league: League }) {
           </p>
         </section>
       </div>
-      <WhenSure models={evaluation.models.filter((m) => m.confident.length > 0)} />
-      {evaluation.bookmakers && <Bookmakers comparison={evaluation.bookmakers} />}
-      <details className="more-details">
-        <summary>
-          <span>Detalii statistice</span>
-          <span className="caption">Diferențele meci cu meci, unde se descurcă fiecare model, cât de des sunt de acord</span>
-        </summary>
-        <div className="analysis-stack">
       <section className="card">
         <h2>Diferențele meci cu meci</h2>
         <DataTable
@@ -424,8 +436,8 @@ function Models({ league }: { league: League }) {
           rows={evaluation.differences.map((d) => [
             `${d.first_label} – ${d.second_label}`,
             d.measure_label,
-            signed(d.mean),
-            `[${signed(d.lower)}; ${signed(d.upper)}]`,
+            difference(d, d.mean),
+            `[${difference(d, d.lower)}; ${difference(d, d.upper)}]`,
             d.better_label ? <strong className="best">{d.better_label}</strong> : <span className="caption">nicio diferență reală</span>,
           ])}
         />
@@ -699,7 +711,7 @@ function Leagues({ league, leagues, onLeague }: { league: League; leagues: Leagu
             { label: "Ligă", width: "minmax(150px, 1.5fr)" },
             ...models.map((model) => ({ label: label(model), width: EVEN })),
             { label: "Cel mai mic scor", width: "minmax(0, 1.4fr)", align: "left" as const },
-            { label: "Abilitatea lui", width: EVEN },
+            { label: "Câștig față de frecvențe", width: EVEN },
           ]}
           rows={comparison.results.map((r) => [
             leagueCell(r.code, r.name),
@@ -711,8 +723,8 @@ function Leagues({ league, leagues, onLeague }: { league: League; leagues: Leagu
           ])}
         />
         <p className="caption table-note">
-          Scorul Brier (mai mic e mai bine). Abilitatea: partea din scorul Brier al frecvențelor trecute pe care o elimină
-          modelul.
+          Scorul Brier (mai mic e mai bine). Câștigul față de frecvențe: partea din scorul Brier al frecvențelor trecute pe
+          care o elimină cel mai bun model.
         </p>
       </section>
       <section className="card">
