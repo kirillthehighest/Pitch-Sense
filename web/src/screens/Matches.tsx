@@ -1,7 +1,7 @@
 // Meciuri: the matches of a day in every league, the chosen league first, with the match of the
 // day on top; any day of any season can be chosen. On the right: your team and the table.
 // The arrows move a day and M changes the model (Phase 25). Since Phase 27 every group wears the
-// chosen league's colours again (as in 0.6.1), and a coming match shows Poisson's likely score.
+// chosen league's colours again (as in 0.6.1), and a coming match shows the likely score of the pick.
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api";
 import { Crest } from "../components/Crest";
@@ -175,7 +175,7 @@ export function Matches({ leagues, league, preferences, ready, onOpenMatch, onSt
             </header>
             {group.prepared ? (
               <>
-                <ColumnsHead likely={group.forecasts.some((forecast) => likelyScore(forecast) !== null)} />
+                <ColumnsHead likely={group.forecasts.some((forecast) => likelyScore(forecast, model) !== null)} />
                 <div className="match-list">
                   {group.forecasts.map((forecast) => (
                     <MatchRow

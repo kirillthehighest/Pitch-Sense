@@ -4,8 +4,10 @@ Romanian); names a person reads (models, outcomes, countries) come translated, f
 
 from datetime import date, datetime
 
+import numpy as np
 from pydantic import BaseModel, ConfigDict
 
+from app.data.models import Outcome
 from app.prediction.outputs import ModelPrediction
 from app.services.labels import model_label
 from app.services.predictions import MatchForecast, ModelSummary
@@ -50,7 +52,9 @@ class Prediction(Schema):
     most_likely: str  # H, D or A
     hit: bool | None  # whether the most likely outcome happened; None before the match
     expected_goals: tuple[float, float] | None
-    likely_score: tuple[int, int] | None = None  # Poisson's most likely score (Phase 27)
+    likely_score: tuple[int, int] | None = (
+        None  # the likeliest score of this model's pick (Phase 27)
+    )
 
 
 class Forecast(Schema):
@@ -316,7 +320,9 @@ def record_of(record: TeamStatistics) -> Record:
     )
 
 
-def prediction_of(prediction: ModelPrediction, forecast: MatchForecast) -> Prediction:
+def prediction_of(
+    prediction: ModelPrediction, forecast: MatchForecast, grid: np.ndarray | None = None
+) -> Prediction:
     probabilities = prediction.probabilities
     played = forecast.played
     most_likely = probabilities.most_likely
@@ -329,20 +335,39 @@ def prediction_of(prediction: ModelPrediction, forecast: MatchForecast) -> Predi
         most_likely=most_likely.value,
         hit=None if played is None else most_likely == played.result,
         expected_goals=prediction.expected_goals,
-        likely_score=likely_score(prediction),
+        likely_score=likely_score(prediction, grid),
     )
 
 
-def likely_score(prediction: ModelPrediction) -> tuple[int, int] | None:
-    """The single most likely score of a model with a score distribution (Poisson), else None."""
-    if prediction.score_distribution is None:
+def likely_score(prediction: ModelPrediction, grid: np.ndarray | None) -> tuple[int, int] | None:
+    """On the match's Poisson score grid (home goals x away goals), the likeliest score among those
+    giving this model's most likely result, or None without a grid. Within the model's own pick,
+    so the score never contradicts the chances shown beside it (the likeliest overall is often 1-1).
+    """
+    if grid is None:
         return None
-    home_goals, away_goals, _ = prediction.score_distribution.most_likely_scores(1)[0]
-    return home_goals, away_goals
+    home_goals, away_goals = np.indices(grid.shape)
+    favourite = prediction.probabilities.most_likely
+    if favourite is Outcome.HOME_WIN:
+        allowed = home_goals > away_goals
+    elif favourite is Outcome.AWAY_WIN:
+        allowed = home_goals < away_goals
+    else:
+        allowed = home_goals == away_goals
+    best = np.unravel_index(np.argmax(np.where(allowed, grid, -1.0)), grid.shape)
+    return int(best[0]), int(best[1])
 
 
 def forecast_of(forecast: MatchForecast) -> Forecast:
     played = forecast.played
+    grid = next(
+        (
+            p.score_distribution.probabilities
+            for p in forecast.predictions.values()
+            if p.score_distribution is not None
+        ),
+        None,
+    )
     return Forecast(
         competition=forecast.competition,
         season=forecast.season,
@@ -356,7 +381,7 @@ def forecast_of(forecast: MatchForecast) -> Forecast:
         postponed=forecast.postponed,
         as_of=forecast.as_of,
         hypothetical=forecast.hypothetical,
-        predictions=[prediction_of(p, forecast) for p in forecast.predictions.values()],
+        predictions=[prediction_of(p, forecast, grid) for p in forecast.predictions.values()],
     )
 
 

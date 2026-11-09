@@ -11,7 +11,7 @@ import { FormSquares } from "../components/FormSquares";
 import { Problem } from "../components/Problem";
 import { StadiumHead } from "../components/ScreenHead";
 import { SkeletonTable } from "../components/Skeleton";
-import { dateText, integer, isoDay, number, parseDay, percent, seasonText, signed, teamName } from "../format";
+import { dateText, integer, isoDay, number, parseDay, percent, quantity, seasonText, signed, teamName } from "../format";
 import type { League, Projection, SeasonDays, Standings as Table } from "../types";
 import { MODEL_LABELS, MODELS } from "../types";
 
@@ -264,7 +264,7 @@ function ProjectedTable({ league, favourite, onTeam }: { league: League; favouri
         <div>
           <h2>Cum s-ar putea termina {league.name} {seasonText(projection.season)}</h2>
           <p className="caption">
-            Cele {integer(projection.fixtures)} meciuri rămase, jucate de {integer(projection.simulations)} de ori cu
+            Cele {quantity(projection.fixtures, "meci rămas", "meciuri rămase")}, jucate de {integer(projection.simulations)} de ori cu
             probabilitățile modelului. Ordinea: punctele așteptate la final.
           </p>
         </div>

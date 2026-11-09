@@ -32,7 +32,7 @@ export interface Prediction {
   most_likely: Outcome;
   hit: boolean | null;
   expected_goals: [number, number] | null;
-  likely_score: [number, number] | null; // Poisson's most likely score (Phase 27)
+  likely_score: [number, number] | null; // the likeliest score of this model's pick (Phase 27)
 }
 
 export interface Forecast {

@@ -123,14 +123,7 @@ function MatchHead({
           <span className={`state ${played ? "final" : forecast.hypothetical ? "hypothetical" : pending ? "pending" : "upcoming"}`}>
             {pending ? "Fără rezultat" : page.status}
           </span>
-          {!played && !pending && page.poisson?.top_scores[0] && (
-            <span className="head-likely">
-              scor probabil
-              <b>
-                {page.poisson.top_scores[0].home} : {page.poisson.top_scores[0].away}
-              </b>
-            </span>
-          )}
+
         </div>
       </div>
       <Consensus page={page} />
@@ -232,7 +225,7 @@ function Consensus({ page }: { page: Page }) {
       })}
       <p className="consensus-note">
         {page.verdict && `${page.verdict} `}
-        {page.knowledge} Apasă pe un model ca să vezi de ce vede meciul așa.
+        {page.knowledge} Apasă pe un model ca să vezi cum lucrează.
       </p>
     </div>
   );

@@ -7,7 +7,7 @@ const INK = "#F5F5F7";
 const MUTED = "#9C9CA6";
 const LINE = "#2A2A30";
 const RAISED = "#1E1E23";
-const label = { fill: MUTED, fontSize: 11, fontFamily: "inherit", fontWeight: 600 } as const;
+const label = { fill: MUTED, fontSize: 12, fontFamily: "inherit", fontWeight: 600 } as const;
 
 /** Elo: the winner takes points from the loser, more after beating a stronger side. */
 export function EloDiagram() {
