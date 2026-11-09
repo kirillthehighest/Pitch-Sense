@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/kirillthehighest/Pitch-Sense/releases/latest"><img alt="Versiunea 0.8.0" src="https://img.shields.io/badge/versiunea-0.8.0-E8622A"></a>
+  <a href="https://github.com/kirillthehighest/Pitch-Sense/releases/latest"><img alt="Versiunea 0.9.0" src="https://img.shields.io/badge/versiunea-0.9.0-E8622A"></a>
   <img alt="macOS și Windows" src="https://img.shields.io/badge/macOS%20%7C%20Windows-desktop-555">
   <img alt="Python 3.14" src="https://img.shields.io/badge/Python-3.14-3776AB?logo=python&logoColor=white">
   <img alt="React și Tauri" src="https://img.shields.io/badge/React%20%2B%20Tauri-interfa%C8%9Ba-24C8DB?logo=tauri&logoColor=white">
@@ -63,7 +63,7 @@ Când regresia logistică dă peste 65% unui rezultat, are dreptate în **76,0%*
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/images/pagina-meci.jpg" alt="Pagina unui meci"><br><sub><b>Pagina unui meci:</b> pe ce mizează fiecare model și de ce</sub></td>
+    <td width="50%"><img src="docs/images/pagina-meci.jpg" alt="Pagina unui meci"><br><sub><b>Pagina unui meci:</b> ce spune fiecare model și de ce</sub></td>
     <td width="50%"><img src="docs/images/scoruri.jpg" alt="Scorurile probabile"><br><sub><b>Scorurile probabile</b> ale modelului Poisson, cu scorul final încercuit</sub></td>
   </tr>
   <tr>

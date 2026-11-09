@@ -1305,6 +1305,14 @@ La cererea echipei, după ce a privit interfața: cardul „Ce spun modelele” 
 
 Propunerile ultimei analize, făcute fără o nouă rundă: pagina meciului e așezată pe două rânduri de câte două carduri de aceeași înălțime („Ce spun modelele” lângă „Cum vin echipele”, ale cărei rânduri se întind pe toată înălțimea; scorurile probabile Poisson lângă grila tuturor scorurilor), deci fără colțuri goale; raționamentul fiecărui model e scris mai mare și mai luminos; accentul ligii rămâne doar pentru alegere și selecție (vechimea datelor și valorile mai bune sunt neutre); titlul din Analiză → Modele spune „la limită” când diferența față de al doilea model nu e reală; calibrarea și matricea de confuzie stau în „Detalii statistice”; diferențele de acuratețe se scriu în puncte procentuale; cardul „Meciul zilei” arată nimerit/ratat și rezultatul real; proiecția explică de ce o echipă de sus poate fi proiectată mai jos; pagina meciului spune o singură dată până la ce zi sunt meciurile folosite. Echipa a acceptat faza pe 2026-11-09. După acceptare, la cererea echipei: carduri de aceeași înălțime peste tot (perechile din Analiză și Predicții; pe Echipe, lista meciurilor ia înălțimea coloanei de alături și se derulează în interior), iar raționamentul fiecărui model e scris în trei pași: ce măsoară modelul, cifrele acestui meci (cu cine avantajează fiecare) și rezultatul cel mai probabil, cu șansa lui.
 
+### 23.3. Versiunea 0.9.0
+
+După acceptarea fazei (2026-11-09), echipa a cerut versiunea 0.9.0, publicată pe GitHub (`v0.9.0`), cu capturi noi în README:
+
+- macOS: `.dmg` de 91 MB, cu baza de date reconstruită (100 de sezoane valide) și sezonul în desfășurare descărcat pe 2026-11-09; semnătura aplicației trece `codesign --verify --deep --strict`; autoverificarea serverului trece din `dist/` și din imaginea `.dmg`; trec cele 802 teste Python și cele 48 ale interfeței web.
+- Windows (GitHub Actions): trec aceleași 802 teste Python și 48 ale interfeței web; programul de instalare are 72 MB; autoverificarea trece în pachet și după instalare; serverul instalat are toate ligile gata la 5,4 s după pornire, iar cel pornit de fereastra instalată la 9,5 s după deschiderea ei. Ecranele nu au putut fi privite pe mașina de construire.
+- Capturile din `docs/images/` sunt făcute din aplicația construită pentru macOS, cu datele din 2026-11-09. O fereastră acoperită de alte ferestre nu își redesenează uneori meniul lateral (rămâne evidențiat ecranul anterior); capturile au fost făcute cu fereastra în față.
+
 ## 24. Setul de date și perioadele
 
 Sursa datelor este Football-Data.co.uk: cinci ligi (Premier League, La Liga, Serie A, Bundesliga, Ligue 1), fiecare cu 20 de sezoane încheiate, 2006/07–2025/26 (36.197 de meciuri). Perioadele sunt aceleași pentru toate ligile. Sezonul în desfășurare (2026/27) este descărcat separat și nu face parte din evaluare (secțiunea 15).
