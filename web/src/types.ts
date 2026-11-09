@@ -32,7 +32,7 @@ export interface Prediction {
   most_likely: Outcome;
   hit: boolean | null;
   expected_goals: [number, number] | null;
-  likely_score: [number, number] | null; // the likeliest Poisson score of this model's most likely result (Phase 26)
+  likely_score: [number, number] | null; // the likeliest score of this model's pick (Phase 27)
 }
 
 export interface Forecast {
@@ -149,7 +149,6 @@ export interface MatchPage {
   home: TeamState;
   away: TeamState;
   stadium: string | null;
-  elo_home_advantage: number; // Elo's H in this league, rating points
 }
 
 /** A match to open: of the calendar, or two teams of a season on a day (hypothetical). */
@@ -239,24 +238,6 @@ export interface Review {
 }
 
 // --- The season at a glance (Phase 25) ---
-
-export interface ModelRecord {
-  model: string;
-  label: string;
-  hits: number;
-  matches: number;
-  recent_hits: number;
-  recent_matches: number;
-}
-
-export interface TrackRecord {
-  competition: string;
-  season: string;
-  in_progress: boolean;
-  last_day: string | null;
-  recent_from: string | null;
-  models: ModelRecord[];
-}
 
 export interface ProjectedTeam {
   team: string;

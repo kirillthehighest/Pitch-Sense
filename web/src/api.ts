@@ -18,7 +18,6 @@ import type {
   Standings,
   Status,
   TeamPage,
-  TrackRecord,
 } from "./types";
 
 declare global {
@@ -96,7 +95,7 @@ export async function imageUrl(path: string): Promise<string> {
 export const api = {
   leagues: () => request<League[]>("/api/leagues"),
   status: () => request<Status>("/api/status"),
-  days: () => request<Days>("/api/days"),
+  days: (league: string) => request<Days>(`/api/days?league=${encodeURIComponent(league)}`),
   day: (day: string, league: string) =>
     request<Day>(`/api/day/${day}?league=${encodeURIComponent(league)}`),
   standings: (code: string, season?: string, before?: string) => {
@@ -124,7 +123,6 @@ export const api = {
   },
   review: (code: string, season: string, model: string) =>
     request<Review>(`/api/review/${code}?${new URLSearchParams({ season, model })}`),
-  trackRecord: (code: string) => request<TrackRecord>(`/api/track-record/${code}`),
   projection: (code: string, model: string) =>
     request<Projection>(`/api/projection/${code}?${new URLSearchParams({ model })}`),
   about: () => request<About>("/api/about"),

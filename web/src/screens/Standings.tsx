@@ -9,12 +9,12 @@ import { api } from "../api";
 import { useChosenModel } from "../chosenModel";
 import { Crest } from "../components/Crest";
 import { FormSquares } from "../components/FormSquares";
-import { ModelSwitch } from "../components/ModelSwitch";
 import { Problem } from "../components/Problem";
 import { StadiumHead } from "../components/ScreenHead";
 import { SkeletonTable } from "../components/Skeleton";
 import { dateText, integer, isoDay, number, parseDay, percent, quantity, seasonText, signed, teamName } from "../format";
 import type { League, Projection, SeasonDays, Standings as Table } from "../types";
+import { MODEL_LABELS, MODELS } from "../types";
 
 interface Props {
   title: string;
@@ -239,7 +239,7 @@ function ZoneLegend({ code }: { code: string }) {
 
 /** The season in progress played to its end, from one model's predictions (server side). */
 function ProjectedTable({ league, favourite, onTeam }: { league: League; favourite: string | null; onTeam: (team: string) => void }) {
-  const [model, setModel] = useChosenModel();
+  const [model, setModel] = useChosenModel(); // one choice for every screen
   const [projection, setProjection] = useState<Projection | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -269,10 +269,19 @@ function ProjectedTable({ league, favourite, onTeam }: { league: League; favouri
           <h2>Cum s-ar putea termina {league.name} {seasonText(projection.season)}</h2>
           <p className="caption">
             Cele {quantity(projection.fixtures, "meci rămas", "meciuri rămase")}, jucate de {integer(projection.simulations)} de ori cu
-            probabilitățile modelului. Ordinea: punctele așteptate la final.
+            probabilitățile modelului. Ordinea: punctele așteptate la final. O echipă poate fi proiectată mai jos decât e acum când modelul o socotește mai slabă decât arată punctele de până acum sau când îi rămân meciuri mai grele.
           </p>
         </div>
-        <ModelSwitch league={league} model={model} ready="" onModel={setModel} />
+        <label className="caption" htmlFor="projection-model">
+          Model
+        </label>
+        <select id="projection-model" value={model} onChange={(event) => setModel(event.target.value)}>
+          {MODELS.map((item) => (
+            <option key={item} value={item}>
+              {MODEL_LABELS[item]}
+            </option>
+          ))}
+        </select>
       </div>
       <div className="projection">
         <div className="projection-row head" aria-hidden="true">

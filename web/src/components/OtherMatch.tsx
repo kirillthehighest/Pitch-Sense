@@ -2,7 +2,7 @@
 // before that day (the hypothetical match of Phase 19). The answer opens on the match page.
 import { type FormEvent, useEffect, useState } from "react";
 import { api } from "../api";
-import { seasonText, teamName } from "../format";
+import { byShownName, seasonText, teamName } from "../format";
 import type { League, MatchKey, SeasonDays } from "../types";
 import { Flag } from "./Flag";
 import { Modal } from "./Modal";
@@ -11,13 +11,11 @@ import { Problem } from "./Problem";
 interface Props {
   leagues: League[];
   league: League;
-  home?: string | null; // a team picked in the search, home side of the simulation
-  away?: string | null; // and, when two were typed ("Arsenal Chelsea"), the away side
   onClose: () => void;
   onOpen: (key: MatchKey) => void;
 }
 
-export function OtherMatch({ leagues, league, home: chosenHome = null, away: chosenAway = null, onClose, onOpen }: Props) {
+export function OtherMatch({ leagues, league, onClose, onOpen }: Props) {
   const [code, setCode] = useState(league.code);
   const chosen = leagues.find((item) => item.code === code) ?? league;
   const [season, setSeason] = useState(chosen.seasons[chosen.seasons.length - 1]);
@@ -35,13 +33,10 @@ export function OtherMatch({ leagues, league, home: chosenHome = null, away: cho
       .season(code, season)
       .then((found) => {
         if (!live) return;
-        // listed by the names shown (Football-Data's short names would put "Real Betis" under B)
-        found = { ...found, teams: [...found.teams].sort((a, b) => teamName(a).localeCompare(teamName(b), "ro")) };
-        setSeasonDays(found);
-        const first = chosenHome && found.teams.includes(chosenHome) ? chosenHome : found.teams[0];
-        setHome(first);
-        const second = chosenAway && chosenAway !== first && found.teams.includes(chosenAway) ? chosenAway : null;
-        setAway(second ?? found.teams.find((team) => team !== first) ?? first);
+        const teams = byShownName(found.teams);
+        setSeasonDays({ ...found, teams });
+        setHome(teams[0]);
+        setAway(teams[1] ?? teams[0]);
         setDay(found.suggested_day);
       })
       .catch((reason: Error) => {

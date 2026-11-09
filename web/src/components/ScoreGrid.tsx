@@ -14,10 +14,10 @@ export function cellColours(probability: number, largest: number, accent: string
   return [fill, inkOn(fill, "#FFFFFF", "#000000")]; // pure inks: readable on every mid-tone
 }
 
-/** 12,3%, 8,7%, or <0,1% for a score too rare to write with one decimal. */
+/** 12%, 8,7%, or <0,1% for a score too rare to write with one decimal. */
 export function cellText(probability: number): string {
   if (probability < 0.0005) return "<0,1%";
-  return percent(probability, 1); // as every chance on the page: one decimal
+  return percent(probability, 1); // one decimal, as the list of likely scores beside the grid
 }
 
 interface Props {

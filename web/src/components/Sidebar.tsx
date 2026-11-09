@@ -1,13 +1,13 @@
-// The side bar (layout A, chosen by the team): the logo, the screens, the leagues, and at the
-// bottom "your team", the update of the season in progress and the sources. Searching a team and
-// simulating a match have one entry, the command field over the screen (Phase 26). In the narrow rail every item keeps its name as a tooltip.
+// The side bar (layout A, chosen by the team): the logo, the screens, the leagues, the tools
+// (Phase 25: simulate a match, find a team; Phase 27: the update, with the data's age), and at
+// the bottom "your team" and the sources. In the narrow rail every item keeps its name as a tooltip.
 import type { ReactNode } from "react";
 import { teamName } from "../format";
 import type { League, Preferences } from "../types";
 import { Crest } from "./Crest";
 import { Flag } from "./Flag";
 import {
-  AnalysisIcon, MatchesIcon, PredictionsIcon, RefreshIcon, StandingsIcon, TeamIcon,
+  AnalysisIcon, MatchesIcon, PredictionsIcon, RefreshIcon, SearchIcon, SimulateIcon, StandingsIcon, TeamIcon,
 } from "./Icons";
 import { Lockup } from "./Logo";
 
@@ -57,7 +57,10 @@ interface Props {
   onUpdate: () => void;
   updating: boolean;
   updatedAt: string | null; // when the season in progress was downloaded (UTC, ISO)
+  stale: boolean; // older than the matches it should show: said among the tools (Phase 27)
   compact: boolean; // the narrow rail: names only as tooltips
+  onSimulate: () => void;
+  onSearch: () => void;
   onShortcuts: () => void;
 }
 
@@ -71,6 +74,11 @@ export function updatedText(iso: string): string {
 export function Sidebar(props: Props) {
   const favourite = props.preferences?.favourite;
   const tip = (text: string) => (props.compact ? text : undefined);
+  const updateName = props.updating
+    ? "Se actualizează…"
+    : props.stale && props.updatedAt
+      ? `Actualizează datele (sunt din ${updatedText(props.updatedAt)})`
+      : "Actualizează datele";
   return (
     <aside className="sidebar">
       <Lockup />
@@ -110,6 +118,40 @@ export function Sidebar(props: Props) {
           </button>
         ))}
       </nav>
+      <div className="sidebar-label">Unelte</div>
+      <button className="side-item" onClick={props.onSimulate} aria-label={props.compact ? "Simulează un meci" : undefined} title={tip("Simulează un meci")}>
+        <SimulateIcon />
+        <span className="side-text">Simulează un meci</span>
+      </button>
+      <button
+        className="side-item"
+        onClick={props.onSearch}
+        aria-label={props.compact ? "Caută o echipă" : undefined}
+        aria-keyshortcuts="/"
+        title={props.compact ? "Caută o echipă (/)" : "Tasta /"}
+      >
+        <SearchIcon />
+        <span className="side-text">Caută o echipă</span>
+        <kbd className="side-text">/</kbd>
+      </button>
+      <button
+        className={`side-item${props.stale ? " has-dot" : ""}`}
+        onClick={props.onUpdate}
+        disabled={props.updating}
+        aria-label={props.compact ? updateName : undefined}
+        title={props.stale ? "Meciurile jucate după această dată apar „Fără rezultat” până la actualizare" : props.compact ? updateName : undefined}
+      >
+        <span className={props.updating ? "spinning" : undefined}>
+          <RefreshIcon />
+        </span>
+        {props.stale && <i className="stale-dot" aria-hidden="true" />}
+        <span className="side-text">{props.updating ? "Se actualizează…" : "Actualizează datele"}</span>
+      </button>
+      {!props.compact && props.updatedAt && (
+        <p className={`side-status${props.stale ? " stale" : ""}`}>
+          {props.stale ? `Datele sunt din ${updatedText(props.updatedAt)}` : `Actualizat: ${updatedText(props.updatedAt)}`}
+        </p>
+      )}
       <div className="spacer" />
       <button
         className="side-item"
@@ -120,25 +162,13 @@ export function Sidebar(props: Props) {
         {favourite ? <Crest team={favourite.team} size={22} ring /> : <TeamIcon />}
         <span className="side-text">{favourite ? teamName(favourite.team) : "Alege echipa ta"}</span>
       </button>
-      <button
-        className="side-item"
-        onClick={props.onUpdate}
-        disabled={props.updating}
-        aria-label={props.compact ? (props.updating ? "Se actualizează…" : "Actualizează datele") : undefined}
-        title={tip(props.updating ? "Se actualizează…" : "Actualizează datele")}
-      >
-        <span className={props.updating ? "spinning" : undefined}>
-          <RefreshIcon />
-        </span>
-        <span className="side-text">{props.updating ? "Se actualizează…" : "Actualizează datele"}</span>
-      </button>
       <div className="sidebar-note">
-        Rezultate: Football-Data.co.uk
-        <br />
-        Calendar: openfootball (CC0)
-        <br />
-        {props.updatedAt ? `Actualizat: ${updatedText(props.updatedAt)}` : "Sezonul curent: —"}
-        <br />
+        <span className="sources">
+          Rezultate: Football-Data.co.uk
+          <br />
+          Calendar: openfootball (CC0)
+          <br />
+        </span>
         UTM · APA · TI-251
         <br />
         <button className="link note-link" onClick={props.onShortcuts} aria-keyshortcuts="?">

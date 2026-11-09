@@ -63,28 +63,16 @@ describe("a match of a list", () => {
   });
 });
 
-describe("the score of the pick between the teams", () => {
-  const poisson: Prediction = { ...prediction, model: "Poisson", most_likely: "A", likely_score: [0, 1] };
+describe("the likely score between the teams", () => {
   const elo: Prediction = { ...prediction, likely_score: [1, 0] };
+  const poisson: Prediction = { ...prediction, model: "Poisson", most_likely: "A", likely_score: [0, 1] };
   const coming = match({ date: "2099-01-01", predictions: [elo, poisson] });
 
-  it("is the chosen model's, so it tells the same story as the chips beside it", () => {
+  it("is the chosen model's own, for a match still to come only", () => {
     expect(likelyScore(coming, "Elo")).toEqual([1, 0]);
     expect(likelyScore(coming, "Poisson")).toEqual([0, 1]);
-  });
-
-  it("is shown only for a match still to come", () => {
     expect(likelyScore({ ...coming, result: "H", home_goals: 2, away_goals: 0 }, "Elo")).toBeNull();
-    expect(likelyScore({ ...coming, date: "2020-01-01" }, "Elo")).toBeNull(); // past, no result
+    expect(likelyScore({ ...coming, date: "2020-01-01" }, "Elo")).toBeNull(); // past, no result yet
     expect(likelyScore({ ...coming, postponed: true }, "Elo")).toBeNull();
-  });
-});
-
-describe("an unsure favourite", () => {
-  it("is judged on the percent the chip shows", async () => {
-    const { isUnsure } = await import("./MatchRow");
-    expect(isUnsure(0.444)).toBe(true); // 44%
-    expect(isUnsure(0.4496)).toBe(false); // shown as 45%
-    expect(isUnsure(0.52)).toBe(false);
   });
 });

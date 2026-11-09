@@ -20,8 +20,9 @@ from app.prediction.settings import settings_for
 from app.services.explanations import (
     GROUPS_IN_PROGRESS,
     GROUPS_NO_STATISTICS,
-    MODEL_EXPLANATIONS,
+    Side,
     knowledge_text,
+    match_explanations,
     status_text,
     verdict_text,
 )
@@ -34,7 +35,7 @@ from app.services.images import (
     stadium_path,
 )
 from app.services.labels import country_label, model_label, outcome_label
-from app.services.outlook import BOTTOM_PLACES, TOP_PLACES, Fixture, project_table, track_record
+from app.services.outlook import BOTTOM_PLACES, TOP_PLACES, Fixture, project_table
 from app.services.predictions import (
     SURPRISE_CHANCE,
     MatchForecast,
@@ -96,8 +97,9 @@ def create_app(backend: Backend) -> FastAPI:
         )
 
     @app.get("/api/days", response_model=schemas.Days)
-    def days() -> schemas.Days:
-        """Every day with a match in a league whose predictions are ready."""
+    def days(league: str | None = None) -> schemas.Days:
+        """Every day with a match in a league whose predictions are ready; the next of them is
+        the given league's next match day when it has one (the day of its match of the day)."""
         found = sorted(
             {
                 day
@@ -107,7 +109,12 @@ def create_app(backend: Backend) -> FastAPI:
             }
         )
         today = backend.today()
-        next_day = next((day for day in found if day >= today), found[-1] if found else None)
+        own = (
+            league_of(league).predictions.match_days()
+            if league in backend.competitions and backend.is_prepared(league)
+            else found
+        )
+        next_day = next((day for day in own if day >= today), own[-1] if own else None)
         return schemas.Days(days=found, today=today, next_day=next_day)
 
     @app.get("/api/day/{day}", response_model=schemas.Day)
@@ -151,7 +158,7 @@ def create_app(backend: Backend) -> FastAPI:
                 favourite = backend.preferences.favourite
                 followed = favourite.team if favourite and favourite.competition == chosen else None
                 featured = featured_match(
-                    chosen_predictions.on_day(featured_day), strength, followed, backend.today()
+                    chosen_predictions.on_day(featured_day), strength, followed
                 )
         return schemas.Day(
             day=day,
@@ -252,6 +259,10 @@ def create_app(backend: Backend) -> FastAPI:
             rating=services.teams.rating_before(team, before),
         )
 
+    def side_of(state: schemas.TeamState) -> Side:
+        record = state.record
+        return Side(state.rating, record.points, record.played, tuple(state.form))
+
     @app.get("/api/match/{code}", response_model=schemas.MatchPage)
     def match(code: str, season: str, day: date, home: str, away: str) -> schemas.MatchPage:
         """Everything about one match: of the calendar, played or not, or any two teams of a
@@ -273,19 +284,26 @@ def create_app(backend: Backend) -> FastAPI:
             ),
             None,
         )
+        home_state = team_state(services, season, home, before)
+        away_state = team_state(services, season, away, before)
+        explanations = match_explanations(
+            forecast,
+            side_of(home_state),
+            side_of(away_state),
+            settings_for(code).elo.home_advantage,
+        )
         return schemas.MatchPage(
             forecast=schemas.forecast_of(forecast),
             status=status_text(forecast),
             knowledge=knowledge_text(forecast),
             verdict=verdict_text(forecast) if played and forecast.predictions else None,
-            explanations={str(model): text for model, text in MODEL_EXPLANATIONS.items()},
+            explanations={str(model): text for model, text in explanations.items()},
             poisson=None if poisson is None else schemas.poisson_of(poisson),
             before=before,
             teams=len(services.teams.standings(season)),
-            home=team_state(services, season, home, before),
-            away=team_state(services, season, away, before),
+            home=home_state,
+            away=away_state,
             stadium=stadium_name(home),
-            elo_home_advantage=settings_for(code).elo.home_advantage,
         )
 
     def groups_of(services, season: str) -> tuple[schemas.Groups | None, str | None]:
@@ -382,35 +400,6 @@ def create_app(backend: Backend) -> FastAPI:
     def prepared(services, code: str) -> None:
         if not services.predictions.is_prepared:
             raise HTTPException(409, f"the predictions of {code} are being prepared")
-
-    @app.get("/api/track-record/{code}", response_model=schemas.TrackRecord)
-    def season_record(code: str) -> schemas.TrackRecord:
-        """How often each model has been right in the season in progress (else the latest)."""
-        services = league_of(code)
-        prepared(services, code)
-        season = services.catalog.current_season or services.catalog.seasons()[-1]
-        order = (ModelName.LOGISTIC_REGRESSION, ModelName.ELO, ModelName.POISSON)
-        found = track_record(
-            season, {model: services.predictions.review(season, model) for model in order}
-        )
-        return schemas.TrackRecord(
-            competition=code,
-            season=season,
-            in_progress=season == services.catalog.current_season,
-            last_day=found.last_day,
-            recent_from=found.recent_from,
-            models=[
-                schemas.ModelRecord(
-                    model=str(record.model),
-                    label=model_label(str(record.model)),
-                    hits=record.hits,
-                    matches=record.matches,
-                    recent_hits=record.recent_hits,
-                    recent_matches=record.recent_matches,
-                )
-                for record in found.models
-            ],
-        )
 
     @app.get("/api/projection/{code}", response_model=schemas.Projection)
     def projection(

@@ -1,7 +1,7 @@
 // Meciuri: the matches of a day in every league, the chosen league first, with the match of the
 // day on top; any day of any season can be chosen. On the right: your team and the table.
-// Since Phase 25 the arrows move a day and M changes the model; since Phase 26 every league wears
-// PitchSense's one palette and the model switch carries each model's record of the season.
+// The arrows move a day and M changes the model (Phase 25). Since Phase 27 every group wears the
+// chosen league's colours again (as in 0.6.1), and a coming match shows the likely score of the pick.
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api";
 import { useChosenModel } from "../chosenModel";
@@ -10,14 +10,12 @@ import { DayStrip } from "../components/DayStrip";
 import { FeaturedMatch } from "../components/FeaturedMatch";
 import { FormSquares } from "../components/FormSquares";
 import { Flag } from "../components/Flag";
-import { ChipLegend, ColumnsHead, isPending, likelyScore, MatchRow } from "../components/MatchRow";
+import { ColumnsHead, likelyScore, MatchRow } from "../components/MatchRow";
 import { usePageKeys } from "../components/Shortcuts";
 import { SkeletonCard, SkeletonRows } from "../components/Skeleton";
-import { ModelSwitch } from "../components/ModelSwitch";
-import { Problem } from "../components/Problem";
 import { capitalised, dayName, isoDay, parseDay, quantity, seasonText, shortDateText, teamName } from "../format";
 import type { Day, Days, Forecast, League, Preferences, Standings } from "../types";
-import { MODELS } from "../types";
+import { MODEL_LABELS, MODELS } from "../types";
 
 interface Props {
   leagues: League[];
@@ -26,37 +24,11 @@ interface Props {
   ready: string; // changes when a league's predictions become ready
   onOpenMatch: (forecast: Forecast) => void;
   onStandings: (code: string) => void;
-  onUpdate?: () => void; // download the season in progress again
-  updating?: boolean;
-}
-
-/** A past day whose every match still waits for its result: the data is older than the day. */
-export function awaitsResults(forecasts: Forecast[], today?: string): boolean {
-  return forecasts.length > 0 && forecasts.every((forecast) => isPending(forecast, today));
+  active: boolean; // false under a match page: its keys must not move this hidden list
 }
 
 function seasonStart(season: string): string {
   return `${season.slice(0, 4)}-07-01`;
-}
-
-const LEGEND_KEY = "pitchsense.legend";
-
-/** Whether the list's legend is open: as the viewer last left it (this browser only), else closed. */
-function legendShown(): boolean {
-  try {
-    return window.localStorage.getItem(LEGEND_KEY) === "open";
-  } catch {
-    return false; // no storage (a private window): closed, one click away
-  }
-}
-
-function rememberLegend(open: boolean): boolean {
-  try {
-    window.localStorage.setItem(LEGEND_KEY, open ? "open" : "closed");
-  } catch {
-    // nothing to remember without storage
-  }
-  return open;
 }
 
 /** The next model of the list, after the last the first: the M key. */
@@ -72,36 +44,24 @@ function shifted(day: string, days: number): string {
   return isoDay(moved);
 }
 
-export function Matches({ leagues, league, preferences, ready, onOpenMatch, onStandings, onUpdate, updating = false }: Props) {
+export function Matches({ leagues, league, preferences, ready, onOpenMatch, onStandings, active }: Props) {
   const [days, setDays] = useState<Days | null>(null);
   const [day, setDay] = useState<string | null>(null);
   const [answer, setAnswer] = useState<Day | null>(null);
-  const [model, setModel] = useChosenModel();
+  const [model, setModel] = useChosenModel(); // one choice for every screen
   const [onlyLeague, setOnlyLeague] = useState(false);
-  const [legend, setLegend] = useState(legendShown);
-  const [problem, setProblem] = useState<string | null>(null); // a failed request: said, never an endless skeleton
-  const [attempt, setAttempt] = useState(0);
   const favourite = preferences?.favourite?.team ?? null;
 
   useEffect(() => {
-    setProblem(null);
-    api
-      .days()
-      .then((found) => {
-        setDays(found);
-        setDay((current) => current ?? found.next_day);
-      })
-      .catch((reason: Error) => setProblem(reason.message));
-  }, [ready, attempt]);
+    api.days(league.code).then((found) => {
+      setDays(found);
+      setDay((current) => current ?? found.next_day);
+    });
+  }, [ready]);
 
   useEffect(() => {
-    if (!day) return;
-    setProblem(null);
-    api
-      .day(day, league.code)
-      .then(setAnswer)
-      .catch((reason: Error) => setProblem(reason.message));
-  }, [day, league.code, ready, attempt]);
+    if (day) api.day(day, league.code).then(setAnswer);
+  }, [day, league.code, ready]);
 
   const matchDays = useMemo(() => new Set(days?.days ?? []), [days]);
   const seasonOfDay = useMemo(() => {
@@ -109,22 +69,15 @@ export function Matches({ leagues, league, preferences, ready, onOpenMatch, onSt
     return [...league.seasons].reverse().find((season) => seasonStart(season) <= day) ?? league.seasons[0];
   }, [day, league.seasons]);
 
+
   usePageKeys((key) => {
-    if (!day) return false;
+    if (!day || !active) return;
     if (key === "ArrowLeft") setDay(shifted(day, -1));
     else if (key === "ArrowRight") setDay(shifted(day, 1));
     else if (key === "m" || key === "M") setModel(nextModel);
     else if ((key === "t" || key === "T") && days) setDay(days.today);
-    else return false;
-    return true;
   });
 
-  const retry = (
-    <Problem detail={problem} onRetry={() => setAttempt((count) => count + 1)}>
-      Meciurile nu au putut fi citite de la serverul aplicației.
-    </Problem>
-  );
-  if (problem && (!days || !day || !answer)) return retry;
   if (!days || !day) {
     return (
       <div className="matches-layout">
@@ -161,7 +114,7 @@ export function Matches({ leagues, league, preferences, ready, onOpenMatch, onSt
         )}
         <DayStrip day={day} today={days.today} matchDays={matchDays} onDay={setDay} />
         <div className="controls">
-          <h2 className="visually-hidden">{name === dateName ? capitalised(dateName) : `${name} · ${dateName}`}</h2>
+          <h2 className="day-title">{name === dateName ? capitalised(dateName) : `${name} · ${dateName}`}</h2>
           <div className="control-row">
             <button className={`pill${onlyLeague ? "" : " chosen"}`} aria-pressed={!(onlyLeague)} onClick={() => setOnlyLeague(false)}>
               Toate ligile
@@ -188,23 +141,18 @@ export function Matches({ leagues, league, preferences, ready, onOpenMatch, onSt
                 </option>
               ))}
             </select>
+            <label className="caption" htmlFor="matches-model" title="Tasta M schimbă modelul">
+              Model
+            </label>
+            <select id="matches-model" value={model} onChange={(event) => setModel(event.target.value)} aria-keyshortcuts="M">
+              {MODELS.map((item) => (
+                <option key={item} value={item}>
+                  {MODEL_LABELS[item]}
+                </option>
+              ))}
+            </select>
           </div>
-          <div className="control-row switch-row">
-            <button className="legend-toggle" aria-expanded={legend} aria-controls="chip-legend" onClick={() => setLegend(rememberLegend(!legend))}>
-              Ce înseamnă semnele din listă
-            </button>
-            <ModelSwitch league={league} model={model} ready={ready} onModel={setModel} />
-          </div>
-          {legend && <ChipLegend />}
         </div>
-        {answer && onUpdate && awaitsResults(groups.flatMap((group) => group.forecasts)) && (
-          <div className="stale-note" role="status">
-            <p>Rezultatele acestei zile nu au ajuns încă în aplicație: datele sunt mai vechi decât ziua.</p>
-            <button className="button" onClick={onUpdate} disabled={updating}>
-              Actualizează acum
-            </button>
-          </div>
-        )}
         {answer && groups.length === 0 && (
           <EmptyDay day={day} days={days.days} onlyLeague={onlyLeague ? league.name : null} onDay={setDay} />
         )}
@@ -230,7 +178,6 @@ export function Matches({ leagues, league, preferences, ready, onOpenMatch, onSt
             </header>
             {group.prepared ? (
               <>
-                {/* every league's group names its columns, so a group scrolled to alone is still read */}
                 <ColumnsHead likely={group.forecasts.some((forecast) => likelyScore(forecast, model) !== null)} />
                 <div className="match-list">
                   {group.forecasts.map((forecast) => (

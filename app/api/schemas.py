@@ -53,7 +53,7 @@ class Prediction(Schema):
     hit: bool | None  # whether the most likely outcome happened; None before the match
     expected_goals: tuple[float, float] | None
     likely_score: tuple[int, int] | None = (
-        None  # the likeliest Poisson score giving this model's favourite result (Phase 26)
+        None  # the likeliest score of this model's pick (Phase 27)
     )
 
 
@@ -154,7 +154,6 @@ class MatchPage(Schema):
     home: TeamState
     away: TeamState
     stadium: str | None  # the home club's ground, when its photo is known
-    elo_home_advantage: float  # Elo's H in this league, in rating points (Phase 26)
 
 
 class Shots(Schema):
@@ -256,26 +255,6 @@ class Review(Schema):
     rows: list[ReviewedMatch]
 
 
-class ModelRecord(Schema):
-    model: str
-    label: str
-    hits: int
-    matches: int
-    recent_hits: int  # over the latest week of matches
-    recent_matches: int
-
-
-class TrackRecord(Schema):
-    """How often each model has been right this season, in all and over its latest week."""
-
-    competition: str
-    season: str
-    in_progress: bool
-    last_day: date | None
-    recent_from: date | None
-    models: list[ModelRecord]
-
-
 class ProjectedTeam(Schema):
     team: str
     position: int
@@ -360,17 +339,13 @@ def prediction_of(
     )
 
 
-def likely_score(
-    prediction: ModelPrediction, grid: np.ndarray | None = None
-) -> tuple[int, int] | None:
-    """The most likely score among those giving this model's most likely result, read from the
-    match's Poisson score grid (`grid`, shape home goals x away goals; else the prediction's own
-    distribution), or None without one. Taken within the model's favourite result, so the score
-    shown beside a model's chances never contradicts them (the overall likeliest is often 1-1)."""
+def likely_score(prediction: ModelPrediction, grid: np.ndarray | None) -> tuple[int, int] | None:
+    """On the match's Poisson score grid (home goals x away goals), the likeliest score among those
+    giving this model's most likely result, or None without a grid. Within the model's own pick,
+    so the score never contradicts the chances shown beside it (the likeliest overall is often 1-1).
+    """
     if grid is None:
-        if prediction.score_distribution is None:
-            return None
-        grid = prediction.score_distribution.probabilities
+        return None
     home_goals, away_goals = np.indices(grid.shape)
     favourite = prediction.probabilities.most_likely
     if favourite is Outcome.HOME_WIN:

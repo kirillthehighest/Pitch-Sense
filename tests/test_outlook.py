@@ -1,19 +1,16 @@
-"""The season at a glance (Phase 25): the models' record so far and the projected final table."""
+"""The season at a glance (Phase 25): the projected final table."""
 
 from datetime import date
 
 import numpy as np
 import pytest
 
-from app.prediction.outputs import ModelName
 from app.services.outlook import (
     BOTTOM_PLACES,
     TOP_PLACES,
     Fixture,
     project_table,
-    track_record,
 )
-from app.services.predictions import MatchForecast, ReviewedMatch, SeasonReview
 from app.services.teams import StandingRow
 from app.statistics.team_statistics import TeamStatistics
 
@@ -32,39 +29,6 @@ def row(
         goals_against=10 - min(difference, 0),
     )
     return StandingRow(position=position, team=team, record=record)
-
-
-def reviewed(day: date, hit: bool) -> ReviewedMatch:
-    forecast = MatchForecast("SP1", "2026-27", day, None, "A", "B", None, {})
-    return ReviewedMatch(forecast=forecast, chance=0.5, hit=hit, surprise=False, confidence=0.5)
-
-
-# --- track_record ---
-
-
-def test_the_record_counts_the_season_and_its_latest_week():
-    days = [date(2026, 9, 1), date(2026, 10, 20), date(2026, 10, 25), date(2026, 10, 26)]
-    hits = [True, True, False, True]
-    review = SeasonReview(
-        "2026-27",
-        ModelName.ELO,
-        tuple(reviewed(day, hit) for day, hit in zip(days, hits, strict=True)),
-    )
-
-    found = track_record("2026-27", {ModelName.ELO: review})
-
-    assert found.last_day == date(2026, 10, 26) and found.recent_from == date(2026, 10, 20)
-    (elo,) = found.models
-    assert (elo.hits, elo.matches, elo.recent_hits, elo.recent_matches) == (3, 4, 2, 3)
-
-
-def test_a_season_without_reviewed_matches_has_no_latest_week():
-    empty = SeasonReview("2026-27", ModelName.POISSON, ())
-
-    found = track_record("2026-27", {ModelName.POISSON: empty})
-
-    assert found.last_day is None and found.recent_from is None
-    assert (found.models[0].matches, found.models[0].recent_matches) == (0, 0)
 
 
 # --- project_table ---

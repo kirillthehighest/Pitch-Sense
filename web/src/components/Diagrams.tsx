@@ -126,7 +126,7 @@ export function LogisticDiagram() {
 
 /** K-Means: clubs as points, four centres, each club joining its nearest. */
 export function KMeansDiagram() {
-  const groups = ["#FFD166", "#5CC8FF", "#B794F6", "#8A94A6"]; // the colours of the groups chart
+  const groups = ["#D2E2FF", "#8EB4FF", "#5585F0", "#3A63C9"];
   const centres: [number, number][] = [
     [262, 26],
     [196, 52],

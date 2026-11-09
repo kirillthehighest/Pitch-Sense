@@ -1,22 +1,25 @@
 // The window of the web interface (Phase 22): the side bar on the left (layout A), the screen on
-// the right, in one PitchSense look for every league (Phase 26); the predictions of every league
+// the right. The chosen league's colours are set on the whole page; the predictions of every league
 // are prepared by the server, and the screens follow as each league becomes ready.
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { api, askUntilAnswered } from "./api";
 import { FavouriteDialog } from "./components/FavouriteDialog";
-import { CrossIcon, SearchIcon } from "./components/Icons";
+import { CrossIcon } from "./components/Icons";
 import { OtherMatch } from "./components/OtherMatch";
 import { Problem } from "./components/Problem";
 import { ScreenHead } from "./components/ScreenHead";
 import { ShortcutsDialog, usePageKeys } from "./components/Shortcuts";
 import { TeamSearch } from "./components/TeamSearch";
-import { type ScreenName, SCREENS, Sidebar, updatedText } from "./components/Sidebar";
+import { type ScreenName, SCREENS, Sidebar } from "./components/Sidebar";
 import { Analysis } from "./screens/Analysis";
 import { MatchPage } from "./screens/MatchPage";
 import { Matches } from "./screens/Matches";
 import { Predictions } from "./screens/Predictions";
 import { Standings } from "./screens/Standings";
 import { Team } from "./screens/Team";
+import { reveal } from "./reveal";
+import { applyTheme } from "./theme";
 import type { Favourite, Forecast, League, MatchKey, Preferences } from "./types";
 
 const COMPACT_WIDTH = 1200;
@@ -50,7 +53,6 @@ export default function App() {
   const seenVersion = useRef<number | null>(null); // the server's data the screens show
   const [notice, setNotice] = useState<{ text: string; problem: boolean; detail?: string } | null>(null);
   const [search, setSearch] = useState(false);
-  const [simulateFrom, setSimulateFrom] = useState<{ code: string; home: string; away?: string } | null>(null); // a team picked in the search
   const [shortcuts, setShortcuts] = useState(false);
   const [generation, setGeneration] = useState(0); // a new one after each update of the data
   const scroller = useRef<HTMLElement>(null);
@@ -145,6 +147,10 @@ export default function App() {
     return () => window.removeEventListener("resize", resize);
   }, []);
 
+  useEffect(() => {
+    if (league) applyTheme(league);
+  }, [league]);
+
   // A league's state (its predictions ready) as the server prepares them
   useEffect(() => {
     if (ready) api.leagues().then(setLeagues);
@@ -153,7 +159,11 @@ export default function App() {
   const chooseLeague = useCallback(
     (code: string) => {
       if (code !== league) {
-        setLeague(code); // one look for every league: only the league's image changes (Phase 26)
+        // the page in the new league's colours, uncovered by the wave
+        reveal(() => {
+          applyTheme(code);
+          flushSync(() => setLeague(code));
+        });
       }
       api.setPreferences({ competition: code, favourite: preferences?.favourite ?? null }).then(setPreferences);
     },
@@ -226,19 +236,14 @@ export default function App() {
     [league, chooseLeague, focusContent],
   );
 
-  // The page's keys: 1–5 choose a league, / finds a team, S simulates a match, ? lists them all,
-  // Esc leaves a match page (a dialog's Esc closes the dialog first: no page key while one is open)
+  // The page's keys: 1–5 choose a league, / finds a team, S simulates a match, ? lists them all
   usePageKeys((key) => {
     const index = Number(key) - 1;
-    if (key === "Escape" && match) setMatch(null);
+    if (key === "Escape" && match) setMatch(null); // Esc leaves a match page (a dialog's Esc closes the dialog first)
     else if (Number.isInteger(index) && index >= 0 && index < leagues.length) chooseLeague(leagues[index].code);
     else if (key === "/") setSearch(true);
-    else if (key === "s" || key === "S") {
-      setSimulateFrom(null);
-      setOtherMatch(true);
-    } else if (key === "?") setShortcuts(true);
-    else return false;
-    return true;
+    else if (key === "s" || key === "S") setOtherMatch(true);
+    else if (key === "?") setShortcuts(true);
   });
 
   const current = leagues.find((item) => item.code === league);
@@ -247,12 +252,6 @@ export default function App() {
   const favourite = preferences?.favourite?.team ?? null;
   return (
     <div className={`app${compact ? " compact" : ""}`}>
-      <a className="skip-link" href="#continut" onClick={(event) => {
-        event.preventDefault();
-        scroller.current?.focus();
-      }}>
-        Sari la conținut
-      </a>
       <Sidebar
         screen={screen}
         onScreen={chooseScreen}
@@ -264,17 +263,19 @@ export default function App() {
         onUpdate={update}
         updating={updating || serverUpdating}
         updatedAt={current?.updated_at ?? null}
+        stale={!!current && isStale(current.updated_at) && !serverUpdating}
         compact={compact}
+        onSimulate={() => setOtherMatch(true)}
+        onSearch={() => setSearch(true)}
         onShortcuts={() => setShortcuts(true)}
       />
+      <a className="skip-link" href="#continut" onClick={(event) => {
+        event.preventDefault();
+        scroller.current?.focus();
+      }}>
+        Sari la conținut
+      </a>
       <main className="screen" ref={scroller} id="continut" tabIndex={-1} aria-label="Conținut">
-        <div className="command-bar">
-          <button className="command-field" onClick={() => setSearch(true)} aria-keyshortcuts="/ S">
-            <SearchIcon />
-            <span>Caută o echipă sau simulează un meci…</span>
-            <kbd>/</kbd>
-          </button>
-        </div>
         <div className="screen-inner">
           {match && current && (
             <MatchPage
@@ -283,10 +284,7 @@ export default function App() {
               favourite={favourite}
               onBack={() => setMatch(null)}
               onTeam={openTeam}
-              onSimulate={(code, home) => {
-                setSimulateFrom({ code, home });
-                setOtherMatch(true);
-              }}
+              chosen={current.code}
             />
           )}
           <div className="screen-page" hidden={match !== null}>
@@ -315,17 +313,6 @@ export default function App() {
                 PitchSense.
               </Problem>
             )}
-            {current && screen === "matches" && isStale(current.updated_at) && !serverUpdating && (
-              <div className="stale-note" role="status">
-                <p>
-                  Datele sezonului în desfășurare sunt din {updatedText(current.updated_at as string)}. Meciurile jucate de
-                  atunci apar „Fără rezultat” până la actualizare.
-                </p>
-                <button className="button" onClick={update} disabled={updating}>
-                  Actualizează acum
-                </button>
-              </div>
-            )}
             {current && screen === "matches" && (
               <Matches
                 leagues={leagues}
@@ -333,12 +320,11 @@ export default function App() {
                 preferences={preferences}
                 ready={ready}
                 onOpenMatch={openMatch}
+                active={match === null}
                 onStandings={(code) => {
                   chooseLeague(code);
                   chooseScreen("standings");
                 }}
-                onUpdate={isStale(current.updated_at) ? undefined : update}
-                updating={updating || serverUpdating}
               />
             )}
             {current && screen === "team" && (
@@ -368,6 +354,7 @@ export default function App() {
                 ready={ready}
                 onSeason={(chosen) => setSeasons((shown) => ({ ...shown, [current.code]: chosen }))}
                 onOpenMatch={openMatch}
+                active={match === null}
               />
             )}
             {current && screen === "standings" && about && (
@@ -418,31 +405,11 @@ export default function App() {
         </div>
       )}
       {otherMatch && current && (
-        <OtherMatch
-          leagues={leagues}
-          league={leagues.find((item) => item.code === simulateFrom?.code) ?? current}
-          home={simulateFrom?.home ?? null}
-          away={simulateFrom?.away ?? null}
-          onClose={() => {
-            setOtherMatch(false);
-            setSimulateFrom(null);
-          }}
-          onOpen={(key) => {
-            setSimulateFrom(null);
-            showMatch(key);
-          }}
-        />
+        <OtherMatch leagues={leagues} league={current} onClose={() => setOtherMatch(false)} onOpen={showMatch} />
       )}
       {search && (
         <TeamSearch
           leagues={leagues}
-          current={league}
-          favourite={favourite}
-          onSimulate={(code, home, away) => {
-            setSearch(false);
-            setSimulateFrom(code && home ? { code, home, away: away ?? undefined } : null);
-            setOtherMatch(true);
-          }}
           onClose={() => setSearch(false)}
           onOpen={(code, chosen, chosenSeason) => {
             setSearch(false);

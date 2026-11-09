@@ -3,10 +3,7 @@
 // chronological evaluation of the league's models, the comparison of the five leagues, and the
 // sources. Tables have measured columns; each card ends with its content. Since Phase 25 each tab
 // opens with its finding in one sentence (written from the numbers on screen), "Cum funcționează"
-// draws each algorithm, and the statistical tables wait behind "Detalii statistice". Since Phase 26
-// Modele opens on the verdict and the plain measures (hits, Brier), how often the model is right
-// when sure and the bookmakers; calibration, the confusion matrix and the other measures wait
-// behind "Detalii statistice", and the tabs start with Modele.
+// draws each algorithm, and the statistical tables wait behind "Detalii statistice".
 import { lazy, type ReactNode, Suspense, useEffect, useState } from "react";
 import { api } from "../api";
 import { ConfusionGrid, HomeAdvantage } from "../components/AnalysisGrids";
@@ -16,7 +13,7 @@ import { Problem } from "../components/Problem";
 import { SkeletonCard } from "../components/Skeleton";
 import { Flag } from "../components/Flag";
 import { capitalised, dateText, integer, number, parseDay, percent, quantity, seasonText, signed } from "../format";
-import { MODEL_COLOURS } from "../theme";
+import { themeFor } from "../theme";
 import type {
   About,
   BookmakerComparison,
@@ -39,12 +36,11 @@ const SkillChart = lazy(() =>
 );
 
 type Tab = "how" | "season" | "models" | "leagues" | "sources";
-// the verdict first (which model predicts best), how the models work after it (fifth critique)
 const TABS: [Tab, string][] = [
-  ["models", "Modele"],
-  ["season", "Sezonul curent"],
-  ["leagues", "Ligi"],
   ["how", "Cum funcționează"],
+  ["season", "Sezonul curent"],
+  ["models", "Modele"],
+  ["leagues", "Ligi"],
   ["sources", "Surse"],
 ];
 
@@ -59,6 +55,12 @@ function differenceText(difference: Difference): string {
 
 const label = (model: string) => MODEL_LABELS[model] ?? model;
 const EVEN = "minmax(0, 1fr)"; // number columns that share a table's width evenly
+
+/** A paired difference as its measure reads: accuracy in percentage points, the others as numbers. */
+function difference(d: Difference, value: number): string {
+  if (d.measure !== "accuracy") return signed(value);
+  return `${signed(100 * value, 2)} p.p.`;
+}
 const SURE = 0.65; // the threshold of "when the model is sure" shown beside the bookmakers
 const chartFallback = <p className="caption chart-message">Se încarcă graficul…</p>;
 const loading = (
@@ -95,7 +97,7 @@ interface Props {
 }
 
 export function Analysis({ league, leagues, ready, onLeague }: Props) {
-  const [tab, setTab] = useState<Tab>("models");
+  const [tab, setTab] = useState<Tab>("how");
   return (
     <div className="analysis-screen">
       <div className="tabs" role="tablist" aria-label="Analiză">
@@ -156,7 +158,8 @@ function HowItWorks() {
                 <Diagram />
               </figure>
               <h2>{item.title}</h2>
-              <p>{item.text}</p>
+              {/* K-Means once: the detailed text of the team pages' groups, not a second summary */}
+              <p>{item.title === "K‑Means" ? about.groups : item.text}</p>
             </section>
           );
         })}
@@ -196,7 +199,7 @@ function SeasonCheckTab({ league, ready }: { league: League; ready: string }) {
   const columns: Column[] = [
     { label: "Model", width: "minmax(150px, 1.6fr)" },
     { label: "Meciuri", width: EVEN },
-    { label: "Nimerite", width: EVEN },
+    { label: "Acuratețe", width: EVEN },
     { label: "Scor Brier", width: "minmax(0, 1.4fr)" },
     { label: "Pierdere logaritmică", width: "minmax(0, 1.4fr)" },
   ];
@@ -210,8 +213,8 @@ function SeasonCheckTab({ league, ready }: { league: League; ready: string }) {
     <div className="analysis-stack">
       {best && (
         <Finding title={`În ${seasonText(check.season as string)}, până acum, ${named(best.model, best.label)} are cel mai mic scor Brier`}>
-          {number(best.brier.value)} pe {quantity(check.matches, "meci", "meciuri")}, cu {percent(best.accuracy)} din meciuri{" "}
-          nimerite.
+          {number(best.brier.value)} pe {quantity(check.matches, "meci", "meciuri")}, cu o acuratețe de{" "}
+          {percent(best.accuracy)}.
           {overlap && " Marjele de 95% se suprapun încă, așa că sezonul nu decide un câștigător."}
         </Finding>
       )}
@@ -223,8 +226,7 @@ function SeasonCheckTab({ league, ready }: { league: League; ready: string }) {
         <>
           <DataTable
             columns={columns}
-            highlight={(index) => index === 0}
-            rows={[...check.models].sort((a, b) => a.brier.value - b.brier.value).map((model) => [
+            rows={check.models.map((model) => [
               model.label,
               integer(check.matches),
               percent(model.accuracy),
@@ -322,6 +324,7 @@ function Models({ league }: { league: League }) {
     );
   }
 
+  const accent = themeFor(league.code).accent;
   const lowestBrier = Math.min(...evaluation.models.map((m) => m.brier ?? Infinity));
   const confusion = evaluation.models.find((m) => m.model === confusionModel) ?? evaluation.models[0];
   const subsets: Subset[] = evaluation[breakdown];
@@ -337,7 +340,13 @@ function Models({ league }: { league: League }) {
   return (
     <div className="analysis-stack">
       {first && (
-        <Finding title={`În ${league.name}, ${named(first.model, first.label)} prezice cel mai bine`}>
+        <Finding
+          title={
+            versus?.better || !second
+              ? `În ${league.name}, ${named(first.model, first.label)} prezice cel mai bine`
+              : `În ${league.name}, ${named(first.model, first.label)} are cel mai mic scor Brier, la limită`
+          }
+        >
           Cel mai mic scor Brier, {number(first.brier)}
           {reference?.brier
             ? `, cu ${percent(1 - (first.brier as number) / reference.brier, 0)} mai puțină eroare decât frecvențele trecute (${number(reference.brier)})`
@@ -359,23 +368,24 @@ function Models({ league }: { league: League }) {
         <DataTable
           columns={[
             { label: "Model", width: "minmax(150px, 1.6fr)" },
-            { label: "Nimerite", width: EVEN },
+            { label: "Acuratețe", width: EVEN },
             { label: "Scor Brier", width: EVEN },
+            { label: "Pierdere logaritmică", width: EVEN },
+            { label: "Eroare de calibrare", width: EVEN },
             { label: "Eroarea golurilor", width: EVEN },
           ]}
-          rows={[...evaluation.models]
-            .sort((a, b) => (a.brier ?? Infinity) - (b.brier ?? Infinity))
-            .map((model) => [
+          rows={evaluation.models.map((model) => [
             model.label,
             percent(model.accuracy),
             model.brier === lowestBrier ? <strong className="best">{number(model.brier)}</strong> : number(model.brier),
+            number(model.log_loss),
+            number(model.calibration_error),
             number(model.goals_error, 3),
           ])}
         />
         <p className="caption table-note">
-          Nimerite: cât de des s-a întâmplat rezultatul socotit cel mai probabil. Scorul Brier: cât de departe au fost
-          șansele de ce s-a întâmplat (0 ar fi perfect; mai mic e mai bine, cel mai mic e evidențiat). Eroarea golurilor
-          (doar Poisson): cu cât greșesc în medie golurile așteptate. Alte măsuri, în „Detalii statistice”.
+          Acuratețea: mai mare e mai bine. Scorul Brier, pierderea logaritmică și erorile: mai mic e mai bine; cel mai
+          mic scor Brier este evidențiat. Eroarea golurilor (doar Poisson): cât greșesc în medie golurile așteptate.
         </p>
       </section>
       <WhenSure models={evaluation.models.filter((m) => m.confident.length > 0)} />
@@ -383,7 +393,7 @@ function Models({ league }: { league: League }) {
       <details className="more-details">
         <summary>
           <span>Detalii statistice</span>
-          <span className="caption">Calibrarea, matricea de confuzie, alte măsuri, diferențele meci cu meci, unde se descurcă fiecare model</span>
+          <span className="caption">Calibrarea, matricea de confuzie, diferențele meci cu meci, unde se descurcă fiecare model</span>
         </summary>
         <div className="analysis-stack">
       <div className="analysis-pair">
@@ -407,29 +417,12 @@ function Models({ league }: { league: League }) {
               </button>
             ))}
           </div>
-          <ConfusionGrid matrix={confusion.confusion} accent={MODEL_COLOURS[confusion.model] ?? "#8E929C"} />
+          <ConfusionGrid matrix={confusion.confusion} accent={accent} />
           <p className="caption table-note">
             Meciurile după rezultatul real (rânduri) și cel prezis (coloane); procentele sunt din fiecare rând.
           </p>
         </section>
       </div>
-      <section className="card">
-        <h2>Alte măsuri ale șanselor</h2>
-        <DataTable
-          columns={[
-            { label: "Model", width: "minmax(150px, 1.6fr)" },
-            { label: "Pierdere logaritmică", width: EVEN },
-            { label: "Eroare de calibrare", width: EVEN },
-          ]}
-          rows={[...evaluation.models]
-            .sort((a, b) => (a.brier ?? Infinity) - (b.brier ?? Infinity))
-            .map((model) => [model.label, number(model.log_loss), number(model.calibration_error)])}
-        />
-        <p className="caption table-note">
-          Pierderea logaritmică pedepsește mai tare o predicție sigură și greșită; eroarea de calibrare spune cât se
-          abat șansele de cât de des s-au întâmplat rezultatele. La amândouă, mai mic e mai bine.
-        </p>
-      </section>
       <section className="card">
         <h2>Diferențele meci cu meci</h2>
         <DataTable
@@ -443,8 +436,8 @@ function Models({ league }: { league: League }) {
           rows={evaluation.differences.map((d) => [
             `${d.first_label} – ${d.second_label}`,
             d.measure_label,
-            signed(d.mean),
-            `[${signed(d.lower)}; ${signed(d.upper)}]`,
+            difference(d, d.mean),
+            `[${difference(d, d.lower)}; ${difference(d, d.upper)}]`,
             d.better_label ? <strong className="best">{d.better_label}</strong> : <span className="caption">nicio diferență reală</span>,
           ])}
         />
@@ -530,7 +523,7 @@ function WhenSure({ models }: { models: ModelEvaluation[] }) {
         ])}
       />
       <p className="caption table-note">
-        Cât a nimerit pe meciurile în care modelul dădea rezultatului socotit cel mai probabil cel puțin pragul din coloană,
+        Acuratețea pe meciurile în care modelul dădea rezultatului socotit cel mai probabil cel puțin pragul din coloană,
         apoi câte meciuri au fost și ce parte din toate. Cu cât pragul e mai mare, cu atât meciurile sunt mai puține, dar
         mai des nimerite. Un model bine calibrat nimerește pe aceste meciuri cel puțin cât arată pragul.
       </p>
@@ -546,12 +539,12 @@ function Bookmakers({ comparison }: { comparison: BookmakerComparison }) {
       <DataTable
         columns={[
           { label: "Model", width: "minmax(150px, 1.6fr)" },
-          { label: "Nimerite", width: EVEN },
+          { label: "Acuratețe", width: EVEN },
           { label: "Scor Brier", width: EVEN },
           { label: "Pierdere logaritmică", width: EVEN },
           { label: `Peste ${percent(SURE, 0)}`, width: EVEN },
         ]}
-        rows={comparison.models.slice(-1).map((model) => [
+        rows={comparison.models.filter((model) => model.model === "Bookmakers").map((model) => [
           model.label,
           percent(model.accuracy),
           model.brier === lowestBrier ? <strong className="best">{number(model.brier)}</strong> : number(model.brier),
@@ -577,10 +570,8 @@ function Bookmakers({ comparison }: { comparison: BookmakerComparison }) {
         Cotele medii ale caselor de pariuri, luate înainte de fiecare meci (Football-Data.co.uk), transformate în
         probabilități fără marja lor. Sunt doar o referință: nu intră în niciun model. Comparația folosește{" "}
         {quantity(comparison.matches, "meci", "meciuri")} cu cote
-        {comparison.missing > 0 ? ` (${quantity(comparison.missing, "meci", "meciuri")} nu au)` : ""}; o diferență pozitivă
-        înseamnă că modelul greșește mai mult decât casele de pariuri. Avantajul lor e de așteptat: cotele țin cont și de
-        ce nu e în date (accidentări, echipele probabile, banii pariați), iar modelele văd doar rezultatele și
-        statisticile meciurilor trecute.
+        {comparison.missing > 0 ? ` (${comparison.missing === 1 ? "un meci nu are" : `${quantity(comparison.missing, "meci", "meciuri")} nu au`})` : ""}; o diferență pozitivă
+        înseamnă că modelul greșește mai mult decât casele de pariuri.
       </p>
     </section>
   );
@@ -720,7 +711,7 @@ function Leagues({ league, leagues, onLeague }: { league: League; leagues: Leagu
             { label: "Ligă", width: "minmax(150px, 1.5fr)" },
             ...models.map((model) => ({ label: label(model), width: EVEN })),
             { label: "Cel mai mic scor", width: "minmax(0, 1.4fr)", align: "left" as const },
-            { label: "Abilitatea lui", width: EVEN },
+            { label: "Câștig față de frecvențe", width: EVEN },
           ]}
           rows={comparison.results.map((r) => [
             leagueCell(r.code, r.name),
@@ -732,8 +723,8 @@ function Leagues({ league, leagues, onLeague }: { league: League; leagues: Leagu
           ])}
         />
         <p className="caption table-note">
-          Scorul Brier (mai mic e mai bine). Abilitatea: partea din scorul Brier al frecvențelor trecute pe care o elimină
-          modelul.
+          Scorul Brier (mai mic e mai bine). Câștigul față de frecvențe: partea din scorul Brier al frecvențelor trecute pe
+          care o elimină cel mai bun model.
         </p>
       </section>
       <section className="card">

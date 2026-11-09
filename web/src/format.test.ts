@@ -72,11 +72,10 @@ describe("the clubs' names on screen", () => {
   });
 });
 
-describe("the stadiums' names on screen", () => {
-  it("puts English stadium names in Romanian and leaves the others", async () => {
-    const { stadiumName } = await import("./format");
-    expect(stadiumName("Mestalla Stadium")).toBe("Stadionul Mestalla");
-    expect(stadiumName("Old Trafford")).toBe("Old Trafford");
-    expect(stadiumName("Stade Vélodrome")).toBe("Stade Vélodrome");
+describe("clubs in the order of their shown names", () => {
+  it("sorts by the name on screen, not the data's short name", async () => {
+    const { byShownName } = await import("./format");
+    // "Atlético Madrid", "Barcelona", "Real Betis", "Real Sociedad" on screen
+    expect(byShownName(["Betis", "Barcelona", "Ath Madrid", "Sociedad"])).toEqual(["Ath Madrid", "Barcelona", "Betis", "Sociedad"]);
   });
 });

@@ -14,8 +14,8 @@ import { ColumnsHead, MatchRow } from "../components/MatchRow";
 import { Problem } from "../components/Problem";
 import { SkeletonCard } from "../components/Skeleton";
 import { StadiumPhoto } from "../components/StadiumPhoto";
-import { integer, number, seasonText, stadiumName, teamName } from "../format";
-import { HIGHLIGHT } from "../theme";
+import { byShownName, number, seasonText, teamName } from "../format";
+import { themeFor } from "../theme";
 import type { Favourite, Forecast, League, TeamPage, TeamRecord } from "../types";
 import { MODEL_LABELS } from "../types";
 
@@ -49,7 +49,7 @@ export function Team({ league, season, team, favourite, ready, onChoice, onOpenM
 
   useEffect(() => {
     let live = true;
-    api.season(league.code, season).then((found) => live && setTeams(found.teams));
+    api.season(league.code, season).then((found) => live && setTeams(byShownName(found.teams)));
     return () => {
       live = false;
     };
@@ -80,7 +80,7 @@ export function Team({ league, season, team, favourite, ready, onChoice, onOpenM
     };
   }, [league.code, league.prepared, page?.team, page?.season, ready]);
 
-  const accent = HIGHLIGHT;
+  const accent = themeFor(league.code).accent;
   const isFavourite = !!page && favourite?.competition === league.code && favourite.team === page.team;
   return (
     <div className="team-screen">
@@ -99,7 +99,7 @@ export function Team({ league, season, team, favourite, ready, onChoice, onOpenM
           Echipă
         </label>
         <select id="team-name" value={page?.team ?? ""} onChange={(event) => onChoice(event.target.value, season)}>
-          {[...teams].sort((a, b) => teamName(a).localeCompare(teamName(b), "ro")).map((item) => (
+          {teams.map((item) => (
             <option key={item} value={item}>
               {teamName(item)}
             </option>
@@ -129,11 +129,10 @@ export function Team({ league, season, team, favourite, ready, onChoice, onOpenM
               </span>
               <span className="team-facts">
                 {page.record.points} puncte din {page.record.played} meciuri · golaveraj{" "}
-                {page.record.goal_difference > 0 ? "+" : ""}
-                {page.record.goal_difference}
-                {latestRating(page) !== null && ` · rating Elo ${integer(Math.round(latestRating(page) as number))}`}
+                {page.record.goals_for - page.record.goals_against > 0 ? "+" : ""}
+                {page.record.goals_for - page.record.goals_against}
               </span>
-              {page.stadium && <span className="stadium-name">{stadiumName(page.stadium).startsWith("Stadionul ") ? stadiumName(page.stadium) : `Stadion: ${page.stadium}`}</span>}
+              {page.stadium && <span className="stadium-name">Stadion: {page.stadium}</span>}
             </div>
             <button
               className={`button${isFavourite ? "" : " primary"}`}
@@ -218,13 +217,6 @@ export function Team({ league, season, team, favourite, ready, onChoice, onOpenM
       )}
     </div>
   );
-}
-
-/** The club's latest Elo rating in the page's season, if it played. */
-export function latestRating(page: TeamPage): number | null {
-  const season = page.elo.find((item) => item.season === page.season);
-  const points = season?.points ?? [];
-  return points.length ? points[points.length - 1].rating : null;
 }
 
 /** The season before ``season`` in the league's list, if any. */
@@ -315,7 +307,7 @@ function MatchesCard({
   onOpenMatch: (forecast: Forecast) => void;
 }) {
   const [all, setAll] = useState(false);
-  const [model] = useChosenModel(); // the model chosen on Meciuri or Predicții
+  const [model] = useChosenModel(); // the model chosen on Meciuri, Clasament or Predicții
   useEffect(() => setAll(false), [page.team, page.season]);
   if (!prepared || matches === null) {
     return (
