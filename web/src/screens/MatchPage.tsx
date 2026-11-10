@@ -13,7 +13,7 @@ import { FormSquares } from "../components/FormSquares";
 import { CheckIcon, CrossIcon } from "../components/Icons";
 import { isPending } from "../components/MatchRow";
 import { Problem } from "../components/Problem";
-import { ProbabilityBar } from "../components/ProbabilityBar";
+import { ProbabilityBar, segmentRole } from "../components/ProbabilityBar";
 import { SkeletonCard } from "../components/Skeleton";
 import { ScoreGrid } from "../components/ScoreGrid";
 import { StadiumPhoto } from "../components/StadiumPhoto";
@@ -138,23 +138,30 @@ function ordered(predictions: Prediction[]): Prediction[] {
   return MODELS.map((model) => predictions.find((p) => p.model === model)).filter(Boolean) as Prediction[];
 }
 
+/** A legend key's colour: as the first model's bar, or home/draw/away without a model. */
+function keyRole(prediction: Prediction | undefined, outcome: Prediction["most_likely"]): string {
+  if (prediction) return segmentRole(prediction, outcome);
+  return { H: "home", D: "draw", A: "away" }[outcome];
+}
+
 function ModelsCard({ page }: { page: Page }) {
   const { forecast } = page;
   const predictions = ordered(forecast.predictions);
   return (
     <section className="card models-card">
       <h2>Ce spun modelele</h2>
+      {/* the bars in their order, each key in the colour of the first model's bar */}
       <div className="bar-legend">
         <span>
-          <i className="key home" />
+          <i className={`key ${keyRole(predictions[0], "H")}`} />
           {teamName(forecast.home_team)} câștigă
         </span>
         <span>
-          <i className="key draw" />
+          <i className={`key ${keyRole(predictions[0], "D")}`} />
           Egal
         </span>
         <span>
-          <i className="key away" />
+          <i className={`key ${keyRole(predictions[0], "A")}`} />
           {teamName(forecast.away_team)} câștigă
         </span>
       </div>

@@ -22,7 +22,6 @@ from app.services.labels import (
     country_label,
     model_label,
     outcome_label,
-    team_abbreviation,
 )
 
 
@@ -97,27 +96,6 @@ def test_outcomes_and_measures_have_romanian_names():
     assert set(MEASURE_LABELS) == set(Measure)
     with pytest.raises(KeyError):
         outcome_label("X")
-
-
-@pytest.mark.parametrize(
-    ("team", "expected"),
-    [
-        ("Barcelona", "BAR"),
-        ("Real Madrid", "RMA"),
-        ("Man United", "MUN"),
-        ("Nott'm Forest", "NFO"),
-        ("Paris SG", "PSG"),
-        ("Ajaccio GFCO", "AGF"),
-        ("Bari", "BAR"),
-    ],
-)
-def test_teams_are_abbreviated_as_on_a_scoreboard(team, expected):
-    assert team_abbreviation(team) == expected
-
-
-def test_a_team_name_without_letters_is_refused():
-    with pytest.raises(ValueError, match="needs letters"):
-        team_abbreviation("123 ")
 
 
 def test_every_league_has_a_romanian_country():

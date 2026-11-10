@@ -23,7 +23,7 @@ from app.services.predictions import (
 )
 from app.services.preferences import FavouriteTeam, Preferences
 from app.services.teams import FIRST_SEASON_NAME, GROUP_NAMES, NO_STATISTICS_NAME, TeamService
-from app.services.updates import summary_text, unmatched_text, updated_text
+from app.services.updates import summary_text
 from app.statistics.team_statistics import TeamResult
 from tests.conftest import LIVE_PLAYED, LIVE_SEASON
 
@@ -545,14 +545,6 @@ def test_an_update_is_described_in_romanian():
         "calendar care nu au putut fi recunoscute, cu meciurile lor lăsate deoparte: La Liga "
         "(Real Charlie)."
     )
-    assert unmatched_text(("A", "B")).endswith("potrivite cu siguranță: A, B.")
-
-
-def test_the_time_of_an_update_is_shown_in_the_local_time_zone():
-    moment = datetime(2026, 10, 15, 13, 5, tzinfo=UTC)
-    local = moment.astimezone()
-
-    assert updated_text(moment) == f"{local:%d.%m.%Y}, {local:%H:%M}"
 
 
 # --- the matches screen (Phase 19) ---

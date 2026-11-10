@@ -97,7 +97,7 @@ Scriptul se oprește dacă fontul Kanit nu se încarcă, pentru că atunci sigla
 - **Ligile** au steagul rotund al țării lor, ca în listele LiveScore și OneFootball: Anglia, Spania, Italia, Germania și Franța (`flag_pixmap`). Steagurile țărilor nu aparțin nimănui. Siglele ligilor sunt mărci înregistrate și nu sunt folosite.
 - **Echipele** au stema clubului, din Faza 19, la decizia echipei. Stemele vin de pe Wikipedia, la cel mult 128 px (`app/ui/assets/crests/`, cu sursa fiecăreia în `sources.json`). Sunt mărci ale cluburilor, folosite doar ca să recunoști echipele, într-un proiect privat.
   - O stemă aproape în întregime întunecată (Juventus, Tottenham, Derby) stă pe un disc deschis (`#E9EDF5`), altfel ar dispărea pe fundalul închis.
-  - O echipă fără stemă are un ecuson rotund cu trei litere (BAR, RMA, MUN; `team_abbreviation`).
+  - O echipă fără stemă are un ecuson rotund cu trei litere (BAR, RMA, MUN; `abbreviation` în `web/src/format.ts`).
   - Echipa ta are un inel în accentul ligii în jurul stemei.
 - **Ligile** au în antet o imagine promoțională cu jucătorii lor, aleasă de echipă (sursa, DAZN, e scrisă în colțul antetului). Drepturile aparțin deținătorilor; imaginile rămân în proiectul privat (`docs/architecture.md`, secțiunea 16.5).
 

@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/kirillthehighest/Pitch-Sense/releases/latest"><img alt="Versiunea 0.9.1" src="https://img.shields.io/badge/versiunea-0.9.1-E8622A"></a>
+  <a href="https://github.com/kirillthehighest/Pitch-Sense/releases/latest"><img alt="Versiunea 1.0.0" src="https://img.shields.io/badge/versiunea-1.0.0-E8622A"></a>
   <img alt="macOS și Windows" src="https://img.shields.io/badge/macOS%20%7C%20Windows-desktop-555">
   <img alt="Python 3.14" src="https://img.shields.io/badge/Python-3.14-3776AB?logo=python&logoColor=white">
   <img alt="React și Tauri" src="https://img.shields.io/badge/React%20%2B%20Tauri-interfa%C8%9Ba-24C8DB?logo=tauri&logoColor=white">

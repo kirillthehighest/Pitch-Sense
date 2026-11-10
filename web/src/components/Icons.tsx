@@ -105,15 +105,6 @@ export function SimulateIcon() {
   );
 }
 
-export function KeyboardIcon() {
-  return (
-    <svg {...base}>
-      <rect x="3" y="6" width="18" height="12" rx="2.5" />
-      <path d="M7 10h.01M11 10h.01M15 10h.01M7 14h10" />
-    </svg>
-  );
-}
-
 export function StarIcon({ filled = false }: { filled?: boolean }) {
   return (
     <svg {...base} width={16} height={16} fill={filled ? "currentColor" : "none"}>

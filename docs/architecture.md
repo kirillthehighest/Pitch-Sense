@@ -789,7 +789,7 @@ Echipa a ales stemele reale, de pe Wikipedia, la rezoluție mică, păstrate doa
 - Stemele sunt micșorate la cel mult 128 px și salvate în `app/ui/assets/crests/<nume>.png` (3,2 MB pentru 209 echipe). `sources.json` păstrează, pentru fiecare, articolul și fișierul. Toate cele 209 de steme au fost verificate vizual pe o singură foaie (`--sheet`) și sunt ale cluburilor corecte.
 - Unealta se prezintă serverelor Wikimedia cu numele și adresa proiectului, face o cerere pe secundă și reîncearcă după un răspuns „prea multe cereri” (HTTP 429).
 - `team_badge` (`app/ui/brand.py`) desenează stema; o echipă fără stemă păstrează ecusonul cu trei litere. O stemă aproape în întregime întunecată (sub 10% din pixeli cu luminanța peste 0,25: Juventus, Tottenham, Derby, Swansea și alte șase) ar dispărea pe fundalul întunecat, așa că stă pe un disc deschis.
-- Stemele sunt mărci ale cluburilor. Sunt folosite doar ca să recunoști echipele, într-un proiect universitar privat, iar ecranul Analiză → Surse spune asta.
+- Stemele sunt mărci ale cluburilor. Sunt folosite doar ca să recunoști echipele, într-un proiect universitar nonprofitabil, iar ecranul Analiză → Surse spune asta.
 
 ### 16.5. Imaginile ligilor
 
@@ -1331,6 +1331,10 @@ Echipa a cerut versiunea 0.9.1 (2026-11-10), publicată pe GitHub (`v0.9.1`), cu
 
 - macOS: `.dmg` de 91 MB, cu baza de date reconstruită (100 de sezoane valide) și sezonul în desfășurare descărcat pe 2026-11-10; semnătura aplicației trece `codesign --verify --deep --strict`; autoverificarea serverului trece din `dist/` și din imaginea `.dmg`; trec cele 799 de teste Python și cele 47 ale interfeței web.
 - Windows (GitHub Actions): trec aceleași 799 de teste Python și 47 ale interfeței web; programul de instalare are 72 MB; autoverificarea trece în pachet și după instalare; serverul instalat are toate ligile gata la 4,9 s după pornire, iar cel pornit de fereastra instalată la 9,3 s după deschiderea ei. Ecranele nu au putut fi privite pe mașina de construire.
+
+### 23.6. Versiunea 1.0.0
+
+La cererea echipei, barele din „Ce spun modelele” nu mai colorează partea gazdelor, ci rolul fiecărui rezultat pentru model: echipa pe care mizează în culoarea ligii, echipa care pierde după el în alb, egalul în gri (`segmentRole` în `ProbabilityBar.tsx`); legenda rămâne cea simplă, în ordinea barelor: „Gazda câștigă · Egal · Oaspetele câștigă”, cu numele echipelor. Nota despre imagini din Analiză → Surse spune acum că sunt folosite „doar în acest proiect universitar nonprofitabil”. Varianta numită 0.9.2 a fost publicată, la decizia echipei, ca versiunea 1.0.0; ramura `design-1.0` (trei treceri de critică, 29, 29 și 28 din 40) a rămas nefolosită.
 
 ## 24. Setul de date și perioadele
 

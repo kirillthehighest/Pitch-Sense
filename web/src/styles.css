@@ -127,11 +127,6 @@ img { display: block; }
 }
 .problem p { margin: 0; line-height: 1.5; }
 .problem details { margin-top: 6px; color: var(--muted); font-size: 13px; }
-.stale-note {
-  display: flex; align-items: center; gap: 16px; padding: 12px 16px 12px 18px; border-radius: 14px;
-  background: var(--surface); border: 1px solid var(--line);
-}
-.stale-note p { margin: 0; flex: 1; line-height: 1.5; color: #d9d9df; }
 
 /* Cards and controls */
 .card { background: var(--surface); border: 1px solid var(--edge); border-radius: var(--radius-card); padding: 22px 24px; }
@@ -570,6 +565,9 @@ button.standings-row:hover { background: var(--surface-high); }
 .key.home, .segment.home { background: var(--accent); color: var(--accent-ink); }
 .key.draw, .segment.draw { background: #3a3a42; color: #fff; }
 .key.away, .segment.away { background: #e6e6eb; color: var(--night); }
+/* a model's bar: the side it backs in the accent, the side it expects to lose light, the draw dark */
+.key.pick, .segment.pick { background: var(--accent); color: var(--accent-ink); font-weight: 800; }
+.key.other, .segment.other { background: #e6e6eb; color: var(--night); }
 .model-block { padding: 14px 0; border-top: 1px solid rgba(255, 255, 255, 0.055); display: flex; flex-direction: column; gap: 9px; }
 .model-block p { margin: 0; line-height: 1.5; }
 .model-head { display: flex; align-items: center; gap: 9px; }
@@ -634,20 +632,6 @@ button.standings-row:hover { background: var(--surface-high); }
 .score-grid .cell.actual { box-shadow: 0 0 0 2px var(--text); position: relative; z-index: 1; font-weight: 800; }
 .actual-score { margin: 14px 0 0; padding: 10px 12px; border-radius: 12px; background: var(--surface-high); line-height: 1.5; }
 
-/* The models' record of the season on Meciuri */
-.track-models { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
-.track-model {
-  display: flex; flex-direction: column; gap: 6px; padding: 14px 16px; border-radius: 16px; text-align: left;
-  background: var(--surface); border: 1px solid var(--edge); transition: background 120ms;
-}
-button.track-model:hover { background: var(--surface-high); }
-.track-name { display: flex; align-items: center; gap: 8px; font-weight: 600; color: #d9d9df; }
-.track-name i { width: 9px; height: 9px; border-radius: 50%; flex: none; }
-.track-lead { margin-left: auto; font-size: 11px; font-weight: 700; color: var(--muted); }
-.track-model strong { font-family: var(--display); font-size: 34px; font-weight: 800; line-height: 1; }
-.track-bar { height: 4px; border-radius: 2px; background: var(--surface-top); overflow: hidden; }
-.track-bar span { display: block; height: 100%; border-radius: 2px; }
-.track-note { margin: 0; }
 
 /* A day without matches */
 .empty-state { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding: 26px 28px; }
@@ -787,7 +771,6 @@ dialog.modal[open] { animation: rise 180ms cubic-bezier(0.2, 0.8, 0.2, 1); }
 }
 
 @media (max-width: 1240px) {
-  .tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .standings-row { grid-template-columns: 30px minmax(150px, 1fr) repeat(7, 38px) 46px 132px; }
   .standings-row .form-square { width: 22px; height: 22px; }
 }
@@ -800,7 +783,6 @@ dialog.modal[open] { animation: rise 180ms cubic-bezier(0.2, 0.8, 0.2, 1); }
   .matches-side { position: static; }
   .match-grid { grid-template-columns: minmax(0, 1fr); }
   .poisson-layout { grid-template-columns: minmax(0, 1fr); }
-  .track-models { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .projection-row { grid-template-columns: 30px minmax(140px, 1.2fr) 46px 58px 76px 62px 88px minmax(120px, 1.2fr); }
   .head-models { display: none; }
 }

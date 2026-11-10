@@ -29,7 +29,6 @@ MODEL_EXPLANATIONS = {
         "forma și șuturile pe poartă."
     ),
 }
-NO_POISSON = "Nu există o predicție Poisson pentru acest meci."
 
 
 # The K-Means profiles of a team page (the description itself is shown in Analiză)
@@ -195,8 +194,8 @@ SOURCES = (
 )
 IMAGES_NOTE = (
     "Imaginile au fost alese de echipă. Drepturile asupra lor, ale jucătorilor, siglelor și "
-    "sponsorilor aparțin deținătorilor lor; sunt folosite doar în acest proiect universitar privat "
-    "și nu se publică."
+    "sponsorilor aparțin deținătorilor lor; sunt folosite doar în acest proiect universitar "
+    "nonprofitabil."
 )
 
 

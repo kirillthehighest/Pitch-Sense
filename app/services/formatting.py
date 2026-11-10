@@ -7,22 +7,6 @@ on screen and in charts goes through these functions.
 
 from datetime import date
 
-WEEKDAYS = ("lun.", "mar.", "mie.", "joi", "vin.", "sâm.", "dum.")
-MONTHS = (
-    "ian.",
-    "feb.",
-    "mar.",
-    "apr.",
-    "mai",
-    "iun.",
-    "iul.",
-    "aug.",
-    "sept.",
-    "oct.",
-    "nov.",
-    "dec.",
-)
-
 
 def number(value: float | None, digits: int = 4) -> str:
     """A number with a decimal comma; ``None`` (not available) is shown as a dash."""
@@ -50,17 +34,6 @@ def integer(value: int) -> str:
 def date_text(day: date) -> str:
     """A date as day.month.year: 26.10.2025."""
     return day.strftime("%d.%m.%Y")
-
-
-def short_date_text(day: date) -> str:
-    """A day as the matches screen names it: "sâm. 17 oct."."""
-    return f"{WEEKDAYS[day.weekday()]} {day.day} {MONTHS[day.month - 1]}"
-
-
-def day_name(day: date, today: date) -> str:
-    """ "Azi", "Mâine" or "Ieri" for the days around ``today``, otherwise the short date."""
-    names = {-1: "Ieri", 0: "Azi", 1: "Mâine"}
-    return names.get((day - today).days, short_date_text(day))
 
 
 def season_text(season: str) -> str:

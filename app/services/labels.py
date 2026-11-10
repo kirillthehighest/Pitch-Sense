@@ -19,7 +19,6 @@ MODEL_LABELS = {
     BOOKMAKERS: "Casele de pariuri",
 }
 OUTCOME_LABELS = {"H": "Victorie gazde", "D": "Egal", "A": "Victorie oaspeți"}
-RESULT_LETTERS = {"W": "V", "D": "E", "L": "Î"}  # victorie, egal, înfrângere
 COUNTRY_LABELS = {"E0": "Anglia", "SP1": "Spania", "I1": "Italia", "D1": "Germania", "F1": "Franța"}
 MEASURE_LABELS = {
     Measure.BRIER: "scor Brier",
@@ -41,18 +40,6 @@ def outcome_label(code: str) -> str:
 def country_label(code: str) -> str:
     """The country of a league, in Romanian; an unknown league has none."""
     return COUNTRY_LABELS.get(code, "")
-
-
-def team_abbreviation(team: str) -> str:
-    """Three capital letters for a team, as on a scoreboard: Barcelona -> BAR, Real Madrid -> RMA,
-    Man United -> MUN, Nott'm Forest -> NFO. Letters only; a short name keeps what it has."""
-    words = ["".join(c for c in word if c.isalpha()) for word in team.split()]
-    words = [word for word in words if word]
-    if not words:
-        raise ValueError(f"a team name needs letters: {team!r}")
-    if len(words) == 1:
-        return words[0][:3].upper()
-    return (words[0][0] + words[1][:2]).upper()
 
 
 # The types of match of the comparison's breakdown, in the order of MATCHUP_TYPES
