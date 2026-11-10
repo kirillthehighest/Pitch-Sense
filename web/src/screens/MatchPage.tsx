@@ -28,7 +28,7 @@ interface Props {
   favourite: string | null;
   onBack: () => void;
   onTeam: (code: string, team: string, season: string) => void;
-  chosen: string; // the chosen league, whose colours the page wears
+  chosen: string; // the chosen league, whose accent the Poisson scores wear
 }
 
 export function MatchPage({ matchKey, leagues, favourite, onBack, onTeam, chosen }: Props) {
@@ -74,15 +74,12 @@ export function MatchPage({ matchKey, leagues, favourite, onBack, onTeam, chosen
       {page && league && (
         <>
           <MatchHead page={page} league={league} favourite={favourite} onTeam={openTeam} />
-          {/* two rows of two cards, each pair as tall as each other: no empty corner */}
+          {/* two cards as tall as each other, then the Poisson model's scores across the page */}
           <div className="match-grid">
             <ModelsCard page={page} />
             <TeamsCard page={page} favourite={favourite} onTeam={openTeam} />
           </div>
-          <div className="poisson-row">
-            <PoissonCard page={page} />
-            {page.poisson && <ScoresCard page={page} chosen={chosen} />}
-          </div>
+          <PoissonCard page={page} chosen={chosen} />
         </>
       )}
     </div>
@@ -247,7 +244,7 @@ function TeamsCard({ page, favourite, onTeam }: { page: Page; favourite: string 
   );
 }
 
-function PoissonCard({ page }: { page: Page }) {
+function PoissonCard({ page, chosen }: { page: Page; chosen: string }) {
   const { forecast, poisson } = page;
   if (!poisson) {
     return (
@@ -257,11 +254,11 @@ function PoissonCard({ page }: { page: Page }) {
       </section>
     );
   }
-  const largest = poisson.top_scores[0]?.probability ?? 1;
   const [homeGoals, awayGoals] = poisson.expected_goals;
   return (
     <section className="card poisson-card">
       <h2>Scoruri probabile · Poisson</h2>
+      <div className="poisson-layout">
         <div className="poisson-side">
           <div className="expected-goals">
             <div>
@@ -278,6 +275,7 @@ function PoissonCard({ page }: { page: Page }) {
             <ActualScore grid={poisson.grid} home={forecast.home_goals as number} away={forecast.away_goals as number} />
           )}
           <h3>Cele mai probabile scoruri</h3>
+          <p className="caption">Bara plină înseamnă {percent(FULL_BAR, 0)}.</p>
           <div className="top-scores">
             {poisson.top_scores.map((score) => (
               <div key={`${score.home}-${score.away}`} className="top-score">
@@ -285,34 +283,32 @@ function PoissonCard({ page }: { page: Page }) {
                   {score.home}–{score.away}
                 </strong>
                 <span className="track">
-                  <span style={{ width: `${(100 * score.probability) / largest}%` }} />
+                  {/* on a fixed scale, so a 10% score looks like half a bar, not a certainty */}
+                  <span
+                    style={{
+                      width: `${Math.min(100, (100 * score.probability) / FULL_BAR)}%`,
+                      background: "var(--accent)",
+                    }}
+                  />
                 </span>
                 <span>{percent(score.probability)}</span>
               </div>
             ))}
           </div>
         </div>
+        <ScoreGrid
+          grid={poisson.grid}
+          home={teamName(forecast.home_team)}
+          away={teamName(forecast.away_team)}
+          accent={themeFor(chosen).accent}
+          actual={forecast.result !== null ? [forecast.home_goals as number, forecast.away_goals as number] : null}
+        />
+      </div>
     </section>
   );
 }
 
-/** Every score from 0–0 to 6–6, under the cards above; the score that happened is ringed. */
-function ScoresCard({ page, chosen }: { page: Page; chosen: string }) {
-  const { forecast, poisson } = page;
-  if (!poisson) return null;
-  return (
-    <section className="card scores-card">
-      <h2>Șansa fiecărui scor, de la 0–0 la 6–6</h2>
-      <ScoreGrid
-        grid={poisson.grid}
-        home={teamName(forecast.home_team)}
-        away={teamName(forecast.away_team)}
-        accent={themeFor(chosen).accent}
-        actual={forecast.result !== null ? [forecast.home_goals as number, forecast.away_goals as number] : null}
-      />
-    </section>
-  );
-}
+const FULL_BAR = 0.2; // the share a full top-score bar stands for
 
 /** The score that happened, as the Poisson model saw it: its chance and its rank among all scores. */
 function ActualScore({ grid, home, away }: { grid: number[][]; home: number; away: number }) {

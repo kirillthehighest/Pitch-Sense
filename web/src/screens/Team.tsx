@@ -38,6 +38,10 @@ interface Props {
   onAnalysis: () => void;
 }
 
+// K-Means groups by six values per match; the chart can draw only two of them
+const GROUPS_NOTE =
+  "Grupurile vin din șase valori pe meci (goluri, șuturi pe poartă, puncte, acasă și în deplasare); graficul arată doar două, așa că un centru (×) poate părea departe de echipele lui.";
+
 export function Team({ league, season, team, favourite, ready, onChoice, onOpenMatch, onFavourite, onAnalysis }: Props) {
   const [page, setPage] = useState<TeamPage | null>(null);
   const [teams, setTeams] = useState<string[]>([]);
@@ -46,6 +50,19 @@ export function Team({ league, season, team, favourite, ready, onChoice, onOpenM
   const [view, setView] = useState<"elo" | "groups">("elo");
   const [earlier, setEarlier] = useState<TeamPage | null>(null); // the last finished season's groups
   useEffect(() => setEarlier(null), [league.code, season, team]);
+  // a season in progress has no groups yet: show the last finished season's at once
+  const previous = page?.in_progress && !page.groups ? previousSeason(league.seasons, page.season) : null;
+  useEffect(() => {
+    if (view !== "groups" || !previous || !page) return;
+    let current = true;
+    api
+      .team(league.code, previous, page.team)
+      .then((found) => current && setEarlier(found))
+      .catch(() => current && setEarlier(null));
+    return () => {
+      current = false;
+    };
+  }, [view, previous, league.code, page]);
 
   useEffect(() => {
     let live = true;
@@ -174,13 +191,12 @@ export function Team({ league, season, team, favourite, ready, onChoice, onOpenM
                 <>
                   <div className="chart-note">
                     <span className="caption">
-                      Grupurile sezonului {seasonText(earlier.season)}, ultimul încheiat
+                      Sezonul {seasonText(page.season)} e în desfășurare, așa că grupurile sunt ale sezonului{" "}
+                      {seasonText(earlier.season)}, ultimul încheiat.
                     </span>
-                    <button className="link" onClick={() => setEarlier(null)}>
-                      Înapoi la {seasonText(page.season)}
-                    </button>
                   </div>
                   <GroupsChart groups={earlier.groups} team={earlier.team} accent={accent} />
+                  <p className="caption">{GROUPS_NOTE}</p>
                 </>
               )}
               {view === "groups" &&
@@ -188,27 +204,11 @@ export function Team({ league, season, team, favourite, ready, onChoice, onOpenM
                 (page.groups ? (
                   <>
                     <GroupsChart groups={page.groups} team={page.team} accent={accent} />
-                    <p className="caption">
-                      Grupurile vin din șase valori pe meci, așa că o echipă poate sta mai aproape de centrul altui grup pe
-                      aceste două axe.
-                    </p>
+                    <p className="caption">{GROUPS_NOTE}</p>
                   </>
                 ) : (
                   <div className="chart-message">
                     <p className="caption">{page.groups_problem}</p>
-                    {page.in_progress && previousSeason(league.seasons, page.season) && (
-                      <button
-                        className="button"
-                        onClick={() =>
-                          api
-                            .team(league.code, previousSeason(league.seasons, page.season) as string, page.team)
-                            .then(setEarlier)
-                            .catch(() => setEarlier(null))
-                        }
-                      >
-                        Vezi grupurile din {seasonText(previousSeason(league.seasons, page.season) as string)}
-                      </button>
-                    )}
                   </div>
                 ))}
             </Suspense>

@@ -1313,6 +1313,18 @@ După acceptarea fazei (2026-11-09), echipa a cerut versiunea 0.9.0, publicată 
 - Windows (GitHub Actions): trec aceleași 802 teste Python și 48 ale interfeței web; programul de instalare are 72 MB; autoverificarea trece în pachet și după instalare; serverul instalat are toate ligile gata la 5,4 s după pornire, iar cel pornit de fereastra instalată la 9,5 s după deschiderea ei. Ecranele nu au putut fi privite pe mașina de construire.
 - Capturile din `docs/images/` sunt făcute din aplicația construită pentru macOS, cu datele din 2026-11-09. O fereastră acoperită de alte ferestre nu își redesenează uneori meniul lateral (rămâne evidențiat ecranul anterior); capturile au fost făcute cu fereastra în față.
 
+### 23.4. După versiunea 0.9.0 (2026-11-10)
+
+La cererea echipei:
+
+- Scorurile probabile Poisson și grila tuturor scorurilor stau din nou într-un singur card, ca în 0.7.0, în culoarea ligii alese; barele scorurilor au o scară fixă (bara plină înseamnă 20%).
+- Între echipele unui meci care urmează stă din nou „vs”, ca în aplicațiile de profil: scorul cel mai probabil al alegerii (`likely_score`, din Faza 27) a fost scos, pentru că un scor exact are de obicei doar 8–14% șanse și, pus între echipe, se citea ca un rezultat; scorurile probabile rămân pe pagina meciului, în cardul Poisson. Scorurile se scriu peste tot cu „–”, un meci fără oră anunțată are „–:–” estompat în coloana orei, iar barele modelelor își scriu procentul de la 6% în sus și își numesc rezultatele pentru cititorul de ecran.
+- Pe Echipe, un sezon în desfășurare arată direct grupurile K-Means ale ultimului sezon încheiat; fiecare grup are și o formă, iar centrul își poartă numele.
+- Tasta / deschide căutarea fără să scrie „/” în ea; textele nu lasă un singur cuvânt pe ultimul rând (`text-wrap: pretty`).
+- Explicațiile din Predicții au fost rescrise mai simplu, cu un reper: cât ar nimeri cine alege mereu gazdele.
+
+Cinci analize `/impeccable critique` au dat 29, 29, 28, 28 și 28 din 40. Câteva propuneri ale lor au fost încercate și apoi respinse de echipă, care le-a găsit prea complicate sau neprofesioniste: raționamente cu calcule pentru fiecare model (inclusiv unul al regresiei logistice din efectele caracteristicilor), o culoare mai ștearsă pentru alegerile sub 50%, un card „Bilanțul sezonului” pe ecranul principal și o grilă Poisson în culoarea modelului sau în gri. „Ce spun modelele” a rămas ca în 0.7.0: barele gazde/egal/oaspeți și câte o propoziție despre ce urmărește fiecare model; dovezile stau în Predicții și Analiză.
+
 ## 24. Setul de date și perioadele
 
 Sursa datelor este Football-Data.co.uk: cinci ligi (Premier League, La Liga, Serie A, Bundesliga, Ligue 1), fiecare cu 20 de sezoane încheiate, 2006/07–2025/26 (36.197 de meciuri). Perioadele sunt aceleași pentru toate ligile. Sezonul în desfășurare (2026/27) este descărcat separat și nu face parte din evaluare (secțiunea 15).

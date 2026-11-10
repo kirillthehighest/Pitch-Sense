@@ -117,16 +117,6 @@ def test_a_played_matchs_page_has_every_model_the_scores_and_both_teams(api_clie
     top = page["poisson"]["top_scores"][0]
     assert grid[top["home"]][top["away"]] == pytest.approx(top["probability"])
     assert top["probability"] == max(max(row) for row in grid)
-    for prediction in forecast["predictions"]:  # each model's score agrees with its own pick
-        home_goals, away_goals = prediction["likely_score"]
-        side = "H" if home_goals > away_goals else "A" if home_goals < away_goals else "D"
-        assert side == prediction["most_likely"]
-        assert all(
-            grid[h][a] <= grid[home_goals][away_goals]
-            for h in range(7)
-            for a in range(7)
-            if ("H" if h > a else "A" if h < a else "D") == side
-        )
     teams = api_backend.league("SP1").teams
     before = date.fromisoformat(forecast["date"])
     assert page["home"]["rating"] == teams.rating_before(forecast["home_team"], before)

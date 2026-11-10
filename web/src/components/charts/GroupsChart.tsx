@@ -5,7 +5,7 @@
 import { CartesianGrid, Scatter, ScatterChart, Tooltip, XAxis, YAxis, ZAxis } from "recharts";
 import { number, teamName } from "../../format";
 import type { GroupPoint, Groups } from "../../types";
-import { AXIS, axisLine, GRID, GROUP_COLOURS, SURFACE, TEXT, tick } from "./chartStyle";
+import { AXIS, axisLine, GRID, GROUP_COLOURS, GROUP_SHAPES, SURFACE, TEXT, tick } from "./chartStyle";
 
 function GroupTooltip({ active, payload, names }: { active?: boolean; payload?: { payload: GroupPoint }[]; names: Record<string, string> }) {
   if (!active || !payload?.length) return null;
@@ -21,15 +21,21 @@ function GroupTooltip({ active, payload, names }: { active?: boolean; payload?: 
   );
 }
 
-function Cross({ cx = 0, cy = 0, fill }: { cx?: number; cy?: number; fill?: string }) {
+/** A group's centre: a cross with the group's name beside it. */
+function Cross({ cx = 0, cy = 0, fill, label }: { cx?: number; cy?: number; fill?: string; label: string }) {
   const size = 7;
   return (
-    <path
-      d={`M${cx - size},${cy - size}L${cx + size},${cy + size}M${cx + size},${cy - size}L${cx - size},${cy + size}`}
-      stroke={fill}
-      strokeWidth={3}
-      strokeLinecap="round"
-    />
+    <g>
+      <path
+        d={`M${cx - size},${cy - size}L${cx + size},${cy + size}M${cx + size},${cy - size}L${cx - size},${cy + size}`}
+        stroke={fill}
+        strokeWidth={3}
+        strokeLinecap="round"
+      />
+      <text x={cx + 12} y={cy - 10} fill={TEXT} fontSize={12} fontWeight={700} paintOrder="stroke" stroke={SURFACE} strokeWidth={4}>
+        {label}
+      </text>
+    </g>
   );
 }
 
@@ -78,7 +84,8 @@ export function GroupsChart({ groups, team, accent }: Props) {
         <div className="legend">
           {order.map((group) => (
             <span key={group}>
-              <i style={{ background: GROUP_COLOURS[group] }} /> {groups.names[String(group)]}
+              <i className={`shape-${GROUP_SHAPES[group as keyof typeof GROUP_SHAPES]}`} style={{ background: GROUP_COLOURS[group] }} />{" "}
+              {groups.names[String(group)]}
             </span>
           ))}
           <span>
@@ -116,7 +123,7 @@ export function GroupsChart({ groups, team, accent }: Props) {
             key={`centre-${group}`}
             data={groups.centres.filter((centre) => centre.group === group)}
             fill={GROUP_COLOURS[group]}
-            shape={<Cross />}
+            shape={<Cross label={groups.names[String(group)]} />}
             isAnimationActive={false}
           />
         ))}
@@ -125,6 +132,7 @@ export function GroupsChart({ groups, team, accent }: Props) {
             key={group}
             data={groups.teams.filter((point) => point.group === group && point.team !== team)}
             fill={GROUP_COLOURS[group]}
+            shape={GROUP_SHAPES[group as keyof typeof GROUP_SHAPES]}
             stroke={SURFACE}
             strokeWidth={1.5}
             isAnimationActive={false}

@@ -74,8 +74,8 @@ export function FeaturedMatch({ forecast, day, league, model, favourite, onOpen 
               {prediction.most_likely === outcome && prediction.hit !== null && <HitMark hit={prediction.hit} />}
             </span>
           ))}
-        <button className="button primary" onClick={() => onOpen(forecast)}>
-          Vezi meciul
+        <button className="button open" onClick={() => onOpen(forecast)}>
+          Vezi meciul ›
         </button>
       </div>
     </LeagueImageCard>

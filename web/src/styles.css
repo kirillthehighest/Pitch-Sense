@@ -137,6 +137,7 @@ img { display: block; }
 .card { background: var(--surface); border: 1px solid var(--edge); border-radius: var(--radius-card); padding: 22px 24px; }
 .card h2 { margin: 0 0 14px; font-size: 18px; font-weight: 700; }
 .caption { color: var(--muted); font-size: 13px; }
+.caption, p { text-wrap: pretty; } /* no last word alone on its line */
 .pill {
   height: 36px; padding: 0 16px; border-radius: 18px; background: var(--surface-high); color: var(--muted);
   font-weight: 600; transition: background 120ms, color 120ms;
@@ -275,6 +276,9 @@ select, input[type="date"] {
 .outcome.chosen { background: var(--accent); color: var(--accent-ink); }
 .outcome.chosen.actual { box-shadow: inset 0 0 0 2px var(--accent-ink); }
 .featured-actions .button { margin-left: 6px; }
+/* the card's way in is white, so the accent stays the model's pick */
+.featured-actions .button.open { background: #fff; color: var(--night); border-color: #fff; }
+.featured-actions .button.open:hover { background: #e6e6eb; }
 
 /* The matches screen */
 .matches-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 22px; align-items: start; }
@@ -360,7 +364,7 @@ button.standings-row:hover { background: var(--surface-high); }
 .predictions-screen { display: flex; flex-direction: column; gap: 16px; }
 .review-summary { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); gap: 16px; }
 .big-number { display: flex; align-items: baseline; gap: 14px; }
-.big-number strong { font-family: var(--display); font-size: 64px; font-weight: 800; line-height: 1; color: var(--accent-text); }
+.big-number strong { font-family: var(--display); font-size: 64px; font-weight: 800; line-height: 1; color: var(--text); }
 .big-number span { color: var(--muted); font-weight: 600; }
 .review-score .caption, .review-results > .caption, .review-sure > .caption { margin: 14px 0 0; line-height: 1.5; }
 .review-sure { grid-column: 1 / -1; }
@@ -369,8 +373,10 @@ button.standings-row:hover { background: var(--surface-high); }
 .sure-tile { display: flex; flex-direction: column; gap: 4px; padding: 4px 20px; border-left: 1px solid var(--line); }
 .sure-tile:first-child { border-left: 0; padding-left: 0; }
 .sure-tile strong { font-family: var(--display); font-size: 36px; font-weight: 800; line-height: 1.05; }
-.sure-tile.chosen strong { color: var(--accent-text); }
 .sure-tile.chosen .caption:first-child { color: var(--text); font-weight: 700; }
+/* under 30 matches a share is still noise: smaller and muted, so it never reads as proof */
+.sure-tile.few strong { color: var(--muted); font-size: 28px; }
+.review-reference { margin: 2px 0 10px; color: var(--text); font-size: 14px; }
 .result-line { display: grid; grid-template-columns: 150px minmax(0, 1fr) 48px 72px; align-items: center; gap: 12px; min-height: 40px; }
 .result-line > span:first-child { font-weight: 600; }
 .result-line strong { text-align: right; font-variant-numeric: tabular-nums; }
@@ -555,7 +561,7 @@ button.standings-row:hover { background: var(--surface-high); }
   height: 28px; padding: 0 12px; border-radius: 14px; display: inline-flex; align-items: center;
   font-size: 12px; font-weight: 700; background: rgba(255, 255, 255, 0.14); color: #fff;
 }
-.state.upcoming { background: var(--accent); color: var(--accent-ink); }
+.state.upcoming { background: #fff; color: var(--night); }
 
 .match-grid { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 18px; align-items: start; }
 .bar-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: -4px 0 14px; color: var(--muted); font-size: 12px; font-weight: 600; }
@@ -565,7 +571,7 @@ button.standings-row:hover { background: var(--surface-high); }
 .key.draw, .segment.draw { background: #3a3a42; color: #fff; }
 .key.away, .segment.away { background: #e6e6eb; color: var(--night); }
 .model-block { padding: 14px 0; border-top: 1px solid rgba(255, 255, 255, 0.055); display: flex; flex-direction: column; gap: 9px; }
-.model-block p { margin: 0; line-height: 1.55; font-size: 14px; color: #d9d9df; max-width: 70ch; } /* the reasoning: readable on a projector */
+.model-block p { margin: 0; line-height: 1.5; }
 .model-head { display: flex; align-items: center; gap: 9px; }
 .model-head strong { font-size: 15px; }
 .model-dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
@@ -574,7 +580,7 @@ button.standings-row:hover { background: var(--surface-high); }
 .verdict-pill.hit { background: var(--hit); color: var(--night); }
 .verdict-pill.miss { background: transparent; color: var(--muted); box-shadow: inset 0 0 0 1.5px var(--line); }
 .probability-bar { display: flex; height: 30px; border-radius: 9px; overflow: hidden; gap: 2px; background: var(--surface); }
-.segment { display: inline-flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; min-width: 40px; flex-basis: 0; } /* every chance printed */
+.segment { display: inline-flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; min-width: 0; flex-basis: 0; }
 .segment.likely { font-weight: 800; }
 .verdict { margin: 14px 0 6px; font-weight: 700; line-height: 1.5; }
 .models-card > .caption:last-child { margin: 8px 0 0; line-height: 1.5; }
@@ -611,7 +617,7 @@ button.standings-row:hover { background: var(--surface-high); }
 .top-score strong { font-family: var(--display); font-size: 20px; font-weight: 700; }
 .top-score > span:last-child { text-align: right; font-weight: 600; }
 .track { height: 8px; border-radius: 4px; background: var(--surface-high); overflow: hidden; }
-.track span { display: block; height: 100%; border-radius: 4px; background: var(--accent); }
+.track span { display: block; height: 100%; border-radius: 4px; background: #e6e6eb; }
 .score-grid-box { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .score-grid-away { padding-left: 52px; }
 .score-grid-body { display: flex; gap: 8px; min-width: 0; }
@@ -691,7 +697,7 @@ button.projection-row:hover { background: var(--surface-high); }
 .projection-row strong { font-weight: 800; font-size: 15px; }
 .places-head { text-align: left !important; padding-left: 14px; }
 .places { display: flex; gap: 2px; height: 22px; padding-left: 14px; }
-.places i { flex: 1; border-radius: 3px; background: var(--accent); min-width: 3px; }
+.places i { flex: 1; border-radius: 3px; background: #e6e6eb; min-width: 3px; }
 .places i.edge { margin-right: 4px; } /* after the last Champions League place, before relegation */
 
 /* Analiză: the finding a tab opens with, the diagrams, the details */
@@ -810,11 +816,8 @@ main.screen:focus { outline: none; }
 .pill.today { flex: none; height: 38px; }
 .state.pending { background: rgba(255, 255, 255, 0.14); color: #fff; }
 
-/* Phase 27: the likely score of the pick between the teams of a coming match, outlined, never filled */
-.score.likely { background: transparent; box-shadow: inset 0 0 0 1.5px #3c3c45; color: var(--muted); font-size: 16px; }
-.columns-head.with-likely { grid-template-columns: 58px minmax(0, 1fr) auto; gap: 14px; justify-content: stretch; }
-.columns-likely { text-align: center; }
-.columns-chips { display: grid; grid-template-columns: repeat(3, 56px); gap: 6px; }
+/* a coming match: "vs" between the teams, quiet, so it never reads as a score */
+.score.vs { background: transparent; color: var(--muted); font-family: inherit; font-size: 13px; font-weight: 600; }
 /* Phase 27: the data's age among the side bar's tools */
 .side-status { margin: -2px 8px 6px 44px; color: var(--muted); font-size: 12px; line-height: 1.45; }
 .side-status.stale { color: var(--text); } /* a fact, not the pick: never in the league's accent */
@@ -842,8 +845,6 @@ main.screen:focus { outline: none; }
 .teams-card { display: flex; flex-direction: column; }
 .teams-card .compare { flex: 1; display: flex; flex-direction: column; justify-content: space-between; }
 .teams-card .compare-row { flex: 1; }
-.poisson-row { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); gap: 18px; align-items: stretch; }
-@media (max-width: 1100px) { .poisson-row { grid-template-columns: minmax(0, 1fr); } }
 .loading-note { margin: 0; text-align: center; }
 /* No empty corners (Phase 27): cards side by side share their height. On a team page the match
    list takes the height of the column beside it and scrolls inside, instead of running past it. */
@@ -852,3 +853,9 @@ main.screen:focus { outline: none; }
 .team-grid > .matches-card { height: 0; min-height: 100%; display: flex; flex-direction: column; }
 .team-grid > .matches-card .match-list { flex: 1; min-height: 0; overflow-y: auto; }
 .team-grid > .matches-card .match-list > * { flex-shrink: 0; } /* rows keep their height and scroll */
+
+/* the groups chart's legend keys take their group's shape */
+.legend i.shape-circle { border-radius: 50%; }
+.legend i.shape-triangle { border-radius: 0; clip-path: polygon(50% 0, 100% 100%, 0 100%); }
+.legend i.shape-diamond { border-radius: 0; clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); }
+.legend i.shape-square { border-radius: 2px; }

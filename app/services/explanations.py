@@ -5,14 +5,11 @@ K-Means profiles are; in Analiză how the algorithms work and where the data and
 from."""
 
 import json
-from dataclasses import dataclass
 from datetime import timedelta
-
-import numpy as np
 
 from app.data.competitions import competition
 from app.prediction.outputs import ModelName
-from app.services.formatting import date_text, integer, number, percent, quantity
+from app.services.formatting import date_text
 from app.services.images import CRESTS_DIR, LEAGUE_PHOTOS_DIR, STADIUMS_DIR
 from app.services.labels import model_label, outcome_label
 from app.services.predictions import MatchForecast
@@ -33,146 +30,6 @@ MODEL_EXPLANATIONS = {
     ),
 }
 NO_POISSON = "Nu există o predicție Poisson pentru acest meci."
-
-FORM_POINTS = {"W": 3, "D": 1, "L": 0}
-# What else the logistic regression weighs besides the values its sentence lists
-LOGISTIC_OTHERS = "golaverajul și șuturile pe poartă din ultimele meciuri acasă și în deplasare"
-
-
-@dataclass(frozen=True, slots=True)
-class Side:
-    """How one team came into a match, as its sentences use it."""
-
-    rating: float  # Elo rating before the match
-    points: int  # league points so far this season
-    played: int
-    form: tuple[str, ...]  # the last five results, W, D or L, oldest first
-
-    @property
-    def per_match(self) -> float:
-        return self.points / self.played if self.played else 0.0
-
-    @property
-    def form_points(self) -> int:
-        return sum(FORM_POINTS[result] for result in self.form)
-
-
-PICK_NAMES = {"H": "victoria gazdelor", "D": "egalul", "A": "victoria oaspeților"}
-
-
-def pick_text(pick: str, chance: float) -> str:
-    """ "victoria gazdelor (49%)": the model's most likely result and its chance."""
-    return f"{PICK_NAMES[pick]} ({percent(chance, 0)})"
-
-
-def leader(home: float, away: float) -> str:
-    """Who is ahead on one value, in brackets after it."""
-    if home == away:
-        return "la egalitate"
-    return "în favoarea gazdelor" if home > away else "în favoarea oaspeților"
-
-
-def elo_reason(home: Side, away: Side, home_advantage: float, pick: str, chance: float) -> str:
-    """Elo: the two ratings, what the home ground adds and what the gap means for the result."""
-    # from the rounded values the sentence shows, so its arithmetic checks out on screen
-    lead = round(home.rating) + round(home_advantage) - round(away.rating)
-    side = "gazdelor" if lead >= 0 else "oaspeților"
-    gap = abs(lead)
-    meaning = (
-        "un meci echilibrat"
-        if gap < 50
-        else f"un avantaj clar al {side}"
-        if gap < 150
-        else f"un avantaj mare al {side}"
-    )
-    return (
-        "Elo măsoară puterea fiecărei echipe din toate rezultatele ei: gazdele au ratingul "
-        f"{integer(round(home.rating))}, oaspeții {integer(round(away.rating))}. Terenul "
-        f"propriu adaugă gazdelor {quantity(round(home_advantage), 'punct', 'puncte')}, deci "
-        f"diferența este de {quantity(gap, 'punct', 'puncte')} în favoarea {side}: {meaning}. "
-        f"Cel mai probabil rezultat: {pick_text(pick, chance)}."
-    )
-
-
-def poisson_reason(
-    expected_goals: tuple[float, float], grid: np.ndarray, pick: str, chance: float
-) -> str:
-    """Poisson: the goals it expects, the likeliest exact score and, when the most likely result is
-    a win, its likeliest score (``grid``: home goals x away goals)."""
-    home_goals, away_goals = np.indices(grid.shape)
-    allowed = {
-        "H": home_goals > away_goals,
-        "D": home_goals == away_goals,
-        "A": home_goals < away_goals,
-    }
-    best = np.unravel_index(np.argmax(np.where(allowed[pick], grid, -1.0)), grid.shape)
-    top = np.unravel_index(np.argmax(grid), grid.shape)
-    text = (
-        "Poisson estimează câte goluri va marca fiecare echipă, din golurile marcate și primite "
-        f"până acum: gazdele în medie {number(expected_goals[0], 2)}, oaspeții "
-        f"{number(expected_goals[1], 2)}. Cel mai probabil scor exact este {top[0]}–{top[1]} "
-        f"({percent(float(grid[top]))}), dar adunând toate scorurile, cel mai probabil rezultat "
-        f"este {pick_text(pick, chance)}"
-    )
-    if top != best:
-        text += f"; dacă se întâmplă, scorul cel mai probabil este {best[0]}–{best[1]}"
-    return text + "."
-
-
-def logistic_reason(home: Side, away: Side, pick: str, chance: float) -> str:
-    """Logistic regression: the differences it weighs, who each one favours, and what tips it when
-    they favour the other side (its learnt home advantage and the values it does not list)."""
-    listed = (
-        "Regresia logistică a învățat din meciurile trecute cât contează fiecare diferență dintre "
-        f"echipe. Aici: {number(home.per_match, 2)} față de {number(away.per_match, 2)} puncte pe "
-        f"meci în sezon ({leader(home.per_match, away.per_match)}), {home.form_points} față de "
-        f"{quantity(away.form_points, 'punct', 'puncte')} în ultimele 5 meciuri "
-        f"({leader(home.form_points, away.form_points)}), rating Elo "
-        f"{integer(round(home.rating))} față de {integer(round(away.rating))} "
-        f"({leader(home.rating, away.rating)})."
-    )
-    signs = [
-        np.sign(home.per_match - away.per_match),
-        np.sign(home.form_points - away.form_points),
-        np.sign(home.rating - away.rating),
-    ]
-    lead = sum(signs)
-    result = pick_text(pick, chance)
-    if (pick == "H" and lead < 0) or (pick == "A" and lead > 0):
-        other = "oaspeților" if pick == "H" else "gazdelor"
-        against = sum(1 for sign in signs if (sign < 0 if pick == "H" else sign > 0))
-        tip = (
-            f"Deși {against} din cele 3 cifre sunt în favoarea {other}, avantajul terenului "
-            f"propriu și {LOGISTIC_OTHERS} înclină balanța: {result}."
-        )
-    else:
-        tip = f"Adunate, cu avantajul terenului propriu, dau: {result}."
-    return f"{listed} {tip}"
-
-
-def match_explanations(
-    forecast: MatchForecast, home: Side, away: Side, home_advantage: float
-) -> dict[ModelName, str]:
-    """Each model's reasoning about this match; a model without a prediction keeps its general
-    sentence (``MODEL_EXPLANATIONS``)."""
-    found = dict(MODEL_EXPLANATIONS)
-    for model, prediction in forecast.predictions.items():
-        probabilities = prediction.probabilities
-        pick = probabilities.most_likely.value
-        chance = {
-            "H": probabilities.home_win,
-            "D": probabilities.draw,
-            "A": probabilities.away_win,
-        }[pick]
-        if model is ModelName.ELO:
-            found[model] = elo_reason(home, away, home_advantage, pick, chance)
-        elif model is ModelName.POISSON and prediction.score_distribution is not None:
-            expected = prediction.expected_goals or (0.0, 0.0)
-            grid = prediction.score_distribution.probabilities
-            found[model] = poisson_reason(expected, grid, pick, chance)
-        elif model is ModelName.LOGISTIC_REGRESSION:
-            found[model] = logistic_reason(home, away, pick, chance)
-    return found
 
 
 # The K-Means profiles of a team page (the description itself is shown in Analiză)

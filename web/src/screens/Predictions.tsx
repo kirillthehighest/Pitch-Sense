@@ -11,7 +11,7 @@ import { ColumnsHead, MatchRow } from "../components/MatchRow";
 import { Problem } from "../components/Problem";
 import { usePageKeys } from "../components/Shortcuts";
 import { SkeletonCard, SkeletonRows } from "../components/Skeleton";
-import { capitalised, integer, isoDay, MONTHS, parseDay, percent, quantity, seasonText } from "../format";
+import { integer, isoDay, MONTHS, parseDay, percent, quantity, seasonText } from "../format";
 import { nextModel } from "./Matches";
 import type { Forecast, League, Review, ReviewedMatch } from "../types";
 import { MODEL_LABELS, MODELS } from "../types";
@@ -173,10 +173,11 @@ export function Predictions({ league, season, favourite, ready, onSeason, onOpen
                   {integer(review.hits)} nimerite din {quantity(review.matches, "meci jucat", "meciuri jucate")}
                 </span>
               </div>
+              <HomeReference review={review} />
               <p className="caption">
-                Un meci e nimerit când rezultatul pe care modelul îl socotea cel mai probabil s-a și întâmplat.{" "}
-                {capitalised(quantity(review.surprises, "surpriză", "surprize"))}: rezultate cărora modelul le dădea sub{" "}
-                {percent(review.surprise_chance, 0)}.
+                Un meci e nimerit când s-a întâmplat rezultatul pe care modelul îl considera cel mai probabil. Surpriză
+                înseamnă un rezultat căruia modelul îi dădea sub {percent(review.surprise_chance, 0)}; au fost{" "}
+                {integer(review.surprises)}.
               </p>
             </section>
             <section className="card review-results">
@@ -193,7 +194,7 @@ export function Predictions({ league, season, favourite, ready, onSeason, onOpen
                   </span>
                 </div>
               ))}
-              <p className="caption">Cât din fiecare fel de rezultat a anticipat modelul.</p>
+              <p className="caption">Din meciurile terminate așa, câte a ghicit modelul.</p>
               <DrawNote review={review} />
             </section>
             <WhenSure review={review} />
@@ -252,26 +253,43 @@ export function Predictions({ league, season, favourite, ready, onSeason, onOpen
   );
 }
 
+const FEW = 30; // fewer matches than this: a share that can still swing a lot
+
+/** The simplest guess to compare with: always the home side, right in every home win. */
+function HomeReference({ review }: { review: Review }) {
+  const home = review.by_result.find((result) => result.result === "H");
+  if (!home) return null;
+  return (
+    <p className="review-reference">
+      Pentru comparație: cine ar alege mereu victoria gazdelor ar nimeri {percent(home.matches / review.matches, 0)}.
+    </p>
+  );
+}
+
 function WhenSure({ review }: { review: Review }) {
   return (
     <section className="card review-sure">
       <h2>Când modelul era sigur</h2>
       <div className="sure-tiles">
         {review.sure.map((sure) => (
-          <div key={sure.threshold} className={`sure-tile${sure.threshold === SURE ? " chosen" : ""}`}>
+          <div
+            key={sure.threshold}
+            className={`sure-tile${sure.threshold === SURE ? " chosen" : ""}${sure.matches < FEW ? " few" : ""}`}
+          >
             <span className="caption">Peste {percent(sure.threshold, 0)}</span>
             <strong>{sure.matches ? percent(sure.hits / sure.matches, 0) : "–"}</strong>
             <span className="caption">
               {integer(sure.hits)} din {quantity(sure.matches, "meci", "meciuri")}
+              {sure.matches > 0 && sure.matches < FEW && " · puține"}
             </span>
           </div>
         ))}
       </div>
       <p className="caption">
-        Meciurile în care modelul dădea rezultatului socotit cel mai probabil cel puțin pragul și cât din ele a nimerit.
-        Când e mai sigur, modelul greșește mai rar, dar asemenea meciuri sunt mai puține.
-        {review.sure.some((sure) => sure.matches > 0 && sure.matches < 30) &&
-          " Sub 30 de meciuri, procentul se poate schimba mult de la o săptămână la alta."}
+        Cât de des a nimerit modelul când era sigur pe el: „Peste 65%” înseamnă meciurile în care favoritul lui avea cel
+        puțin 65% șansă. De obicei, cu cât e mai sigur, cu atât greșește mai rar.
+        {review.sure.some((sure) => sure.matches > 0 && sure.matches < FEW) &&
+          " Sub 30 de meciuri, procentul e doar orientativ."}
       </p>
     </section>
   );
@@ -306,9 +324,8 @@ function DrawNote({ review }: { review: Review }) {
   if (!draws || draws.matches === 0 || draws.hits / draws.matches > 0.1) return null;
   return (
     <p className="caption draw-note">
-      De ce egalurile sunt ratate: chiar într-un meci echilibrat, una dintre victorii are de obicei o șansă puțin mai
-      mare decât egalul, așa că egalul iese rar „cel mai probabil”. Șansa lui rămâne însă în fiecare predicție, în
-      coloana Egal.
+      Egalul iese rar favorit: chiar și într-un meci echilibrat, o victorie are de obicei o șansă puțin mai mare. Șansa
+      egalului apare totuși în fiecare predicție.
     </p>
   );
 }

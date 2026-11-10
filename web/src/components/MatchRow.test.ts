@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Forecast, Prediction } from "../types";
-import { chipLabel, isPending, likelyScore, rowName, statusText } from "./MatchRow";
+import { chipLabel, isPending, rowName, statusText } from "./MatchRow";
 
 const prediction: Prediction = {
   model: "Elo",
@@ -11,7 +11,6 @@ const prediction: Prediction = {
   most_likely: "H",
   hit: true,
   expected_goals: null,
-  likely_score: null,
 };
 
 function match(changes: Partial<Forecast>): Forecast {
@@ -48,6 +47,7 @@ describe("a match of a list", () => {
     expect(statusText(match({ postponed: true }), false, "2026-11-06")).toBe("Amânat");
     expect(statusText(match({ result: "D", home_goals: 1, away_goals: 1 }))).toBe("Final");
     expect(statusText(match({}), true)).toBe("30.10");
+    expect(statusText(match({ kickoff: null }), false, "2026-10-29")).toBe("–:–"); // not announced yet
   });
 
   it("names each chip for a screen reader", () => {
@@ -60,19 +60,5 @@ describe("a match of a list", () => {
     expect(rowName(played, prediction)).toBe(
       "Villarreal 2–0 Espanyol, 30.10. Elo: Gazde 50%, cel mai probabil, nimerit, rezultatul meciului; Egal 30%; Oaspeți 20%",
     );
-  });
-});
-
-describe("the likely score between the teams", () => {
-  const elo: Prediction = { ...prediction, likely_score: [1, 0] };
-  const poisson: Prediction = { ...prediction, model: "Poisson", most_likely: "A", likely_score: [0, 1] };
-  const coming = match({ date: "2099-01-01", predictions: [elo, poisson] });
-
-  it("is the chosen model's own, for a match still to come only", () => {
-    expect(likelyScore(coming, "Elo")).toEqual([1, 0]);
-    expect(likelyScore(coming, "Poisson")).toEqual([0, 1]);
-    expect(likelyScore({ ...coming, result: "H", home_goals: 2, away_goals: 0 }, "Elo")).toBeNull();
-    expect(likelyScore({ ...coming, date: "2020-01-01" }, "Elo")).toBeNull(); // past, no result yet
-    expect(likelyScore({ ...coming, postponed: true }, "Elo")).toBeNull();
   });
 });

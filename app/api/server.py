@@ -16,13 +16,11 @@ from app.data.models import Outcome
 from app.evaluation.metrics import CONFIDENCE_THRESHOLDS
 from app.evaluation.periods import FIRST_EVALUATION_SEASON
 from app.prediction.outputs import ModelName
-from app.prediction.settings import settings_for
 from app.services.explanations import (
     GROUPS_IN_PROGRESS,
     GROUPS_NO_STATISTICS,
-    Side,
+    MODEL_EXPLANATIONS,
     knowledge_text,
-    match_explanations,
     status_text,
     verdict_text,
 )
@@ -259,10 +257,6 @@ def create_app(backend: Backend) -> FastAPI:
             rating=services.teams.rating_before(team, before),
         )
 
-    def side_of(state: schemas.TeamState) -> Side:
-        record = state.record
-        return Side(state.rating, record.points, record.played, tuple(state.form))
-
     @app.get("/api/match/{code}", response_model=schemas.MatchPage)
     def match(code: str, season: str, day: date, home: str, away: str) -> schemas.MatchPage:
         """Everything about one match: of the calendar, played or not, or any two teams of a
@@ -286,18 +280,12 @@ def create_app(backend: Backend) -> FastAPI:
         )
         home_state = team_state(services, season, home, before)
         away_state = team_state(services, season, away, before)
-        explanations = match_explanations(
-            forecast,
-            side_of(home_state),
-            side_of(away_state),
-            settings_for(code).elo.home_advantage,
-        )
         return schemas.MatchPage(
             forecast=schemas.forecast_of(forecast),
             status=status_text(forecast),
             knowledge=knowledge_text(forecast),
             verdict=verdict_text(forecast) if played and forecast.predictions else None,
-            explanations={str(model): text for model, text in explanations.items()},
+            explanations={str(model): text for model, text in MODEL_EXPLANATIONS.items()},
             poisson=None if poisson is None else schemas.poisson_of(poisson),
             before=before,
             teams=len(services.teams.standings(season)),

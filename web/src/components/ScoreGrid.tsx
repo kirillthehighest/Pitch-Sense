@@ -1,5 +1,5 @@
 // The Poisson probability of every score from 0–0 to 6–6, drawn as a grid:
-// home goals down, away goals across; each cell mixes the league's accent into the card by its
+// home goals down, away goals across; each cell mixes the chosen league's accent into the card by its
 // share of the most likely score, and its number takes the ink that reads on it. Once the match is
 // played, the score that happened is ringed (Phase 25).
 import { inkOn, mix } from "../colour";

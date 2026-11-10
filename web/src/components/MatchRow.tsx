@@ -31,7 +31,7 @@ export function statusText(forecast: Forecast, showDate = false, today?: string)
   if (forecast.result !== null) return "Final";
   if (forecast.postponed) return "Amânat";
   if (isPending(forecast, today)) return "Fără rezultat";
-  return forecast.kickoff ?? "–";
+  return forecast.kickoff ?? "–:–"; // not announced yet: a time still to come
 }
 
 /** What a screen reader says for one chip: "Gazde 45%, cel mai probabil, nimerit". */
@@ -83,22 +83,8 @@ export function Chips({ prediction, result = null }: { prediction: Prediction | 
   );
 }
 
-/** The names over the chips of a list: Gazde, Egal, Oaspeți, and, over a day's list with
- * coming matches, "scor probabil" over the outlined scores. */
-export function ColumnsHead({ stacked = false, extra = false, likely = false }: { stacked?: boolean; extra?: boolean; likely?: boolean }) {
-  if (likely) {
-    return (
-      <div className="columns-head with-likely" aria-hidden="true">
-        <span />
-        <span className="columns-likely" title="Cel mai probabil scor al rezultatului ales de model, după grila de scoruri Poisson">scor probabil</span>
-        <span className="columns-chips">
-          <span>Gazde</span>
-          <span>Egal</span>
-          <span>Oaspeți</span>
-        </span>
-      </div>
-    );
-  }
+/** The names over the chips of a list: Gazde, Egal, Oaspeți. */
+export function ColumnsHead({ stacked = false, extra = false }: { stacked?: boolean; extra?: boolean }) {
   return (
     <div className={`columns-head${stacked ? " stacked" : ""}${extra ? " with-extra" : ""}`} aria-hidden="true">
       {stacked && <span />}
@@ -135,30 +121,18 @@ function StackedTeam({ team, goals, favourite, won }: { team: string; goals: num
 export function rowName(forecast: Forecast, prediction: Prediction | undefined): string {
   const score = forecast.result !== null ? ` ${forecast.home_goals}–${forecast.away_goals}` : "";
   const day = `${forecast.date.slice(8, 10)}.${forecast.date.slice(5, 7)}`;
-  const likely = prediction ? likelyScore(forecast, prediction.model) : null;
-  const state = forecast.result !== null ? "" : `, ${statusText(forecast)}${likely ? `, scor probabil ${likely[0]}–${likely[1]}` : ""}`;
+  const status = statusText(forecast);
+  const state = forecast.result !== null ? "" : `, ${forecast.kickoff || forecast.postponed || isPending(forecast) ? status : "ora neanunțată"}`;
   const chances = prediction
     ? OUTCOMES.map((outcome) => chipLabel(prediction, outcome, forecast.result)).join("; ")
     : "fără predicție";
   return `${teamName(forecast.home_team)}${score} ${teamName(forecast.away_team)}, ${day}${state}. ${prediction?.label ?? ""}: ${chances}`;
 }
 
-/** The likeliest score of a model's pick for a match still to come; none once played or past its day. */
-export function likelyScore(forecast: Forecast, model: string): [number, number] | null {
-  if (forecast.result !== null || forecast.postponed || isPending(forecast)) return null;
-  return forecast.predictions.find((p) => p.model === model)?.likely_score ?? null;
-}
-
-/** Between the teams: the score once played, else the likeliest score of the model's pick, outlined. */
-function CentreScore({ forecast, model }: { forecast: Forecast; model: string }) {
-  if (forecast.result !== null) return <span className="score">{`${forecast.home_goals} : ${forecast.away_goals}`}</span>;
-  const likely = likelyScore(forecast, model);
-  if (!likely) return <span className="score empty">–</span>;
-  return (
-    <span className="score likely" title="Cel mai probabil scor al rezultatului ales de model">
-      {likely[0]} : {likely[1]}
-    </span>
-  );
+/** Between the teams: the score once played, else "vs". */
+function CentreScore({ forecast }: { forecast: Forecast }) {
+  if (forecast.result !== null) return <span className="score">{`${forecast.home_goals}–${forecast.away_goals}`}</span>;
+  return <span className="score vs">vs</span>;
 }
 
 export function MatchRow({ forecast, model, favourite, stacked = false, showDate = false, extra, onOpen }: Props) {
@@ -167,7 +141,7 @@ export function MatchRow({ forecast, model, favourite, stacked = false, showDate
   const pending = isPending(forecast);
   const upcoming = !played && !forecast.postponed && !pending;
   const status = (
-    <span className={`status${upcoming ? " upcoming" : ""}${pending ? " pending" : ""}`}>
+    <span className={`status${upcoming && (forecast.kickoff || showDate) ? " upcoming" : ""}${pending ? " pending" : ""}`}>
       {statusText(forecast, showDate)}
       {showDate && upcoming && forecast.kickoff && <small>{forecast.kickoff}</small>}
       {showDate && pending && <small>fără rezultat</small>}
@@ -194,7 +168,7 @@ export function MatchRow({ forecast, model, favourite, stacked = false, showDate
       {status}
       <span className="teams">
         <Team team={forecast.home_team} side="home" favourite={favourite === forecast.home_team} won={forecast.result === "H"} />
-        <CentreScore forecast={forecast} model={model} />
+        <CentreScore forecast={forecast} />
         <Team team={forecast.away_team} side="away" favourite={favourite === forecast.away_team} won={forecast.result === "A"} />
       </span>
       <Chips prediction={prediction} result={forecast.result} />

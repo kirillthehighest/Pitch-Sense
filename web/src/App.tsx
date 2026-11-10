@@ -162,7 +162,10 @@ export default function App() {
         // the page in the new league's colours, uncovered by the wave
         reveal(() => {
           applyTheme(code);
-          flushSync(() => setLeague(code));
+          flushSync(() => {
+            setLeague(code);
+            setMatch(null); // never another league's match in this league's colours
+          });
         });
       }
       api.setPreferences({ competition: code, favourite: preferences?.favourite ?? null }).then(setPreferences);
@@ -237,8 +240,9 @@ export default function App() {
   );
 
   // The page's keys: 1–5 choose a league, / finds a team, S simulates a match, ? lists them all
-  usePageKeys((key) => {
+  usePageKeys((key, event) => {
     const index = Number(key) - 1;
+    if (key === "/" || key === "?") event.preventDefault(); // or the key lands in the field it opens
     if (key === "Escape" && match) setMatch(null); // Esc leaves a match page (a dialog's Esc closes the dialog first)
     else if (Number.isInteger(index) && index >= 0 && index < leagues.length) chooseLeague(leagues[index].code);
     else if (key === "/") setSearch(true);
