@@ -1325,6 +1325,13 @@ La cererea echipei:
 
 Cinci analize `/impeccable critique` au dat 29, 29, 28, 28 și 28 din 40. Câteva propuneri ale lor au fost încercate și apoi respinse de echipă, care le-a găsit prea complicate sau neprofesioniste: raționamente cu calcule pentru fiecare model (inclusiv unul al regresiei logistice din efectele caracteristicilor), o culoare mai ștearsă pentru alegerile sub 50%, un card „Bilanțul sezonului” pe ecranul principal și o grilă Poisson în culoarea modelului sau în gri. „Ce spun modelele” a rămas ca în 0.7.0: barele gazde/egal/oaspeți și câte o propoziție despre ce urmărește fiecare model; dovezile stau în Predicții și Analiză.
 
+### 23.5. Versiunea 0.9.1
+
+Echipa a cerut versiunea 0.9.1 (2026-11-10), publicată pe GitHub (`v0.9.1`), cu capturi noi în README (Meciuri, pagina unui meci, scorurile Poisson, Predicții):
+
+- macOS: `.dmg` de 91 MB, cu baza de date reconstruită (100 de sezoane valide) și sezonul în desfășurare descărcat pe 2026-11-10; semnătura aplicației trece `codesign --verify --deep --strict`; autoverificarea serverului trece din `dist/` și din imaginea `.dmg`; trec cele 799 de teste Python și cele 47 ale interfeței web.
+- Windows (GitHub Actions): trec aceleași 799 de teste Python și 47 ale interfeței web; programul de instalare are 72 MB; autoverificarea trece în pachet și după instalare; serverul instalat are toate ligile gata la 4,9 s după pornire, iar cel pornit de fereastra instalată la 9,3 s după deschiderea ei. Ecranele nu au putut fi privite pe mașina de construire.
+
 ## 24. Setul de date și perioadele
 
 Sursa datelor este Football-Data.co.uk: cinci ligi (Premier League, La Liga, Serie A, Bundesliga, Ligue 1), fiecare cu 20 de sezoane încheiate, 2006/07–2025/26 (36.197 de meciuri). Perioadele sunt aceleași pentru toate ligile. Sezonul în desfășurare (2026/27) este descărcat separat și nu face parte din evaluare (secțiunea 15).
